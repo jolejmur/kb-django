@@ -1,0 +1,53 @@
+from django.shortcuts import redirect
+from django.urls import reverse, resolve, Resolver404
+from django.conf import settings
+
+class AuthenticationMiddleware:
+    """
+    Middleware to handle authentication redirections.
+
+    If a user is not authenticated and tries to access any URL other than login,
+    they will be redirected to the login page.
+
+    If a user is authenticated and tries to access the login page,
+    they will be redirected to their profile page.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # Skip this middleware for static and media files
+        if request.path.startswith(settings.STATIC_URL) or request.path.startswith(settings.MEDIA_URL):
+            return self.get_response(request)
+
+        # Try to resolve the URL to check if it's valid
+        try:
+            resolve(request.path)
+        except Resolver404:
+            # If URL is not valid and user is not authenticated, redirect to login
+            if not request.user.is_authenticated:
+                return redirect('accounts:login')
+
+        # If user is authenticated and tries to access login page, redirect to profile
+        if request.user.is_authenticated and request.path == reverse('accounts:login'):
+            return redirect('accounts:profile')
+
+        # If user is not authenticated and tries to access any page other than login,
+        # redirect to login page
+        if not request.user.is_authenticated and request.path != reverse('accounts:login'):
+            # Skip redirection for the admin login page
+            if not request.path.startswith('/admin/'):
+                return redirect('accounts:login')
+
+        # Always redirect to login page after logout
+        if request.path == reverse('accounts:logout'):
+            # Process the logout request first
+            response = self.get_response(request)
+            # Then redirect to login page if not already redirected
+            if response.status_code != 302:  # 302 is the status code for redirect
+                return redirect('accounts:login')
+            return response
+
+        response = self.get_response(request)
+        return response

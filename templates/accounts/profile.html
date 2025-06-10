@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %}Profile - Django CRM{% endblock %}
+
+{% block header %}User Profile{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                {% if user.profile_picture %}
+                    <img src="{{ user.profile_picture.url }}" alt="{{ user.username }}" class="img-fluid rounded-circle mb-3" style="width: 150px; height: 150px;">
+                {% else %}
+                    <i class="fas fa-user-circle fa-7x text-secondary mb-3"></i>
+                {% endif %}
+                <h4>{{ user.get_full_name|default:user.username }}</h4>
+                {% if user.role %}
+                    <span class="badge bg-primary">{{ user.role.name }}</span>
+                {% endif %}
+                <p class="text-muted mt-2">Member since: {{ user.date_joined|date:"F j, Y" }}</p>
+                <a href="{% url 'accounts:edit_profile' %}" class="btn btn-primary">Edit Profile</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Profile Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-sm-3">
+                        <h6 class="mb-0">Username</h6>
+                    </div>
+                    <div class="col-sm-9 text-secondary">
+                        {{ user.username }}
+                    </div>
+                </div>
+                <hr>
+                <div class="row mb-3">
+                    <div class="col-sm-3">
+                        <h6 class="mb-0">Full Name</h6>
+                    </div>
+                    <div class="col-sm-9 text-secondary">
+                        {{ user.get_full_name|default:"Not provided" }}
+                    </div>
+                </div>
+                <hr>
+                <div class="row mb-3">
+                    <div class="col-sm-3">
+                        <h6 class="mb-0">Email</h6>
+                    </div>
+                    <div class="col-sm-9 text-secondary">
+                        {{ user.email|default:"Not provided" }}
+                    </div>
+                </div>
+                <hr>
+                <div class="row mb-3">
+                    <div class="col-sm-3">
+                        <h6 class="mb-0">Phone</h6>
+                    </div>
+                    <div class="col-sm-9 text-secondary">
+                        {{ user.phone_number|default:"Not provided" }}
+                    </div>
+                </div>
+                <hr>
+                <div class="row mb-3">
+                    <div class="col-sm-3">
+                        <h6 class="mb-0">Last Login</h6>
+                    </div>
+                    <div class="col-sm-9 text-secondary">
+                        {{ user.last_login|date:"F j, Y, g:i a"|default:"Never" }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
