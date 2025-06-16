@@ -1,0 +1,147 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Módulos - Django CRM{% endblock %}
+
+{% block header %}Módulos{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header con botón de crear -->
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Módulos</h1>
+            <p class="text-gray-600 mt-1">Gestiona las áreas del sistema y sus permisos</p>
+        </div>
+        <a href="{% url 'accounts:module_create' %}"
+           class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center transition-colors">
+            <i class="fas fa-plus mr-2"></i>
+            Crear Módulo
+        </a>
+    </div>
+
+    <!-- Lista de módulos -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        {% if page_obj %}
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th class="text-left px-6 py-4 text-sm font-medium text-gray-900">Nombre del Módulo</th>
+                            <th class="text-left px-6 py-4 text-sm font-medium text-gray-900">Permisos</th>
+                            <th class="text-left px-6 py-4 text-sm font-medium text-gray-900">Navegación</th>
+                            <th class="text-left px-6 py-4 text-sm font-medium text-gray-900">Roles que lo usan</th>
+                            <th class="text-right px-6 py-4 text-sm font-medium text-gray-900">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for module in page_obj %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center">
+                                        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                                            {% if module.navigation.icon %}
+                                                <i class="{{ module.navigation.icon }} text-blue-600"></i>
+                                            {% else %}
+                                                <i class="fas fa-cube text-blue-600"></i>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">{{ module.name }}</p>
+                                            <p class="text-xs text-gray-500">ID: {{ module.id }}</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        {{ module.permissions.count }} permisos
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    {% if module.navigation %}
+                                        <div class="flex items-center text-sm text-gray-900">
+                                            {% if module.navigation.icon %}
+                                                <i class="{{ module.navigation.icon }} mr-2 text-gray-400"></i>
+                                            {% endif %}
+                                            {{ module.navigation.name }}
+                                        </div>
+                                        <p class="text-xs text-gray-500">{{ module.navigation.url }}</p>
+                                    {% else %}
+                                        <span class="text-xs text-gray-400">Sin navegación</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4">
+                                    {% if module.roles.count > 0 %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                            {{ module.roles.count }} roles
+                                        </span>
+                                    {% else %}
+                                        <span class="text-xs text-gray-400">No asignado</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <div class="flex items-center justify-end space-x-2">
+                                        <a href="{% url 'accounts:module_detail' module.pk %}"
+                                           class="text-gray-400 hover:text-gray-600 transition-colors"
+                                           title="Ver detalles">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'accounts:module_edit' module.pk %}"
+                                           class="text-blue-400 hover:text-blue-600 transition-colors"
+                                           title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{% url 'accounts:module_delete' module.pk %}"
+                                           class="text-red-400 hover:text-red-600 transition-colors"
+                                           title="Eliminar">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginación -->
+            {% if page_obj.has_other_pages %}
+                <div class="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                    <div class="text-sm text-gray-700">
+                        Mostrando {{ page_obj.start_index }} - {{ page_obj.end_index }} de {{ page_obj.paginator.count }} módulos
+                    </div>
+                    <div class="flex space-x-2">
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}"
+                               class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
+                                Anterior
+                            </a>
+                        {% endif %}
+
+                        <span class="px-3 py-1 bg-blue-600 text-white rounded text-sm">
+                            {{ page_obj.number }}
+                        </span>
+
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}"
+                               class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
+                                Siguiente
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-12">
+                <i class="fas fa-cube text-gray-300 text-6xl mb-4"></i>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No hay módulos</h3>
+                <p class="text-gray-500 mb-6">Comienza creando tu primer módulo para organizar las áreas del sistema.</p>
+                <a href="{% url 'accounts:module_create' %}"
+                   class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium inline-flex items-center">
+                    <i class="fas fa-plus mr-2"></i>
+                    Crear Primer Módulo
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
