@@ -18,11 +18,19 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.shortcuts import redirect
+
+def redirect_to_dashboard(request):
+    """Redirect root URL to dashboard if authenticated, otherwise to login"""
+    if request.user.is_authenticated:
+        return redirect('dashboard:profile')
+    return redirect('accounts:login')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('apps.core.urls')),
+    path('', redirect_to_dashboard, name='home'),
     path('accounts/', include('apps.accounts.urls')),
+    path('dashboard/', include('apps.dashboard.urls')),
 ]
 
 # Serve static and media files in development

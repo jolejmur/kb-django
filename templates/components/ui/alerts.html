@@ -1,0 +1,7 @@
+{% if messages %}
+    <div class="px-6 pt-4">
+        {% for message in messages %}
+            {% include 'components/ui/alert.html' with type=message.tags content=message %}
+        {% endfor %}
+    </div>
+{% endif %}

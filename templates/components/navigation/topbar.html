@@ -1,0 +1,24 @@
+
+<header class="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm">
+    <div class="flex items-center">
+        <h1 class="text-2xl font-bold text-gray-900">
+            {% block header %}Django CRM{% endblock %}
+        </h1>
+    </div>
+    
+    <!-- Header Right - User Menu -->
+    <div class="flex items-center space-x-4">
+        {% if user.is_authenticated %}
+            <!-- Notifications -->
+            {% include 'components/ui/notification_bell.html' %}
+            
+            <!-- User Avatar Dropdown -->
+            {% include 'components/user/user_dropdown.html' %}
+        {% else %}
+            <a href="{% url 'accounts:login' %}" 
+               class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                Login
+            </a>
+        {% endif %}
+    </div>
+</header>

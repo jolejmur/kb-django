@@ -10,7 +10,7 @@ class AuthenticationMiddleware:
     they will be redirected to the login page.
 
     If a user is authenticated and tries to access the login page,
-    they will be redirected to their profile page.
+    they will be redirected to their dashboard.
     """
 
     def __init__(self, get_response):
@@ -29,9 +29,9 @@ class AuthenticationMiddleware:
             if not request.user.is_authenticated:
                 return redirect('accounts:login')
 
-        # If user is authenticated and tries to access login page, redirect to profile
+        # If user is authenticated and tries to access login page, redirect to dashboard
         if request.user.is_authenticated and request.path == reverse('accounts:login'):
-            return redirect('accounts:profile')
+            return redirect('dashboard:profile')
 
         # If user is not authenticated and tries to access any page other than login,
         # redirect to login page
@@ -39,15 +39,6 @@ class AuthenticationMiddleware:
             # Skip redirection for the admin login page
             if not request.path.startswith('/admin/'):
                 return redirect('accounts:login')
-
-        # Always redirect to login page after logout
-        if request.path == reverse('accounts:logout'):
-            # Process the logout request first
-            response = self.get_response(request)
-            # Then redirect to login page if not already redirected
-            if response.status_code != 302:  # 302 is the status code for redirect
-                return redirect('accounts:login')
-            return response
 
         response = self.get_response(request)
         return response

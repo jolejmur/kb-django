@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     # Local apps
     'apps.core',
     'apps.accounts',
+    'apps.dashboard',
 ]
 
 MIDDLEWARE = [
@@ -129,5 +130,5 @@ AUTH_USER_MODEL = 'accounts.User'
 
 # Authentication settings
 LOGIN_URL = 'accounts:login'
-LOGIN_REDIRECT_URL = 'accounts:profile'
+LOGIN_REDIRECT_URL = 'dashboard:profile'
 LOGOUT_REDIRECT_URL = 'accounts:login'
