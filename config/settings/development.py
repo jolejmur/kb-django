@@ -10,9 +10,9 @@ DEBUG = True
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 # Additional development apps
-INSTALLED_APPS += [
-    'django_extensions',  # Uncomment if you install django-extensions
-]
+# INSTALLED_APPS += [
+#     'django_extensions',  # Uncomment if you install django-extensions
+# ]
 
 # Django Debug Toolbar (uncomment if you install django-debug-toolbar)
 # INSTALLED_APPS += ['debug_toolbar']

@@ -13,7 +13,7 @@ class ProfileEditForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'phone_number', 'profile_picture']
+        fields = ['first_name', 'last_name', 'email']
         widgets = {
             'first_name': forms.TextInput(attrs={
                 'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
@@ -23,27 +23,16 @@ class ProfileEditForm(forms.ModelForm):
                 'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
                 'placeholder': 'Enter your last name'
             }),
-            'phone_number': forms.TextInput(attrs={
+            'email': forms.EmailInput(attrs={
                 'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-                'placeholder': 'Enter your phone number'
-            }),
-            'profile_picture': forms.FileInput(attrs={
-                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-                'accept': 'image/*'
+                'placeholder': 'Enter your email'
             })
         }
         labels = {
             'first_name': 'First Name',
             'last_name': 'Last Name',
-            'phone_number': 'Phone Number',
-            'profile_picture': 'Profile Picture'
+            'email': 'Email Address'
         }
-
-    def clean_phone_number(self):
-        phone = self.cleaned_data.get('phone_number')
-        if phone and len(phone) > 15:
-            raise forms.ValidationError('Phone number must be 15 characters or less.')
-        return phone
 
 
 class CustomPasswordChangeForm(PasswordChangeForm):

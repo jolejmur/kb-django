@@ -161,7 +161,7 @@
                                                        value="{{ perm.id }}"
                                                        id="permission_{{ perm.id }}"
                                                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mt-1"
-                                                       {% if perm in form.permissions.value %}checked{% endif %}>
+                                                       {% if perm in form.permissions.value or perm in form.fields.permissions.initial %}checked{% endif %}>
                                                 <label for="permission_{{ perm.id }}" class="ml-2 text-sm text-gray-700">
                                                     <span class="font-medium">{{ perm.name }}</span>
                                                     <br>
@@ -183,6 +183,14 @@
                     {% if form.permissions.errors %}
                         <div class="mt-4 text-sm text-red-600">
                             {% for error in form.permissions.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    {% if form.non_field_errors %}
+                        <div class="mt-4 text-sm text-red-600">
+                            {% for error in form.non_field_errors %}
                                 <p>{{ error }}</p>
                             {% endfor %}
                         </div>

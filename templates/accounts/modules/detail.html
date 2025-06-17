@@ -32,12 +32,12 @@
                 </div>
             </div>
             <div class="flex space-x-3">
-                <a href="{% url 'accounts:permission_module_edit' module.pk %}"
+                <a href="{% url 'accounts:module_edit' module.pk %}"
                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center">
                     <i class="fas fa-edit mr-2"></i>
                     Editar
                 </a>
-                <a href="{% url 'accounts:permission_module_delete' module.pk %}"
+                <a href="{% url 'accounts:module_delete' module.pk %}"
                    class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center">
                     <i class="fas fa-trash mr-2"></i>
                     Eliminar
@@ -80,6 +80,17 @@
                             <label class="block text-sm font-medium text-gray-500 mb-1">Orden</label>
                             <p class="text-gray-900 font-medium">{{ navigation.order }}</p>
                         </div>
+                        {% if navigation.category %}
+                            <div>
+                                <label class="block text-sm font-medium text-gray-500 mb-1">Categoría</label>
+                                <div class="flex items-center">
+                                    {% if navigation.category.icon %}
+                                        <i class="{{ navigation.category.icon }} mr-2 text-{{ navigation.category.color }}-600"></i>
+                                    {% endif %}
+                                    <span class="text-gray-900 font-medium">{{ navigation.category.name }}</span>
+                                </div>
+                            </div>
+                        {% endif %}
                     </div>
                 {% else %}
                     <div class="text-center py-8">
@@ -162,7 +173,7 @@
                         <i class="fas fa-shield-alt text-gray-300 text-6xl mb-4"></i>
                         <h3 class="text-lg font-medium text-gray-900 mb-2">No hay permisos asignados</h3>
                         <p class="text-gray-500 mb-6">Este módulo no tiene permisos configurados.</p>
-                        <a href="{% url 'accounts:permission_module_edit' module.pk %}"
+                        <a href="{% url 'accounts:module_edit' module.pk %}"
                            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium inline-flex items-center">
                             <i class="fas fa-edit mr-2"></i>
                             Configurar Permisos

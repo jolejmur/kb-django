@@ -5,12 +5,13 @@ from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth import get_user_model
 from apps.accounts.models import MenuCategory, Navigation, Role
+from django.db import IntegrityError
 
 User = get_user_model()
 
 
 class Command(BaseCommand):
-    help = 'Crea la estructura de menú por defecto para el sistema'
+    help = 'Crea la estructura de menú por defecto para el sistema - SIN DUPLICADOS'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -20,54 +21,27 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        self.stdout.write(self.style.SUCCESS('🚀 Configurando estructura de menú por defecto...'))
+        self.stdout.write(self.style.SUCCESS('🚀 Configurando estructura de menú (SIN DUPLICADOS)...'))
 
-        # 1. Limpiar módulos existentes si están mal configurados
-        if options['force']:
-            self.clean_existing_modules()
-
-        # 2. Crear categorías por defecto
+        # 1. Crear categorías por defecto
         admin_category = self.create_admin_category(options['force'])
 
-        # 3. Crear módulos de administración reorganizados
+        # 2. Crear módulos de administración (SIN DUPLICADOS)
         self.create_admin_modules(admin_category)
 
-        # 4. Crear otras categorías básicas
+        # 3. Crear otras categorías básicas
         self.create_other_categories(options['force'])
 
-        # 5. Asignar todos los módulos al superadmin
+        # 4. Asignar todos los módulos al superadmin
         self.assign_modules_to_superadmin()
 
         self.stdout.write(
-            self.style.SUCCESS('✅ Estructura de menú configurada exitosamente!')
+            self.style.SUCCESS('✅ Estructura de menú configurada exitosamente (SIN DUPLICADOS)!')
         )
 
-    def clean_existing_modules(self):
-        """Limpia módulos mal configurados o duplicados"""
-        self.stdout.write("🧹 Limpiando módulos existentes...")
-
-        # Eliminar grupos que tienen nombres similares pero con IDs diferentes
-        problematic_names = [
-            'Gestión de Módulos',
-            'Gestión de Categorías',
-            'Gestión de Navegación',
-            'Gestión de Roles',
-            'Gestión de Usuarios',
-            'Asignación de Permisos'
-        ]
-
-        for name in problematic_names:
-            groups = Group.objects.filter(name=name)
-            if groups.count() > 1:
-                # Mantener solo el primero, eliminar duplicados
-                for group in groups[1:]:
-                    self.stdout.write(f"  🗑️  Eliminando duplicado: {group.name} (ID: {group.id})")
-                    group.delete()
-
     def create_admin_category(self, force=False):
-        """Crea la categoría de Administración del Sistema"""
+        """Crea la categoría de Administración del Sistema - SIN DUPLICADOS"""
         category_data = {
-            'name': 'ADMINISTRACIÓN DEL SISTEMA',
             'description': 'Gestión de módulos, roles, usuarios y configuración',
             'icon': 'fas fa-cogs',
             'color': 'red',
@@ -76,25 +50,27 @@ class Command(BaseCommand):
             'is_active': True
         }
 
+        # USAR get_or_create para evitar duplicados
         category, created = MenuCategory.objects.get_or_create(
-            name=category_data['name'],
+            name='ADMINISTRACIÓN DEL SISTEMA',  # Campo unique
             defaults=category_data
         )
 
         if created:
             self.stdout.write(f"  ✅ Categoría creada: {category.name}")
-        elif force:
-            for key, value in category_data.items():
-                setattr(category, key, value)
-            category.save()
-            self.stdout.write(f"  🔄 Categoría actualizada: {category.name}")
         else:
-            self.stdout.write(f"  ⏭️  Categoría ya existe: {category.name}")
+            if force:
+                for key, value in category_data.items():
+                    setattr(category, key, value)
+                category.save()
+                self.stdout.write(f"  🔄 Categoría actualizada: {category.name}")
+            else:
+                self.stdout.write(f"  ⏭️  Categoría ya existe: {category.name} (ID: {category.id})")
 
         return category
 
     def create_admin_modules(self, admin_category):
-        """Crea los módulos de administración del sistema organizados correctamente"""
+        """Crea los módulos de administración del sistema - SIN DUPLICADOS"""
 
         # Obtener content types para los permisos
         group_ct = ContentType.objects.get_for_model(Group)
@@ -105,7 +81,6 @@ class Command(BaseCommand):
         navigation_ct = ContentType.objects.get_for_model(Navigation)
 
         admin_modules = [
-            # 1. GESTIÓN DE MÓDULOS (Groups) - Solo permisos de Groups y Permissions
             {
                 'group_name': 'Gestión de Módulos',
                 'navigation': {
@@ -123,8 +98,6 @@ class Command(BaseCommand):
                     f'{permission_ct.app_label}.view_permission',
                 ]
             },
-
-            # 2. GESTIÓN DE CATEGORÍAS DEL MENÚ - Solo permisos de MenuCategory
             {
                 'group_name': 'Gestión de Categorías',
                 'navigation': {
@@ -141,8 +114,6 @@ class Command(BaseCommand):
                     f'{category_ct.app_label}.view_menucategory',
                 ]
             },
-
-            # 3. GESTIÓN DE NAVEGACIÓN - Solo permisos de Navigation
             {
                 'group_name': 'Gestión de Navegación',
                 'navigation': {
@@ -159,8 +130,6 @@ class Command(BaseCommand):
                     f'{navigation_ct.app_label}.view_navigation',
                 ]
             },
-
-            # 4. GESTIÓN DE ROLES - Solo permisos de Role
             {
                 'group_name': 'Gestión de Roles',
                 'navigation': {
@@ -177,8 +146,6 @@ class Command(BaseCommand):
                     f'{role_ct.app_label}.view_role',
                 ]
             },
-
-            # 5. GESTIÓN DE USUARIOS - Solo permisos de User + ver roles para asignación
             {
                 'group_name': 'Gestión de Usuarios',
                 'navigation': {
@@ -193,12 +160,9 @@ class Command(BaseCommand):
                     f'{user_ct.app_label}.change_user',
                     f'{user_ct.app_label}.delete_user',
                     f'{user_ct.app_label}.view_user',
-                    # Para poder asignar roles a usuarios
                     f'{role_ct.app_label}.view_role',
                 ]
             },
-
-            # 6. ASIGNACIÓN DE MÓDULOS A ROLES - Permisos para modificar roles y ver módulos
             {
                 'group_name': 'Asignación de Permisos',
                 'navigation': {
@@ -217,9 +181,9 @@ class Command(BaseCommand):
         ]
 
         for module_data in admin_modules:
-            # Usar get_or_create para evitar duplicados
+            # ✅ USAR get_or_create para evitar duplicados en Group
             group, group_created = Group.objects.get_or_create(
-                name=module_data['group_name']
+                name=module_data['group_name']  # Campo unique en auth_group
             )
 
             if group_created:
@@ -227,10 +191,7 @@ class Command(BaseCommand):
             else:
                 self.stdout.write(f"  ⏭️  Módulo ya existe: {group.name} (ID: {group.id})")
 
-            # Limpiar permisos existentes y asignar los nuevos
-            group.permissions.clear()
-
-            # Asignar permisos específicos
+            # Limpiar y asignar permisos específicos
             permissions_to_assign = []
             for perm_codename in module_data['permissions']:
                 try:
@@ -249,23 +210,26 @@ class Command(BaseCommand):
                 group.permissions.set(permissions_to_assign)
                 self.stdout.write(f"    📋 Asignados {len(permissions_to_assign)} permisos específicos")
 
-            # Crear o actualizar navegación
-            navigation, nav_created = Navigation.objects.get_or_create(
-                group=group,
-                defaults=module_data['navigation']
-            )
+            # ✅ CREAR O ACTUALIZAR NAVEGACIÓN (SIN DUPLICADOS)
+            try:
+                navigation, nav_created = Navigation.objects.get_or_create(
+                    group=group,  # Campo unique en Navigation
+                    defaults=module_data['navigation']
+                )
 
-            if nav_created:
-                self.stdout.write(f"    🔗 Navegación creada: {navigation.name}")
-            else:
-                # Actualizar navegación existente
-                for key, value in module_data['navigation'].items():
-                    setattr(navigation, key, value)
-                navigation.save()
-                self.stdout.write(f"    🔄 Navegación actualizada: {navigation.name}")
+                if nav_created:
+                    self.stdout.write(f"    🔗 Navegación creada: {navigation.name}")
+                else:
+                    # Actualizar navegación existente
+                    for key, value in module_data['navigation'].items():
+                        setattr(navigation, key, value)
+                    navigation.save()
+                    self.stdout.write(f"    🔄 Navegación actualizada: {navigation.name}")
+            except IntegrityError as e:
+                self.stdout.write(f"    ⚠️  Error de integridad en navegación: {e}")
 
     def create_other_categories(self, force=False):
-        """Crea otras categorías básicas del sistema"""
+        """Crea otras categorías básicas del sistema - SIN DUPLICADOS"""
         other_categories = [
             {
                 'name': 'DASHBOARDS',
@@ -302,21 +266,23 @@ class Command(BaseCommand):
         ]
 
         for cat_data in other_categories:
+            # ✅ USAR get_or_create para evitar duplicados
             category, created = MenuCategory.objects.get_or_create(
-                name=cat_data['name'],
-                defaults=cat_data
+                name=cat_data['name'],  # Campo unique
+                defaults={k: v for k, v in cat_data.items() if k != 'name'}
             )
 
             if created:
                 self.stdout.write(f"  ✅ Categoría creada: {category.name}")
             elif force:
                 for key, value in cat_data.items():
-                    setattr(category, key, value)
+                    if key != 'name':  # No cambiar el nombre (es unique)
+                        setattr(category, key, value)
                 category.save()
                 self.stdout.write(f"  🔄 Categoría actualizada: {category.name}")
 
     def assign_modules_to_superadmin(self):
-        """Asigna todos los módulos del sistema a los superadmins"""
+        """Asigna todos los módulos del sistema a los superadmins - SIN DUPLICADOS"""
         superadmins = User.objects.filter(is_superuser=True)
 
         if not superadmins.exists():
@@ -325,9 +291,9 @@ class Command(BaseCommand):
             )
             return
 
-        # Crear o obtener rol de superadmin
+        # ✅ CREAR O OBTENER ROL DE SUPERADMIN (SIN DUPLICADOS)
         superadmin_role, created = Role.objects.get_or_create(
-            name='Super Administrador',
+            name='Super Administrador',  # Campo unique
             defaults={
                 'description': 'Acceso completo a todas las funciones del sistema'
             }
@@ -335,6 +301,8 @@ class Command(BaseCommand):
 
         if created:
             self.stdout.write(f"  ✅ Rol creado: {superadmin_role.name}")
+        else:
+            self.stdout.write(f"  ⏭️  Rol ya existe: {superadmin_role.name} (ID: {superadmin_role.id})")
 
         # Asignar todos los grupos (módulos) al rol de superadmin
         all_groups = Group.objects.all()
