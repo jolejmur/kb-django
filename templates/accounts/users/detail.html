@@ -21,28 +21,54 @@
         <div class="flex items-center justify-between">
             <div class="flex items-center">
                 <div class="w-16 h-16 bg-green-100 rounded-xl flex items-center justify-center mr-4">
-                    <i class="fas fa-user text-green-600 text-2xl"></i>
+                    {% if user_obj.is_superuser %}
+                        <i class="fas fa-crown text-yellow-600 text-2xl"></i>
+                    {% else %}
+                        <i class="fas fa-user text-green-600 text-2xl"></i>
+                    {% endif %}
                 </div>
                 <div>
                     <h1 class="text-2xl font-bold text-gray-900">
                         {{ user_obj.get_full_name|default:user_obj.username }}
                     </h1>
                     <p class="text-gray-600">{{ user_obj.email|default:"Sin email" }}</p>
-                    {% if user_obj.role %}
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800 mt-2">
-                            <i class="fas fa-crown mr-2"></i>
-                            {{ user_obj.role.name }}
-                        </span>
-                    {% endif %}
+
+                    <div class="flex items-center space-x-2 mt-2">
+                        {% if user_obj.role %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
+                                <i class="fas fa-user-tag mr-2"></i>
+                                {{ user_obj.role.name }}
+                            </span>
+                        {% endif %}
+
+                        {% if user_obj.is_superuser %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                                <i class="fas fa-shield-alt mr-2"></i>
+                                SUPERADMIN PROTEGIDO
+                            </span>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
             <div class="flex space-x-3">
-                <a href="{% url 'accounts:user_edit' user_obj.pk %}"
-                   class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center">
-                    <i class="fas fa-edit mr-2"></i>
-                    Editar
-                </a>
-                {% if user_obj != user %}
+                <!-- ✅ PROTECCIÓN: Solo mostrar editar si se puede -->
+                {% if can_edit %}
+                    <a href="{% url 'accounts:user_edit' user_obj.pk %}"
+                       class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center">
+                        <i class="fas fa-edit mr-2"></i>
+                        Editar
+                    </a>
+                {% else %}
+                    <button disabled
+                            class="bg-gray-300 text-gray-500 px-4 py-2 rounded-lg font-medium cursor-not-allowed flex items-center"
+                            title="{% if user_obj.is_superuser %}Los superadministradores están protegidos{% else %}No tienes permisos{% endif %}">
+                        <i class="fas fa-ban mr-2"></i>
+                        Protegido
+                    </button>
+                {% endif %}
+
+                <!-- ✅ PROTECCIÓN: Solo mostrar eliminar si se puede -->
+                {% if can_delete %}
                     <a href="{% url 'accounts:user_delete' user_obj.pk %}"
                        class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center">
                         <i class="fas fa-trash mr-2"></i>
@@ -52,6 +78,24 @@
             </div>
         </div>
     </div>
+
+    <!-- ✅ PROTECCIÓN: Mostrar advertencia si es superadmin -->
+    {% if user_obj.is_superuser %}
+        <div class="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div class="flex">
+                <i class="fas fa-shield-alt text-yellow-400 mt-0.5 mr-3"></i>
+                <div>
+                    <h4 class="text-sm font-medium text-yellow-800 mb-1">Usuario Superadministrador Protegido</h4>
+                    <ul class="text-sm text-yellow-700 space-y-1">
+                        <li>• Este usuario tiene privilegios de superadministrador</li>
+                        <li>• Está protegido contra edición y eliminación por seguridad</li>
+                        <li>• Tiene acceso completo a todas las funciones del sistema</li>
+                        <li>• Solo puede verse su información, no modificarse</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    {% endif %}
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <!-- User Information -->
@@ -85,6 +129,25 @@
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
                             <i class="fas fa-times-circle mr-1"></i>
                             Inactivo
+                        </span>
+                    {% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-500 mb-1">Tipo de Usuario</label>
+                    {% if user_obj.is_superuser %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            <i class="fas fa-crown mr-1"></i>
+                            Superadministrador
+                        </span>
+                    {% elif user_obj.is_staff %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            <i class="fas fa-user-cog mr-1"></i>
+                            Staff
+                        </span>
+                    {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            <i class="fas fa-user mr-1"></i>
+                            Usuario Regular
                         </span>
                     {% endif %}
                 </div>
@@ -138,10 +201,12 @@
                     <div class="text-center py-8">
                         <i class="fas fa-crown text-gray-300 text-4xl mb-4"></i>
                         <p class="text-gray-500">Este usuario no tiene un rol asignado</p>
-                        <a href="{% url 'accounts:user_edit' user_obj.pk %}"
-                           class="text-purple-600 hover:text-purple-800 text-sm font-medium mt-2 inline-block">
-                            Asignar rol
-                        </a>
+                        {% if can_edit %}
+                            <a href="{% url 'accounts:user_edit' user_obj.pk %}"
+                               class="text-purple-600 hover:text-purple-800 text-sm font-medium mt-2 inline-block">
+                                Asignar rol
+                            </a>
+                        {% endif %}
                     </div>
                 </div>
             {% endif %}

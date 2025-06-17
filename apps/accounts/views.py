@@ -6,6 +6,7 @@ from django.contrib.auth.models import Group
 from django.core.paginator import Paginator
 from django.forms import ModelForm
 from django import forms
+from django.core.exceptions import ValidationError
 from .forms import ModuleForm, RoleForm, UserForm, UserCreateForm
 from .models import Role, MenuCategory, Navigation
 
@@ -22,6 +23,30 @@ def custom_logout(request):
 def is_admin(user):
     """Verifica si el usuario es administrador"""
     return user.is_superuser or user.is_staff
+
+
+def can_edit_user(target_user, current_user):
+    """Verifica si un usuario puede ser editado"""
+    # El superadmin NO puede ser editado por nadie (ni siquiera por él mismo)
+    if target_user.is_superuser:
+        return False
+
+    # Solo superadmins pueden editar otros usuarios
+    return current_user.is_superuser
+
+
+def can_delete_user(target_user, current_user):
+    """Verifica si un usuario puede ser eliminado"""
+    # El superadmin NUNCA puede ser eliminado
+    if target_user.is_superuser:
+        return False
+
+    # No puedes eliminarte a ti mismo
+    if target_user == current_user:
+        return False
+
+    # Solo superadmins pueden eliminar usuarios
+    return current_user.is_superuser
 
 
 # ============================================================
@@ -105,18 +130,24 @@ def module_delete(request, pk):
     module = get_object_or_404(Group, pk=pk)
 
     if request.method == 'POST':
-        roles_using_module = module.roles.all()
-        if roles_using_module.exists():
-            messages.error(
-                request,
-                f'No se puede eliminar el módulo porque está siendo usado por los siguientes roles: '
-                f'{", ".join([role.name for role in roles_using_module])}'
-            )
+        try:
+            # Verificar si se puede eliminar usando el método del modelo
+            if not module.can_be_deleted():
+                roles_using_module = module.roles.all()
+                messages.error(
+                    request,
+                    f'No se puede eliminar el módulo "{module.name}" porque está siendo usado por los siguientes roles: '
+                    f'{", ".join([role.name for role in roles_using_module])}'
+                )
+                return redirect('accounts:modules_list')
+
+            module.delete()
+            messages.success(request, 'Módulo eliminado exitosamente.')
             return redirect('accounts:modules_list')
 
-        module.delete()
-        messages.success(request, 'Módulo eliminado exitosamente.')
-        return redirect('accounts:modules_list')
+        except ValidationError as e:
+            messages.error(request, str(e))
+            return redirect('accounts:modules_list')
 
     context = {
         'module': module,
@@ -203,6 +234,14 @@ def role_edit(request, pk):
     """Editar un rol existente"""
     role = get_object_or_404(Role, pk=pk)
 
+    # ✅ VALIDACIÓN: Verificar si el rol se puede editar
+    if not role.can_be_edited():
+        messages.error(
+            request,
+            f'No se puede editar el rol "{role.name}" porque es un rol del sistema.'
+        )
+        return redirect('accounts:roles_list')
+
     if request.method == 'POST':
         form = RoleForm(request.POST, instance=role)
         if form.is_valid():
@@ -231,18 +270,30 @@ def role_delete(request, pk):
     role = get_object_or_404(Role, pk=pk)
 
     if request.method == 'POST':
-        users_with_role = role.users.all()
-        if users_with_role.exists():
-            messages.error(
-                request,
-                f'No se puede eliminar el rol porque está siendo usado por {users_with_role.count()} usuarios. '
-                f'Primero cambia el rol de estos usuarios.'
-            )
+        try:
+            # Usar el método del modelo que ya tiene las validaciones
+            if not role.can_be_deleted():
+                if role.is_system:
+                    messages.error(
+                        request,
+                        f'No se puede eliminar el rol "{role.name}" porque es un rol del sistema.'
+                    )
+                else:
+                    users_with_role = role.users.all()
+                    messages.error(
+                        request,
+                        f'No se puede eliminar el rol "{role.name}" porque está siendo usado por {users_with_role.count()} usuarios. '
+                        f'Primero cambia el rol de estos usuarios.'
+                    )
+                return redirect('accounts:roles_list')
+
+            role.delete()
+            messages.success(request, 'Rol eliminado exitosamente.')
             return redirect('accounts:roles_list')
 
-        role.delete()
-        messages.success(request, 'Rol eliminado exitosamente.')
-        return redirect('accounts:roles_list')
+        except ValidationError as e:
+            messages.error(request, str(e))
+            return redirect('accounts:roles_list')
 
     context = {
         'role': role,
@@ -276,7 +327,7 @@ def role_detail(request, pk):
 
 
 # ============================================================
-# VISTAS PARA USUARIOS
+# VISTAS PARA USUARIOS - CON PROTECCIÓN DE SUPERADMIN
 # ============================================================
 
 @login_required
@@ -324,11 +375,25 @@ def user_create(request):
 @login_required
 @user_passes_test(is_admin)
 def user_edit(request, pk):
-    """Editar un usuario existente"""
-    user = get_object_or_404(User, pk=pk)
+    """Editar un usuario existente - CON PROTECCIÓN DE SUPERADMIN"""
+    user_obj = get_object_or_404(User, pk=pk)
+
+    # ✅ PROTECCIÓN: Verificar si el usuario se puede editar
+    if not can_edit_user(user_obj, request.user):
+        if user_obj.is_superuser:
+            messages.error(
+                request,
+                f'No se puede editar al usuario "{user_obj.username}" porque es un superadministrador. Los superadministradores están protegidos.'
+            )
+        else:
+            messages.error(
+                request,
+                'No tienes permisos para editar este usuario.'
+            )
+        return redirect('accounts:users_list')
 
     if request.method == 'POST':
-        form = UserForm(request.POST, instance=user)
+        form = UserForm(request.POST, instance=user_obj)
         if form.is_valid():
             form.save()
             messages.success(request, 'Usuario actualizado exitosamente.')
@@ -336,11 +401,11 @@ def user_edit(request, pk):
         else:
             messages.error(request, 'Por favor corrige los errores del formulario.')
     else:
-        form = UserForm(instance=user)
+        form = UserForm(instance=user_obj)
 
     context = {
         'form': form,
-        'user_obj': user,
+        'user_obj': user_obj,
         'title': 'Editar Usuario',
         'action': 'Actualizar'
     }
@@ -351,14 +416,29 @@ def user_edit(request, pk):
 @login_required
 @user_passes_test(is_admin)
 def user_delete(request, pk):
-    """Eliminar un usuario"""
+    """Eliminar un usuario - CON PROTECCIÓN DE SUPERADMIN"""
     user_obj = get_object_or_404(User, pk=pk)
 
-    if request.method == 'POST':
-        if user_obj == request.user:
-            messages.error(request, 'No puedes eliminar tu propia cuenta.')
-            return redirect('accounts:users_list')
+    # ✅ PROTECCIÓN: Verificar si el usuario se puede eliminar
+    if not can_delete_user(user_obj, request.user):
+        if user_obj.is_superuser:
+            messages.error(
+                request,
+                f'No se puede eliminar al usuario "{user_obj.username}" porque es un superadministrador. Los superadministradores están protegidos.'
+            )
+        elif user_obj == request.user:
+            messages.error(
+                request,
+                'No puedes eliminar tu propia cuenta.'
+            )
+        else:
+            messages.error(
+                request,
+                'No tienes permisos para eliminar este usuario.'
+            )
+        return redirect('accounts:users_list')
 
+    if request.method == 'POST':
         user_obj.delete()
         messages.success(request, 'Usuario eliminado exitosamente.')
         return redirect('accounts:users_list')
@@ -384,6 +464,8 @@ def user_detail(request, pk):
         'user_obj': user_obj,
         'permissions': permissions,
         'title': f'Usuario: {user_obj.username}',
+        'can_edit': can_edit_user(user_obj, request.user),
+        'can_delete': can_delete_user(user_obj, request.user),
     }
 
     return render(request, 'accounts/users/detail.html', context)
@@ -503,9 +585,24 @@ def category_delete(request, pk):
     category = get_object_or_404(MenuCategory, pk=pk)
 
     if request.method == 'POST':
-        category.delete()
-        messages.success(request, 'Categoría eliminada exitosamente.')
-        return redirect('accounts:categories_list')
+        try:
+            # ✅ VALIDACIÓN: Verificar si se puede eliminar usando el método del modelo
+            if not category.can_be_deleted():
+                modules = category.get_modules()
+                messages.error(
+                    request,
+                    f'No se puede eliminar la categoría "{category.name}" porque tiene los siguientes módulos asignados: '
+                    f'{", ".join([module.name for module in modules])}'
+                )
+                return redirect('accounts:categories_list')
+
+            category.delete()
+            messages.success(request, 'Categoría eliminada exitosamente.')
+            return redirect('accounts:categories_list')
+
+        except ValidationError as e:
+            messages.error(request, str(e))
+            return redirect('accounts:categories_list')
 
     context = {
         'title': f'Eliminar Categoría: {category.name}',

@@ -1,5 +1,5 @@
 # apps/accounts/management/commands/setup_default_menu.py
-# REEMPLAZA COMPLETAMENTE el archivo existente
+# VERSIÓN FINAL - INTEGRA TODOS LOS FIXES
 
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import Group, Permission
@@ -11,7 +11,7 @@ User = get_user_model()
 
 
 class Command(BaseCommand):
-    help = 'Configura un sistema básico con solo 3 grupos esenciales'
+    help = 'Configura un sistema básico con 4 grupos esenciales + fixes automáticos'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -21,7 +21,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        self.stdout.write(self.style.SUCCESS('🚀 Configurando sistema básico con 3 grupos esenciales...'))
+        self.stdout.write(self.style.SUCCESS('🚀 Configurando sistema básico con 4 grupos esenciales...'))
 
         # 1. Limpiar si se solicita
         if options['clean']:
@@ -30,14 +30,20 @@ class Command(BaseCommand):
         # 2. Crear categoría de administración
         admin_category = self.create_admin_category()
 
-        # 3. Crear los 3 grupos básicos
-        self.create_basic_groups(admin_category)
+        # 3. FIX: Corregir navegaciones sin categoría ANTES de crear grupos
+        self.fix_navigation_categories(admin_category)
 
-        # 4. Asignar al superadmin
-        self.assign_to_superadmin()
+        # 4. Crear los 4 grupos básicos
+        created_groups = self.create_basic_groups(admin_category)
+
+        # 5. FIX: Verificar y corregir asignaciones después de crear grupos
+        self.verify_and_fix_all_assignments(admin_category)
+
+        # 6. Asignar TODOS los grupos al superadmin
+        self.assign_to_superadmin(created_groups)
 
         self.stdout.write(
-            self.style.SUCCESS('✅ Sistema básico configurado exitosamente con 3 grupos!')
+            self.style.SUCCESS('✅ Sistema básico configurado exitosamente con 4 grupos + fixes aplicados!')
         )
 
     def clean_database(self):
@@ -67,7 +73,7 @@ class Command(BaseCommand):
         """Crea la categoría de Administración del Sistema"""
         category_data = {
             'name': 'ADMINISTRACIÓN DEL SISTEMA',
-            'description': 'Herramientas básicas para administrar usuarios, roles y permisos',
+            'description': 'Herramientas para administrar usuarios, roles, permisos y categorías',
             'icon': 'fas fa-cogs',
             'color': 'red',
             'order': 10,
@@ -87,8 +93,26 @@ class Command(BaseCommand):
 
         return category
 
+    def fix_navigation_categories(self, admin_category):
+        """FIX: Corrige navegaciones sin categoría asignada"""
+        self.stdout.write("🔧 Aplicando fix de categorías...")
+
+        # Obtener todos los elementos de navegación sin categoría
+        navigation_without_category = Navigation.objects.filter(category__isnull=True)
+
+        if navigation_without_category.exists():
+            self.stdout.write(f"  🔍 Encontrados {navigation_without_category.count()} elementos sin categoría")
+
+            # Asignar la categoría de administración a todos
+            for nav in navigation_without_category:
+                nav.category = admin_category
+                nav.save()
+                self.stdout.write(f"    ✅ Categoría asignada a: {nav.name}")
+        else:
+            self.stdout.write("  ✅ Todos los elementos de navegación ya tienen categoría asignada")
+
     def create_basic_groups(self, admin_category):
-        """Crea los 3 grupos básicos del sistema"""
+        """Crea los 4 grupos básicos del sistema"""
 
         # Obtener content types
         group_ct = ContentType.objects.get_for_model(Group)
@@ -98,35 +122,19 @@ class Command(BaseCommand):
         category_ct = ContentType.objects.get_for_model(MenuCategory)
         navigation_ct = ContentType.objects.get_for_model(Navigation)
 
-        # Definir los 3 grupos básicos
-        basic_groups = [
-            # 1. GESTIÓN DE MÓDULOS (Todo lo relacionado con Groups, Permissions, Navigation, Categories)
+        # Definir los 4 grupos básicos
+        basic_groups_config = [
+            # 1. GESTIÓN DE CATEGORÍAS
             {
-                'group_name': 'Gestión de Módulos',
+                'group_name': 'Gestión de Categorías',
                 'navigation': {
-                    'name': 'Módulos del Sistema',
-                    'url': '/accounts/admin/modules/',
-                    'icon': 'fas fa-cubes',
+                    'name': 'Categorías del Menú',
+                    'url': '/accounts/admin/categories/',
+                    'icon': 'fas fa-folder-open',
                     'order': 10,
                     'category': admin_category
                 },
                 'permissions': [
-                    # Groups (Módulos)
-                    f'{group_ct.app_label}.add_group',
-                    f'{group_ct.app_label}.change_group',
-                    f'{group_ct.app_label}.delete_group',
-                    f'{group_ct.app_label}.view_group',
-
-                    # Permissions (para asignar a módulos)
-                    f'{permission_ct.app_label}.view_permission',
-
-                    # Navigation (elementos del menú)
-                    f'{navigation_ct.app_label}.add_navigation',
-                    f'{navigation_ct.app_label}.change_navigation',
-                    f'{navigation_ct.app_label}.delete_navigation',
-                    f'{navigation_ct.app_label}.view_navigation',
-
-                    # Categories (categorías del menú)
                     f'{category_ct.app_label}.add_menucategory',
                     f'{category_ct.app_label}.change_menucategory',
                     f'{category_ct.app_label}.delete_menucategory',
@@ -134,52 +142,72 @@ class Command(BaseCommand):
                 ]
             },
 
-            # 2. GESTIÓN DE ROLES (CRUD de roles + asignación de grupos a roles)
+            # 2. GESTIÓN DE MÓDULOS
+            {
+                'group_name': 'Gestión de Módulos',
+                'navigation': {
+                    'name': 'Módulos del Sistema',
+                    'url': '/accounts/admin/modules/',
+                    'icon': 'fas fa-cubes',
+                    'order': 20,
+                    'category': admin_category
+                },
+                'permissions': [
+                    f'{group_ct.app_label}.add_group',
+                    f'{group_ct.app_label}.change_group',
+                    f'{group_ct.app_label}.delete_group',
+                    f'{group_ct.app_label}.view_group',
+                    f'{permission_ct.app_label}.view_permission',
+                    f'{navigation_ct.app_label}.add_navigation',
+                    f'{navigation_ct.app_label}.change_navigation',
+                    f'{navigation_ct.app_label}.delete_navigation',
+                    f'{navigation_ct.app_label}.view_navigation',
+                    f'{category_ct.app_label}.view_menucategory',
+                ]
+            },
+
+            # 3. GESTIÓN DE ROLES
             {
                 'group_name': 'Gestión de Roles',
                 'navigation': {
                     'name': 'Roles de Usuario',
                     'url': '/accounts/admin/roles/',
                     'icon': 'fas fa-user-tag',
-                    'order': 20,
+                    'order': 30,
                     'category': admin_category
                 },
                 'permissions': [
-                    # Roles
                     f'{role_ct.app_label}.add_role',
                     f'{role_ct.app_label}.change_role',
                     f'{role_ct.app_label}.delete_role',
                     f'{role_ct.app_label}.view_role',
-
-                    # Ver grupos para asignar a roles
                     f'{group_ct.app_label}.view_group',
                 ]
             },
 
-            # 3. GESTIÓN DE USUARIOS (CRUD de usuarios + asignación de roles a usuarios)
+            # 4. GESTIÓN DE USUARIOS
             {
                 'group_name': 'Gestión de Usuarios',
                 'navigation': {
                     'name': 'Usuarios del Sistema',
                     'url': '/accounts/admin/users/',
                     'icon': 'fas fa-users',
-                    'order': 30,
+                    'order': 40,
                     'category': admin_category
                 },
                 'permissions': [
-                    # Users
                     f'{user_ct.app_label}.add_user',
                     f'{user_ct.app_label}.change_user',
                     f'{user_ct.app_label}.delete_user',
                     f'{user_ct.app_label}.view_user',
-
-                    # Ver roles para asignar a usuarios
                     f'{role_ct.app_label}.view_role',
                 ]
             }
         ]
 
-        for module_data in basic_groups:
+        created_groups = []
+
+        for module_data in basic_groups_config:
             # Crear grupo
             group, group_created = Group.objects.get_or_create(
                 name=module_data['group_name']
@@ -189,6 +217,8 @@ class Command(BaseCommand):
                 self.stdout.write(f"  ✅ Grupo creado: {group.name}")
             else:
                 self.stdout.write(f"  ⏭️  Grupo ya existe: {group.name}")
+
+            created_groups.append(group)
 
             # Limpiar y asignar permisos
             group.permissions.clear()
@@ -211,23 +241,49 @@ class Command(BaseCommand):
                 group.permissions.set(permissions_to_assign)
                 self.stdout.write(f"    📋 Asignados {len(permissions_to_assign)} permisos")
 
-            # Crear navegación
+            # Crear navegación CON CATEGORÍA ASEGURADA
+            navigation_data = module_data['navigation'].copy()
             navigation, nav_created = Navigation.objects.get_or_create(
                 group=group,
-                defaults=module_data['navigation']
+                defaults=navigation_data
             )
 
             if nav_created:
                 self.stdout.write(f"    🔗 Navegación creada: {navigation.name}")
             else:
-                # Actualizar navegación existente
-                for key, value in module_data['navigation'].items():
+                # Actualizar navegación existente Y ASEGURAR CATEGORÍA
+                for key, value in navigation_data.items():
                     setattr(navigation, key, value)
                 navigation.save()
                 self.stdout.write(f"    🔄 Navegación actualizada: {navigation.name}")
 
-    def assign_to_superadmin(self):
-        """Asigna todos los grupos al rol de superadmin"""
+        return created_groups
+
+    def verify_and_fix_all_assignments(self, admin_category):
+        """Verifica y corrige todas las asignaciones después de crear grupos"""
+        self.stdout.write("🔍 Verificando y corrigiendo todas las asignaciones...")
+
+        # Verificar que todos los grupos básicos tienen navegación con categoría
+        basic_groups = ['Gestión de Categorías', 'Gestión de Módulos', 'Gestión de Roles', 'Gestión de Usuarios']
+
+        for group_name in basic_groups:
+            try:
+                group = Group.objects.get(name=group_name)
+                try:
+                    navigation = group.navigation
+                    if not navigation.category:
+                        navigation.category = admin_category
+                        navigation.save()
+                        self.stdout.write(f"  ✅ Categoría corregida para: {group_name}")
+                    else:
+                        self.stdout.write(f"  ✅ {group_name} tiene categoría: {navigation.category.name}")
+                except Navigation.DoesNotExist:
+                    self.stdout.write(f"  ⚠️  {group_name} no tiene navegación (esto es anormal)")
+            except Group.DoesNotExist:
+                self.stdout.write(f"  ⚠️  Grupo no encontrado: {group_name}")
+
+    def assign_to_superadmin(self, created_groups):
+        """Asigna TODOS los grupos al rol de superadmin"""
         superadmins = User.objects.filter(is_superuser=True)
 
         if not superadmins.exists():
@@ -236,28 +292,53 @@ class Command(BaseCommand):
             )
             return
 
-        # Crear rol de superadmin
+        # Crear rol de superadmin (marcado como sistema)
         superadmin_role, created = Role.objects.get_or_create(
             name='Super Administrador',
             defaults={
-                'description': 'Acceso completo a todas las funciones básicas del sistema'
+                'description': 'Acceso completo a todas las funciones del sistema',
+                'is_system': True
             }
         )
 
         if created:
             self.stdout.write(f"  ✅ Rol de superadmin creado: {superadmin_role.name}")
         else:
+            # Asegurarse de que esté marcado como rol del sistema
+            if not superadmin_role.is_system:
+                superadmin_role.is_system = True
+                superadmin_role.save()
             self.stdout.write(f"  ⏭️  Rol de superadmin ya existe: {superadmin_role.name}")
 
-        # Asignar los 3 grupos básicos al rol de superadmin
-        basic_groups = Group.objects.filter(
-            name__in=['Gestión de Módulos', 'Gestión de Roles', 'Gestión de Usuarios']
+        # Obtener todos los grupos básicos por nombre
+        all_basic_groups = Group.objects.filter(
+            name__in=[
+                'Gestión de Categorías',
+                'Gestión de Módulos',
+                'Gestión de Roles',
+                'Gestión de Usuarios'
+            ]
         )
-        superadmin_role.groups.set(basic_groups)
+
+        # Limpiar grupos actuales y asignar todos
+        superadmin_role.groups.clear()
+        superadmin_role.groups.set(all_basic_groups)
 
         self.stdout.write(
-            f"  📦 Asignados {basic_groups.count()} grupos básicos al rol de superadmin"
+            f"  📦 Asignados {all_basic_groups.count()}/4 grupos básicos al rol de superadmin"
         )
+
+        # Verificar que todos los grupos estén asignados
+        assigned_groups = superadmin_role.groups.all()
+        self.stdout.write(f"  ✅ Grupos asignados al superadmin:")
+        for group in assigned_groups:
+            self.stdout.write(f"     - {group.name}")
+
+        # Verificar si faltan grupos
+        if assigned_groups.count() < 4:
+            self.stdout.write(
+                self.style.WARNING(f"  ⚠️  Solo {assigned_groups.count()}/4 grupos asignados")
+            )
 
         # Asignar el rol a todos los superadmins
         for superadmin in superadmins:

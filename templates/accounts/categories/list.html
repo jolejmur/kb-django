@@ -1,0 +1,140 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Categorías - Django CRM{% endblock %}
+
+{% block header %}Categorías del Menú{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header con botón de crear -->
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Categorías del Menú</h1>
+            <p class="text-gray-600 mt-1">Organiza los módulos del sistema en categorías</p>
+        </div>
+        <a href="{% url 'accounts:category_create' %}"
+           class="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-medium flex items-center transition-colors">
+            <i class="fas fa-plus mr-2"></i>
+            Crear Categoría
+        </a>
+    </div>
+
+    <!-- Lista de categorías -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        {% if categories %}
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th class="text-left px-6 py-4 text-sm font-medium text-gray-900">Categoría</th>
+                            <th class="text-left px-6 py-4 text-sm font-medium text-gray-900">Descripción</th>
+                            <th class="text-left px-6 py-4 text-sm font-medium text-gray-900">Módulos</th>
+                            <th class="text-left px-6 py-4 text-sm font-medium text-gray-900">Orden</th>
+                            <th class="text-left px-6 py-4 text-sm font-medium text-gray-900">Estado</th>
+                            <th class="text-right px-6 py-4 text-sm font-medium text-gray-900">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for category in categories %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center">
+                                        <div class="w-10 h-10 bg-{{ category.color }}-100 rounded-lg flex items-center justify-center mr-3">
+                                            {% if category.icon %}
+                                                <i class="{{ category.icon }} text-{{ category.color }}-600"></i>
+                                            {% else %}
+                                                <i class="fas fa-folder text-{{ category.color }}-600"></i>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">{{ category.name }}</p>
+                                            {% if category.is_system %}
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                                    <i class="fas fa-shield-alt mr-1"></i>
+                                                    Sistema
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    {% if category.description %}
+                                        <p class="text-sm text-gray-900">{{ category.description|truncatechars:80 }}</p>
+                                    {% else %}
+                                        <span class="text-xs text-gray-400">Sin descripción</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4">
+                                    {% with modules_count=category.get_modules.count %}
+                                        {% if modules_count > 0 %}
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                {{ modules_count }} módulos
+                                            </span>
+                                        {% else %}
+                                            <span class="text-xs text-gray-400">Sin módulos</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                        {{ category.order }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    {% if category.is_active %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            <i class="fas fa-check-circle mr-1"></i>
+                                            Activo
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                            <i class="fas fa-times-circle mr-1"></i>
+                                            Inactivo
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <div class="flex items-center justify-end space-x-2">
+                                        <a href="{% url 'accounts:category_detail' category.pk %}"
+                                           class="text-gray-400 hover:text-gray-600 transition-colors"
+                                           title="Ver detalles">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'accounts:category_edit' category.pk %}"
+                                           class="text-orange-400 hover:text-orange-600 transition-colors"
+                                           title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        {% if category.can_be_deleted %}
+                                            <a href="{% url 'accounts:category_delete' category.pk %}"
+                                               class="text-red-400 hover:text-red-600 transition-colors"
+                                               title="Eliminar">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        {% else %}
+                                            <span class="text-gray-300 cursor-not-allowed" title="No se puede eliminar: tiene módulos asignados">
+                                                <i class="fas fa-trash"></i>
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-12">
+                <i class="fas fa-folder-open text-gray-300 text-6xl mb-4"></i>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No hay categorías</h3>
+                <p class="text-gray-500 mb-6">Comienza creando tu primera categoría para organizar los módulos.</p>
+                <a href="{% url 'accounts:category_create' %}"
+                   class="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-medium inline-flex items-center">
+                    <i class="fas fa-plus mr-2"></i>
+                    Crear Primera Categoría
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -62,11 +62,16 @@ class AccountsConfig(AppConfig):
                     tables = [row[0] for row in cursor.fetchall()]
 
                     if len(tables) >= 4:
-                        # Verificar si ya existe la configuración básica
-                        basic_groups = ['Gestión de Módulos', 'Gestión de Roles', 'Gestión de Usuarios']
+                        # Verificar si ya existe la configuración básica (ahora son 4 grupos)
+                        basic_groups = [
+                            'Gestión de Categorías',
+                            'Gestión de Módulos',
+                            'Gestión de Roles',
+                            'Gestión de Usuarios'
+                        ]
                         existing_groups = Group.objects.filter(name__in=basic_groups)
 
-                        if existing_groups.count() < 3:
+                        if existing_groups.count() < 4:
                             print("\n" + "=" * 60)
                             print("🚀 DJANGO CRM - CONFIGURACIÓN AUTOMÁTICA")
                             print("=" * 60)
@@ -76,12 +81,14 @@ class AccountsConfig(AppConfig):
                             call_command('setup_default_menu', verbosity=1)
 
                             print("✅ ¡Sistema básico configurado exitosamente!")
-                            print("📦 Se crearon 3 grupos administrativos:")
+                            print("📦 Se crearon 4 grupos administrativos:")
+                            print("   • Gestión de Categorías")
                             print("   • Gestión de Módulos")
                             print("   • Gestión de Roles")
                             print("   • Gestión de Usuarios")
                             print("🔗 Navegación del sidebar configurada")
                             print("👤 Permisos asignados al superadmin")
+                            print("🛡️  Rol de superadmin protegido como rol del sistema")
                             print("=" * 60)
                             print("🌟 ¡Listo para usar! Accede con tu superusuario")
                             print("=" * 60 + "\n")

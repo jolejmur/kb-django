@@ -2,6 +2,7 @@
 
 from django.contrib.auth.models import AbstractUser, Group
 from django.db import models
+from django.core.exceptions import ValidationError
 
 
 class MenuCategory(models.Model):
@@ -22,6 +23,23 @@ class MenuCategory(models.Model):
 
     def __str__(self):
         return self.name
+
+    def get_modules(self):
+        """Obtiene todos los módulos (grupos) que pertenecen a esta categoría"""
+        return Group.objects.filter(navigation__category=self)
+
+    def can_be_deleted(self):
+        """Verifica si la categoría puede ser eliminada"""
+        # No se puede eliminar si tiene módulos asignados
+        return not self.get_modules().exists()
+
+    def delete(self, *args, **kwargs):
+        """Override delete para validar antes de eliminar"""
+        if not self.can_be_deleted():
+            raise ValidationError(
+                f'No se puede eliminar la categoría "{self.name}" porque tiene módulos asignados.'
+            )
+        super().delete(*args, **kwargs)
 
 
 class Navigation(models.Model):
@@ -49,6 +67,7 @@ class Role(models.Model):
     description = models.TextField(blank=True)
     groups = models.ManyToManyField(Group, blank=True, related_name='roles')
     is_active = models.BooleanField(default=True)
+    is_system = models.BooleanField(default=False)  # Nuevo campo para roles del sistema
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -60,15 +79,62 @@ class Role(models.Model):
     def __str__(self):
         return self.name
 
+    def can_be_edited(self):
+        """Verifica si el rol puede ser editado"""
+        # Los roles del sistema no se pueden editar completamente
+        return not self.is_system
+
+    def can_be_deleted(self):
+        """Verifica si el rol puede ser eliminado"""
+        # No se puede eliminar si:
+        # 1. Es un rol del sistema
+        # 2. Tiene usuarios asignados
+        if self.is_system:
+            return False
+        return not self.users.exists()
+
+    def delete(self, *args, **kwargs):
+        """Override delete para validar antes de eliminar"""
+        if not self.can_be_deleted():
+            if self.is_system:
+                raise ValidationError(
+                    f'No se puede eliminar el rol "{self.name}" porque es un rol del sistema.'
+                )
+            else:
+                raise ValidationError(
+                    f'No se puede eliminar el rol "{self.name}" porque tiene usuarios asignados.'
+                )
+        super().delete(*args, **kwargs)
+
+
+# Extender el modelo Group con métodos adicionales
+def group_can_be_deleted(self):
+    """Verifica si el grupo puede ser eliminado"""
+    # No se puede eliminar si está asignado a algún rol
+    return not self.roles.exists()
+
+
+def group_delete_override(self, *args, **kwargs):
+    """Override delete para validar antes de eliminar"""
+    if not self.can_be_deleted():
+        raise ValidationError(
+            f'No se puede eliminar el módulo "{self.name}" porque está asignado a uno o más roles.'
+        )
+    super(Group, self).delete(*args, **kwargs)
+
+
+# Agregar métodos al modelo Group
+Group.add_to_class('can_be_deleted', group_can_be_deleted)
+Group.add_to_class('delete', group_delete_override)
+
 
 class User(AbstractUser):
-    # AÑADIR related_name='users' para que Role.users funcione
     role = models.ForeignKey(
         Role,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='users'  # ← ESTO ES LO QUE FALTABA
+        related_name='users'
     )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -112,3 +178,26 @@ class User(AbstractUser):
 
         # Ordenar por categoría y orden
         return sorted(navigation_items, key=lambda x: (x.category.order, x.order))
+
+    def get_navigation_by_categories(self):
+        """Obtiene elementos de navegación organizados por categorías"""
+        navigation_items = self.get_navigation_items()
+
+        # Organizar por categorías
+        categories_dict = {}
+        for nav_item in navigation_items:
+            category_name = nav_item.category.name
+            if category_name not in categories_dict:
+                categories_dict[category_name] = {
+                    'category': nav_item.category,
+                    'items': []
+                }
+            categories_dict[category_name]['items'].append(nav_item)
+
+        # Ordenar categorías por su campo order
+        ordered_categories = dict(sorted(
+            categories_dict.items(),
+            key=lambda x: x[1]['category'].order
+        ))
+
+        return ordered_categories

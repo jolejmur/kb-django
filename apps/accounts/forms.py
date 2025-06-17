@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth import get_user_model
-from .models import Navigation, Role
+from .models import Navigation, Role, MenuCategory
 
 User = get_user_model()
 
@@ -53,6 +53,16 @@ class ModuleForm(forms.ModelForm):
         widget=forms.TextInput(attrs={
             'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500',
             'placeholder': 'Ej: fas fa-users'
+        })
+    )
+
+    nav_category = forms.ModelChoiceField(
+        queryset=MenuCategory.objects.filter(is_active=True),
+        required=False,
+        label="Categoría del Menú",
+        help_text="Categoría donde aparecerá en el sidebar",
+        widget=forms.Select(attrs={
+            'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
         })
     )
 
@@ -182,6 +192,7 @@ class ModuleForm(forms.ModelForm):
             self.fields['nav_name'].initial = navigation.name
             self.fields['nav_url'].initial = navigation.url
             self.fields['nav_icon'].initial = navigation.icon
+            self.fields['nav_category'].initial = navigation.category
             self.fields['nav_order'].initial = navigation.order
 
         except Navigation.DoesNotExist:
@@ -196,12 +207,18 @@ class ModuleForm(forms.ModelForm):
         cleaned_data = super().clean()
         nav_name = cleaned_data.get('nav_name')
         nav_url = cleaned_data.get('nav_url')
+        nav_category = cleaned_data.get('nav_category')
 
-        # Si se proporciona nombre de navegación, URL es requerida
-        if nav_name and not nav_url:
-            raise forms.ValidationError({
-                'nav_url': 'La URL es requerida si proporcionas un nombre para el menú.'
-            })
+        # Si se proporciona nombre de navegación, URL y categoría son requeridas
+        if nav_name:
+            if not nav_url:
+                raise forms.ValidationError({
+                    'nav_url': 'La URL es requerida si proporcionas un nombre para el menú.'
+                })
+            if not nav_category:
+                raise forms.ValidationError({
+                    'nav_category': 'La categoría es requerida si proporcionas un nombre para el menú.'
+                })
 
         return cleaned_data
 
@@ -217,6 +234,20 @@ class ModuleForm(forms.ModelForm):
             nav_name = self.cleaned_data.get('nav_name')
 
             if nav_name:
+                # Obtener la categoría (usar una por defecto si no se especifica)
+                nav_category = self.cleaned_data.get('nav_category')
+                if not nav_category:
+                    # Usar la categoría de administración como default
+                    nav_category, _ = MenuCategory.objects.get_or_create(
+                        name='ADMINISTRACIÓN DEL SISTEMA',
+                        defaults={
+                            'description': 'Categoría por defecto',
+                            'icon': 'fas fa-cogs',
+                            'color': 'gray',
+                            'order': 999,
+                        }
+                    )
+
                 # Crear o actualizar navegación
                 navigation, created = Navigation.objects.get_or_create(
                     group=group,
@@ -224,6 +255,7 @@ class ModuleForm(forms.ModelForm):
                         'name': nav_name,
                         'url': self.cleaned_data.get('nav_url', '#'),
                         'icon': self.cleaned_data.get('nav_icon', ''),
+                        'category': nav_category,
                         'order': self.cleaned_data.get('nav_order', 0),
                     }
                 )
@@ -233,6 +265,7 @@ class ModuleForm(forms.ModelForm):
                     navigation.name = nav_name
                     navigation.url = self.cleaned_data.get('nav_url', '#')
                     navigation.icon = self.cleaned_data.get('nav_icon', '')
+                    navigation.category = nav_category
                     navigation.order = self.cleaned_data.get('nav_order', 0)
                     navigation.save()
             else:
@@ -253,7 +286,7 @@ class RoleForm(forms.ModelForm):
     """
 
     modules = forms.ModelMultipleChoiceField(
-        queryset=Group.objects.all(),
+        queryset=Group.objects.none(),  # Se establecerá en __init__
         widget=forms.CheckboxSelectMultiple,
         required=False,
         label="Módulos Incluidos",
@@ -285,6 +318,8 @@ class RoleForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        # ✅ FIX: Establecer el queryset de módulos disponibles
         self.fields['modules'].queryset = Group.objects.all().order_by('name')
 
         # Si estamos editando un rol existente, cargar módulos actuales
