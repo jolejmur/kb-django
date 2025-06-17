@@ -1,3 +1,5 @@
+# apps/accounts/models.py - REEMPLAZAR COMPLETAMENTE
+
 from django.contrib.auth.models import AbstractUser, Group
 from django.db import models
 
@@ -60,15 +62,53 @@ class Role(models.Model):
 
 
 class User(AbstractUser):
-    role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True)
+    # AÑADIR related_name='users' para que Role.users funcione
+    role = models.ForeignKey(
+        Role,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='users'  # ← ESTO ES LO QUE FALTABA
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def get_user_groups(self):
+        """Obtiene los grupos/módulos del usuario a través de su rol"""
         if self.role:
             return self.role.groups.all()
         return Group.objects.none()
 
     def has_module_access(self, group_name):
+        """Verifica si el usuario tiene acceso a un módulo específico"""
         return self.get_user_groups().filter(name=group_name).exists()
+
+    def get_permissions(self):
+        """Obtiene todos los permisos del usuario a través de su rol"""
+        if not self.role:
+            return set()
+
+        permissions = set()
+        for group in self.role.groups.all():
+            for permission in group.permissions.all():
+                permissions.add(permission)
+
+        return permissions
+
+    def get_navigation_items(self):
+        """Obtiene elementos de navegación del usuario"""
+        if not self.role:
+            return []
+
+        navigation_items = []
+        for group in self.role.groups.all():
+            try:
+                nav_item = group.navigation
+                if nav_item.is_active:
+                    navigation_items.append(nav_item)
+            except Navigation.DoesNotExist:
+                continue
+
+        # Ordenar por categoría y orden
+        return sorted(navigation_items, key=lambda x: (x.category.order, x.order))

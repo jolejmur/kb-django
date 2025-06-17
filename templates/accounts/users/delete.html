@@ -1,0 +1,96 @@
+<!-- templates/accounts/users/delete.html -->
+{% extends 'base/base.html' %}
+
+{% block title %}{{ title }} - Django CRM{% endblock %}
+
+{% block header %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <!-- Back Button -->
+    <div class="mb-6">
+        <a href="{% url 'accounts:users_list' %}"
+           class="inline-flex items-center text-green-600 hover:text-green-800 font-medium">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Volver a Usuarios
+        </a>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-gray-200 bg-red-50">
+            <h2 class="text-xl font-semibold text-red-900 flex items-center">
+                <i class="fas fa-exclamation-triangle mr-3 text-red-600"></i>
+                Confirmar Eliminación
+            </h2>
+        </div>
+
+        <!-- Content -->
+        <div class="p-6">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-user-times text-red-600 text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">
+                    ¿Estás seguro de que quieres eliminar este usuario?
+                </h3>
+                <p class="text-gray-600">Esta acción no se puede deshacer.</p>
+            </div>
+
+            <!-- User Information -->
+            <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
+                        <i class="fas fa-user text-green-600"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-medium text-gray-900">
+                            {{ user_obj.get_full_name|default:user_obj.username }}
+                        </h4>
+                        <p class="text-sm text-gray-600">{{ user_obj.email|default:"Sin email" }}</p>
+                        {% if user_obj.role %}
+                            <p class="text-sm text-purple-600">Rol: {{ user_obj.role.name }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Warning Information -->
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                <div class="flex">
+                    <i class="fas fa-exclamation-triangle text-yellow-400 mt-0.5 mr-3"></i>
+                    <div>
+                        <h4 class="text-sm font-medium text-yellow-800 mb-1">
+                            ¿Qué sucederá al eliminar este usuario?
+                        </h4>
+                        <ul class="text-sm text-yellow-700 space-y-1">
+                            <li>• Se eliminará permanentemente la cuenta del usuario</li>
+                            <li>• Se cerrarán todas las sesiones activas del usuario</li>
+                            <li>• El usuario perderá acceso a todas las funciones del sistema</li>
+                            <li>• Los datos asociados al usuario pueden quedar huérfanos</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form -->
+            <form method="post">
+                {% csrf_token %}
+                <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+                    <a href="{% url 'accounts:users_list' %}"
+                       class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors">
+                        Cancelar
+                    </a>
+
+                    <button type="submit"
+                            class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center"
+                            onclick="return confirm('¿Estás absolutamente seguro? Esta acción no se puede deshacer.')">
+                        <i class="fas fa-trash mr-2"></i>
+                        Sí, Eliminar Usuario
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
