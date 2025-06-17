@@ -1,11 +1,13 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import logout, get_user_model
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.decorators import login_required, user_passes_test, permission_required
 from django.contrib import messages
 from django.contrib.auth.models import Group
 from django.core.paginator import Paginator
+from django.forms import ModelForm
+from django import forms
 from .forms import ModuleForm, RoleForm, UserForm, UserCreateForm
-from .models import Role
+from .models import Role, MenuCategory, Navigation
 
 User = get_user_model()
 
@@ -385,3 +387,295 @@ def user_detail(request, pk):
     }
 
     return render(request, 'accounts/users/detail.html', context)
+
+
+# ============================================================
+# VISTAS PARA CATEGORÍAS
+# ============================================================
+
+class CategoryForm(ModelForm):
+    class Meta:
+        model = MenuCategory
+        fields = '__all__'
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500',
+                'rows': 3
+            }),
+            'icon': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+            }),
+            'color': forms.Select(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+            }),
+            'order': forms.NumberInput(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+            }),
+            'is_active': forms.CheckboxInput(attrs={
+                'class': 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+            }),
+            'is_system': forms.CheckboxInput(attrs={
+                'class': 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+            }),
+        }
+
+
+@login_required
+@permission_required('accounts.view_menucategory', raise_exception=True)
+def categories_list(request):
+    """Lista todas las categorías del menú"""
+    categories = MenuCategory.objects.all().order_by('order', 'name')
+
+    context = {
+        'title': 'Categorías del Menú',
+        'categories': categories,
+    }
+    return render(request, 'accounts/categories/list.html', context)
+
+
+@login_required
+@permission_required('accounts.view_menucategory', raise_exception=True)
+def category_detail(request, pk):
+    """Muestra detalles de una categoría"""
+    category = get_object_or_404(MenuCategory, pk=pk)
+    modules = category.get_modules()
+
+    context = {
+        'title': f'Categoría: {category.name}',
+        'category': category,
+        'modules': modules,
+    }
+    return render(request, 'accounts/categories/detail.html', context)
+
+
+@login_required
+@permission_required('accounts.add_menucategory', raise_exception=True)
+def category_create(request):
+    """Crea una nueva categoría"""
+    if request.method == 'POST':
+        form = CategoryForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Categoría creada exitosamente.')
+            return redirect('accounts:categories_list')
+    else:
+        form = CategoryForm()
+
+    context = {
+        'title': 'Crear Categoría',
+        'form': form,
+        'action': 'Crear',
+    }
+    return render(request, 'accounts/categories/form.html', context)
+
+
+@login_required
+@permission_required('accounts.change_menucategory', raise_exception=True)
+def category_edit(request, pk):
+    """Edita una categoría existente"""
+    category = get_object_or_404(MenuCategory, pk=pk)
+
+    if request.method == 'POST':
+        form = CategoryForm(request.POST, instance=category)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Categoría actualizada exitosamente.')
+            return redirect('accounts:category_detail', pk=category.pk)
+    else:
+        form = CategoryForm(instance=category)
+
+    context = {
+        'title': f'Editar Categoría: {category.name}',
+        'form': form,
+        'category': category,
+        'action': 'Actualizar',
+    }
+    return render(request, 'accounts/categories/form.html', context)
+
+
+@login_required
+@permission_required('accounts.delete_menucategory', raise_exception=True)
+def category_delete(request, pk):
+    """Elimina una categoría"""
+    category = get_object_or_404(MenuCategory, pk=pk)
+
+    if request.method == 'POST':
+        category.delete()
+        messages.success(request, 'Categoría eliminada exitosamente.')
+        return redirect('accounts:categories_list')
+
+    context = {
+        'title': f'Eliminar Categoría: {category.name}',
+        'category': category,
+    }
+    return render(request, 'accounts/categories/delete.html', context)
+
+
+# ============================================================
+# VISTAS PARA NAVEGACIÓN
+# ============================================================
+
+class NavigationForm(ModelForm):
+    class Meta:
+        model = Navigation
+        fields = '__all__'
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+            }),
+            'url': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+            }),
+            'icon': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+            }),
+            'order': forms.NumberInput(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+            }),
+            'parent': forms.Select(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+            }),
+            'group': forms.Select(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+            }),
+            'category': forms.Select(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+            }),
+        }
+
+
+@login_required
+@permission_required('accounts.view_navigation', raise_exception=True)
+def navigation_list(request):
+    """Lista todos los elementos de navegación"""
+    navigation_items = Navigation.objects.select_related('group', 'category').order_by('category__order', 'order')
+
+    context = {
+        'title': 'Elementos del Menú',
+        'navigation_items': navigation_items,
+    }
+    return render(request, 'accounts/navigation/list.html', context)
+
+
+@login_required
+@permission_required('accounts.view_navigation', raise_exception=True)
+def navigation_detail(request, pk):
+    """Muestra detalles de un elemento de navegación"""
+    navigation = get_object_or_404(Navigation, pk=pk)
+
+    context = {
+        'title': f'Navegación: {navigation.name}',
+        'navigation': navigation,
+    }
+    return render(request, 'accounts/navigation/detail.html', context)
+
+
+@login_required
+@permission_required('accounts.add_navigation', raise_exception=True)
+def navigation_create(request):
+    """Crea un nuevo elemento de navegación"""
+    if request.method == 'POST':
+        form = NavigationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Elemento de navegación creado exitosamente.')
+            return redirect('accounts:navigation_list')
+    else:
+        form = NavigationForm()
+
+    context = {
+        'title': 'Crear Elemento de Navegación',
+        'form': form,
+        'action': 'Crear',
+    }
+    return render(request, 'accounts/navigation/form.html', context)
+
+
+@login_required
+@permission_required('accounts.change_navigation', raise_exception=True)
+def navigation_edit(request, pk):
+    """Edita un elemento de navegación existente"""
+    navigation = get_object_or_404(Navigation, pk=pk)
+
+    if request.method == 'POST':
+        form = NavigationForm(request.POST, instance=navigation)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Elemento de navegación actualizado exitosamente.')
+            return redirect('accounts:navigation_detail', pk=navigation.pk)
+    else:
+        form = NavigationForm(instance=navigation)
+
+    context = {
+        'title': f'Editar Navegación: {navigation.name}',
+        'form': form,
+        'navigation': navigation,
+        'action': 'Actualizar',
+    }
+    return render(request, 'accounts/navigation/form.html', context)
+
+
+@login_required
+@permission_required('accounts.delete_navigation', raise_exception=True)
+def navigation_delete(request, pk):
+    """Elimina un elemento de navegación"""
+    navigation = get_object_or_404(Navigation, pk=pk)
+
+    if request.method == 'POST':
+        navigation.delete()
+        messages.success(request, 'Elemento de navegación eliminado exitosamente.')
+        return redirect('accounts:navigation_list')
+
+    context = {
+        'title': f'Eliminar Navegación: {navigation.name}',
+        'navigation': navigation,
+    }
+    return render(request, 'accounts/navigation/delete.html', context)
+
+
+# ============================================================
+# VISTAS PARA ASIGNACIÓN DE MÓDULOS A ROLES
+# ============================================================
+
+@login_required
+@permission_required('accounts.view_role', raise_exception=True)
+def role_assignments(request):
+    """Vista principal para gestionar asignaciones de módulos a roles"""
+    roles = Role.objects.all().prefetch_related('groups')
+    modules = Group.objects.all().order_by('name')
+
+    context = {
+        'title': 'Asignación de Módulos a Roles',
+        'roles': roles,
+        'modules': modules,
+    }
+    return render(request, 'accounts/assignments/list.html', context)
+
+
+@login_required
+@permission_required('accounts.change_role', raise_exception=True)
+def role_assignment_detail(request, role_id):
+    """Gestiona la asignación de módulos para un rol específico"""
+    role = get_object_or_404(Role, pk=role_id)
+
+    if request.method == 'POST':
+        selected_modules = request.POST.getlist('modules')
+        modules = Group.objects.filter(pk__in=selected_modules)
+        role.groups.set(modules)
+
+        messages.success(request, f'Módulos asignados al rol {role.name} exitosamente.')
+        return redirect('accounts:role_assignments')
+
+    all_modules = Group.objects.all().order_by('name')
+    assigned_modules = role.groups.all()
+
+    context = {
+        'title': f'Asignar Módulos a: {role.name}',
+        'role': role,
+        'all_modules': all_modules,
+        'assigned_modules': assigned_modules,
+    }
+    return render(request, 'accounts/assignments/detail.html', context)

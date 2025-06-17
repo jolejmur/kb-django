@@ -31,12 +31,12 @@
                 </div>
             </div>
             <div class="flex space-x-3">
-                <a href="{% url 'accounts:user_role_edit' role.pk %}"
+                <a href="{% url 'accounts:role_edit' role.pk %}"
                    class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center">
                     <i class="fas fa-edit mr-2"></i>
                     Editar
                 </a>
-                <a href="{% url 'accounts:user_role_delete' role.pk %}"
+                <a href="{% url 'accounts:role_delete' role.pk %}"
                    class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center">
                     <i class="fas fa-trash mr-2"></i>
                     Eliminar
@@ -150,7 +150,7 @@
                                 </div>
 
                                 <div class="mt-3">
-                                    <a href="{% url 'accounts:permission_module_detail' module.pk %}"
+                                    <a href="{% url 'accounts:module_detail' module.pk %}"
                                        class="text-blue-600 hover:text-blue-800 text-xs font-medium">
                                         Ver detalles →
                                     </a>
@@ -162,7 +162,7 @@
                     <div class="text-center py-8">
                         <i class="fas fa-cubes text-gray-300 text-4xl mb-4"></i>
                         <p class="text-gray-500 mb-4">Este rol no tiene módulos de permisos asignados</p>
-                        <a href="{% url 'accounts:user_role_edit' role.pk %}"
+                        <a href="{% url 'accounts:role_edit' role.pk %}"
                            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium inline-flex items-center">
                             <i class="fas fa-edit mr-2"></i>
                             Asignar Módulos

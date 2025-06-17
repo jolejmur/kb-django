@@ -86,56 +86,82 @@ class ModuleForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.organize_permissions()
+
+        # Si estamos editando un módulo existente, cargar los datos
         if self.instance.pk:
-            self.load_navigation_data()
+            self.load_existing_data()
 
     def organize_permissions(self):
-        """Organiza los permisos por aplicación de forma comprensible"""
+        """Organiza los permisos por función específica y relevante"""
         all_permissions = Permission.objects.select_related('content_type').order_by(
             'content_type__app_label', 'content_type__model', 'codename'
         )
 
+        # Filtrar solo permisos relevantes
         relevant_permissions = []
         for perm in all_permissions:
-            app_label = perm.content_type.app_label
-            model_name = perm.content_type.model
-            codename = perm.codename
-
-            if not self._should_exclude_permission(app_label, model_name, codename):
+            if not self._should_exclude_permission(perm):
                 relevant_permissions.append(perm)
 
-        self.permissions_by_app = {}
-        app_friendly_names = {
-            'auth': 'Gestión de Usuarios',
-            'accounts': 'Roles y Navegación',
-            'core': 'Configuración del Sistema',
-            'customers': 'Gestión de Clientes',
-            'sales': 'Gestión de Ventas',
-            'products': 'Gestión de Productos',
-            'reports': 'Reportes y Análisis',
+        # Organizar por áreas funcionales específicas
+        self.permissions_by_app = {
+            'Gestión de Módulos (Groups)': [],
+            'Gestión de Permisos': [],
+            'Gestión de Roles': [],
+            'Gestión de Usuarios': [],
+            'Categorías del Menú': [],
+            'Elementos de Navegación': [],
+            'Configuración del Sistema': [],
+            'Otros Permisos': []
         }
 
         for perm in relevant_permissions:
             app_label = perm.content_type.app_label
-            friendly_name = app_friendly_names.get(app_label, app_label.title())
+            model_name = perm.content_type.model
 
-            if friendly_name not in self.permissions_by_app:
-                self.permissions_by_app[friendly_name] = []
-            self.permissions_by_app[friendly_name].append(perm)
+            # Clasificar por tipo de modelo
+            if model_name == 'group':
+                self.permissions_by_app['Gestión de Módulos (Groups)'].append(perm)
+            elif model_name == 'permission':
+                self.permissions_by_app['Gestión de Permisos'].append(perm)
+            elif model_name == 'role':
+                self.permissions_by_app['Gestión de Roles'].append(perm)
+            elif model_name == 'user':
+                self.permissions_by_app['Gestión de Usuarios'].append(perm)
+            elif model_name == 'menucategory':
+                self.permissions_by_app['Categorías del Menú'].append(perm)
+            elif model_name == 'navigation':
+                self.permissions_by_app['Elementos de Navegación'].append(perm)
+            elif model_name == 'coresettings':
+                self.permissions_by_app['Configuración del Sistema'].append(perm)
+            else:
+                self.permissions_by_app['Otros Permisos'].append(perm)
+
+        # Remover categorías vacías
+        self.permissions_by_app = {
+            k: v for k, v in self.permissions_by_app.items() if v
+        }
 
         self.fields['permissions'].queryset = Permission.objects.filter(
             id__in=[p.id for p in relevant_permissions]
         )
 
-    def _should_exclude_permission(self, app_label, model_name, codename):
+    def _should_exclude_permission(self, permission):
         """Excluye permisos internos que no son relevantes para usuarios finales"""
+        app_label = permission.content_type.app_label
+        model_name = permission.content_type.model
+        codename = permission.codename
+
+        # Aplicaciones a excluir completamente
         excluded_apps = ['contenttypes', 'sessions', 'admin']
         if app_label in excluded_apps:
             return True
 
+        # Permisos específicos a excluir
         excluded_permissions = [
-            'auth.add_permission', 'auth.change_permission',
-            'auth.delete_permission', 'auth.view_permission'
+            'auth.add_permission',
+            'auth.change_permission',
+            'auth.delete_permission'
         ]
 
         full_codename = f"{app_label}.{codename}"
@@ -144,26 +170,54 @@ class ModuleForm(forms.ModelForm):
 
         return False
 
-    def load_navigation_data(self):
-        """Carga los datos de navegación si el módulo ya existe"""
+    def load_existing_data(self):
+        """Carga los datos existentes del módulo para edición"""
         try:
+            # Cargar permisos actuales del grupo
+            current_permissions = self.instance.permissions.all()
+            self.fields['permissions'].initial = current_permissions
+
+            # Cargar datos de navegación si existe
             navigation = self.instance.navigation
             self.fields['nav_name'].initial = navigation.name
             self.fields['nav_url'].initial = navigation.url
             self.fields['nav_icon'].initial = navigation.icon
             self.fields['nav_order'].initial = navigation.order
+
         except Navigation.DoesNotExist:
+            # Si no hay navegación, los campos quedan vacíos
             pass
+        except Exception as e:
+            # En caso de cualquier otro error, continuar silenciosamente
+            pass
+
+    def clean(self):
+        """Validación adicional del formulario"""
+        cleaned_data = super().clean()
+        nav_name = cleaned_data.get('nav_name')
+        nav_url = cleaned_data.get('nav_url')
+
+        # Si se proporciona nombre de navegación, URL es requerida
+        if nav_name and not nav_url:
+            raise forms.ValidationError({
+                'nav_url': 'La URL es requerida si proporcionas un nombre para el menú.'
+            })
+
+        return cleaned_data
 
     def save(self, commit=True):
         """Guarda el módulo y su configuración de navegación"""
         group = super().save(commit=commit)
 
         if commit:
+            # Guardar permisos seleccionados
             group.permissions.set(self.cleaned_data['permissions'])
 
+            # Manejar configuración de navegación
             nav_name = self.cleaned_data.get('nav_name')
+
             if nav_name:
+                # Crear o actualizar navegación
                 navigation, created = Navigation.objects.get_or_create(
                     group=group,
                     defaults={
@@ -175,11 +229,19 @@ class ModuleForm(forms.ModelForm):
                 )
 
                 if not created:
+                    # Actualizar navegación existente
                     navigation.name = nav_name
                     navigation.url = self.cleaned_data.get('nav_url', '#')
                     navigation.icon = self.cleaned_data.get('nav_icon', '')
                     navigation.order = self.cleaned_data.get('nav_order', 0)
                     navigation.save()
+            else:
+                # Si no hay nombre de navegación, eliminar navegación existente
+                try:
+                    if hasattr(group, 'navigation'):
+                        group.navigation.delete()
+                except Navigation.DoesNotExist:
+                    pass
 
         return group
 
@@ -224,6 +286,8 @@ class RoleForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['modules'].queryset = Group.objects.all().order_by('name')
+
+        # Si estamos editando un rol existente, cargar módulos actuales
         if self.instance.pk:
             self.fields['modules'].initial = self.instance.groups.all()
 
@@ -253,13 +317,12 @@ class UserForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'first_name', 'last_name', 'phone_number', 'is_active', 'role']
+        fields = ['username', 'email', 'first_name', 'last_name', 'is_active', 'role']
         labels = {
             'username': 'Nombre de Usuario',
             'email': 'Correo Electrónico',
             'first_name': 'Nombre',
             'last_name': 'Apellido',
-            'phone_number': 'Teléfono',
             'is_active': 'Usuario Activo',
         }
         widgets = {
@@ -278,10 +341,6 @@ class UserForm(forms.ModelForm):
             'last_name': forms.TextInput(attrs={
                 'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500',
                 'placeholder': 'Ej: Pérez'
-            }),
-            'phone_number': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500',
-                'placeholder': 'Ej: +591 12345678'
             }),
             'is_active': forms.CheckboxInput(attrs={
                 'class': 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
