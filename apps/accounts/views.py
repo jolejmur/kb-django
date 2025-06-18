@@ -474,36 +474,15 @@ def user_detail(request, pk):
 # ============================================================
 # VISTAS PARA CATEGORÍAS
 # ============================================================
+# AGREGAR ESTE IMPORT AL INICIO DE apps/accounts/views.py
+from .forms import ModuleForm, RoleForm, UserForm, UserCreateForm, CategoryAdvancedForm
 
-class CategoryForm(ModelForm):
-    class Meta:
-        model = MenuCategory
-        fields = '__all__'
-        widgets = {
-            'name': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
-            }),
-            'description': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500',
-                'rows': 3
-            }),
-            'icon': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
-            }),
-            'color': forms.Select(attrs={
-                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
-            }),
-            'order': forms.NumberInput(attrs={
-                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
-            }),
-            'is_active': forms.CheckboxInput(attrs={
-                'class': 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
-            }),
-            'is_system': forms.CheckboxInput(attrs={
-                'class': 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
-            }),
-        }
 
+# REEMPLAZAR COMPLETAMENTE LAS VISTAS DE CATEGORÍAS
+
+# ============================================================
+# VISTAS PARA CATEGORÍAS - VERSIÓN AVANZADA CON GESTIÓN DE MÓDULOS
+# ============================================================
 
 @login_required
 @permission_required('accounts.view_menucategory', raise_exception=True)
@@ -536,38 +515,66 @@ def category_detail(request, pk):
 @login_required
 @permission_required('accounts.add_menucategory', raise_exception=True)
 def category_create(request):
-    """Crea una nueva categoría"""
+    """Crea una nueva categoría con gestión de módulos"""
     if request.method == 'POST':
-        form = CategoryForm(request.POST)
+        form = CategoryAdvancedForm(request.POST)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Categoría creada exitosamente.')
-            return redirect('accounts:categories_list')
+            try:
+                category = form.save()
+                modules_count = category.get_modules().count()
+                messages.success(
+                    request,
+                    f'Categoría "{category.name}" creada exitosamente con {modules_count} módulos asignados.'
+                )
+                return redirect('accounts:category_detail', pk=category.pk)
+            except Exception as e:
+                messages.error(request, f'Error al crear la categoría: {str(e)}')
+        else:
+            messages.error(request, 'Por favor corrige los errores del formulario.')
     else:
-        form = CategoryForm()
+        form = CategoryAdvancedForm()
 
     context = {
         'title': 'Crear Categoría',
         'form': form,
         'action': 'Crear',
     }
-    return render(request, 'accounts/categories/form.html', context)
+    return render(request, 'accounts/categories/form_advanced.html', context)
 
 
 @login_required
 @permission_required('accounts.change_menucategory', raise_exception=True)
 def category_edit(request, pk):
-    """Edita una categoría existente"""
+    """Edita una categoría existente con gestión de módulos"""
     category = get_object_or_404(MenuCategory, pk=pk)
 
     if request.method == 'POST':
-        form = CategoryForm(request.POST, instance=category)
+        form = CategoryAdvancedForm(request.POST, instance=category)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Categoría actualizada exitosamente.')
-            return redirect('accounts:category_detail', pk=category.pk)
+            try:
+                old_modules_count = category.get_modules().count()
+                updated_category = form.save()
+                new_modules_count = updated_category.get_modules().count()
+
+                # Mensaje personalizado basado en cambios
+                if category.is_system and category.name == 'ADMINISTRACIÓN DEL SISTEMA':
+                    messages.success(
+                        request,
+                        f'Categoría del sistema "{updated_category.name}" actualizada. Los módulos administrativos permanecen protegidos.'
+                    )
+                else:
+                    messages.success(
+                        request,
+                        f'Categoría "{updated_category.name}" actualizada exitosamente. '
+                        f'Módulos: {old_modules_count} → {new_modules_count}'
+                    )
+                return redirect('accounts:category_detail', pk=updated_category.pk)
+            except Exception as e:
+                messages.error(request, f'Error al actualizar la categoría: {str(e)}')
+        else:
+            messages.error(request, 'Por favor corrige los errores del formulario.')
     else:
-        form = CategoryForm(instance=category)
+        form = CategoryAdvancedForm(instance=category)
 
     context = {
         'title': f'Editar Categoría: {category.name}',
@@ -575,40 +582,88 @@ def category_edit(request, pk):
         'category': category,
         'action': 'Actualizar',
     }
-    return render(request, 'accounts/categories/form.html', context)
+    return render(request, 'accounts/categories/form_advanced.html', context)
 
 
 @login_required
 @permission_required('accounts.delete_menucategory', raise_exception=True)
 def category_delete(request, pk):
-    """Elimina una categoría"""
+    """Elimina una categoría con validaciones avanzadas"""
     category = get_object_or_404(MenuCategory, pk=pk)
 
     if request.method == 'POST':
         try:
-            # ✅ VALIDACIÓN: Verificar si se puede eliminar usando el método del modelo
+            # ✅ VALIDACIÓN AVANZADA: Verificar múltiples condiciones
             if not category.can_be_deleted():
                 modules = category.get_modules()
+                if modules.exists():
+                    # Verificar si algún módulo es crítico del sistema
+                    system_modules = modules.filter(
+                        name__in=[
+                            'Gestión de Categorías',
+                            'Gestión de Módulos',
+                            'Gestión de Roles',
+                            'Gestión de Usuarios'
+                        ]
+                    )
+
+                    if system_modules.exists():
+                        messages.error(
+                            request,
+                            f'No se puede eliminar la categoría "{category.name}" porque contiene módulos críticos del sistema: '
+                            f'{", ".join([module.name for module in system_modules])}'
+                        )
+                    else:
+                        messages.error(
+                            request,
+                            f'No se puede eliminar la categoría "{category.name}" porque tiene los siguientes módulos asignados: '
+                            f'{", ".join([module.name for module in modules])}'
+                        )
+                else:
+                    messages.error(
+                        request,
+                        f'No se puede eliminar la categoría "{category.name}" por restricciones del sistema.'
+                    )
+                return redirect('accounts:categories_list')
+
+            # Protección adicional para categorías del sistema
+            if category.is_system:
                 messages.error(
                     request,
-                    f'No se puede eliminar la categoría "{category.name}" porque tiene los siguientes módulos asignados: '
-                    f'{", ".join([module.name for module in modules])}'
+                    f'No se puede eliminar la categoría "{category.name}" porque es una categoría del sistema protegida.'
                 )
                 return redirect('accounts:categories_list')
 
+            # Si llegamos aquí, se puede eliminar
+            category_name = category.name
             category.delete()
-            messages.success(request, 'Categoría eliminada exitosamente.')
+            messages.success(request, f'Categoría "{category_name}" eliminada exitosamente.')
             return redirect('accounts:categories_list')
 
         except ValidationError as e:
             messages.error(request, str(e))
             return redirect('accounts:categories_list')
+        except Exception as e:
+            messages.error(request, f'Error inesperado al eliminar la categoría: {str(e)}')
+            return redirect('accounts:categories_list')
+
+    # Obtener información adicional para el template
+    modules = category.get_modules()
+    affected_roles = set()
+
+    # Encontrar roles que serían afectados
+    for module in modules:
+        affected_roles.update(module.roles.all())
 
     context = {
         'title': f'Eliminar Categoría: {category.name}',
         'category': category,
+        'modules': modules,
+        'affected_roles': list(affected_roles),
+        'modules_count': modules.count(),
+        'affected_roles_count': len(affected_roles),
     }
-    return render(request, 'accounts/categories/delete.html', context)
+    return render(request, 'accounts/categories/delete_advanced.html', context)
 
 
 # ============================================================

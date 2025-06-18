@@ -420,3 +420,197 @@ class UserCreateForm(UserForm):
         if commit:
             user.save()
         return user
+
+
+class CategoryAdvancedForm(forms.ModelForm):
+    """
+    Formulario avanzado para crear/editar categorías que permite gestionar módulos asociados.
+    Incluye protección para categorías del sistema.
+    """
+
+    modules = forms.ModelMultipleChoiceField(
+        queryset=Group.objects.none(),  # Se establecerá en __init__
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label="Módulos en esta Categoría",
+        help_text="Selecciona qué módulos pertenecerán a esta categoría"
+    )
+
+    class Meta:
+        model = MenuCategory
+        fields = ['name', 'description', 'icon', 'color', 'order', 'is_active', 'is_system']
+        labels = {
+            'name': 'Nombre de la Categoría',
+            'description': 'Descripción',
+            'icon': 'Ícono',
+            'color': 'Color',
+            'order': 'Orden',
+            'is_active': 'Activa',
+            'is_system': 'Es categoría del sistema'
+        }
+        help_texts = {
+            'name': 'Nombre que aparecerá en el menú lateral (ej: VENTAS, ADMINISTRACIÓN)',
+            'description': 'Descripción de qué tipo de módulos contendrá',
+            'icon': 'Ícono FontAwesome (ej: fas fa-chart-line)',
+            'color': 'Color que se usará en el tema del menú',
+            'order': 'Orden de aparición (menor = más arriba)',
+            'is_system': 'Las categorías del sistema están protegidas'
+        }
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500',
+                'placeholder': 'Ej: VENTAS'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500',
+                'rows': 3,
+                'placeholder': 'Ej: Módulos relacionados con ventas y clientes'
+            }),
+            'icon': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500',
+                'placeholder': 'Ej: fas fa-chart-line'
+            }),
+            'color': forms.Select(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500'
+            }),
+            'order': forms.NumberInput(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500',
+                'min': '0'
+            }),
+            'is_active': forms.CheckboxInput(attrs={
+                'class': 'h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded'
+            }),
+            'is_system': forms.CheckboxInput(attrs={
+                'class': 'h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded'
+            })
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Configurar el queryset de módulos
+        self.setup_modules_queryset()
+
+        # Si estamos editando una categoría existente
+        if self.instance.pk:
+            self.load_existing_modules()
+            self.apply_system_protections()
+
+    def setup_modules_queryset(self):
+        """Configura qué módulos están disponibles para asignar"""
+        # Obtener todos los módulos que tienen navegación (son módulos reales)
+        modules_with_navigation = Group.objects.filter(
+            navigation__isnull=False
+        ).order_by('name')
+
+        self.fields['modules'].queryset = modules_with_navigation
+
+    def load_existing_modules(self):
+        """Carga los módulos actuales de la categoría para edición"""
+        # Obtener módulos que pertenecen a esta categoría
+        current_modules = Group.objects.filter(
+            navigation__category=self.instance
+        )
+        self.fields['modules'].initial = current_modules
+
+    def apply_system_protections(self):
+        """Aplica protecciones para categorías del sistema"""
+        if self.instance.is_system:
+            # Para categorías del sistema, deshabilitar ciertos campos
+            protected_fields = ['name', 'is_system']
+
+            for field_name in protected_fields:
+                if field_name in self.fields:
+                    self.fields[field_name].widget.attrs['readonly'] = True
+                    self.fields[field_name].widget.attrs['class'] += ' bg-gray-100 cursor-not-allowed'
+
+            # Deshabilitar la gestión de módulos para la categoría de administración
+            if self.instance.name == 'ADMINISTRACIÓN DEL SISTEMA':
+                self.fields['modules'].widget.attrs['disabled'] = True
+                self.fields[
+                    'modules'].help_text = "Los módulos de administración están protegidos y no se pueden modificar"
+
+    def clean_name(self):
+        """Validación especial para el nombre de categorías del sistema"""
+        name = self.cleaned_data.get('name')
+
+        # Si es una categoría del sistema existente, no permitir cambio de nombre
+        if self.instance.pk and self.instance.is_system:
+            return self.instance.name
+
+        return name
+
+    def clean_modules(self):
+        """Validación especial para módulos de categorías protegidas"""
+        modules = self.cleaned_data.get('modules', [])
+
+        # Si es la categoría de administración, mantener sus módulos protegidos
+        if (self.instance.pk and
+                self.instance.is_system and
+                self.instance.name == 'ADMINISTRACIÓN DEL SISTEMA'):
+            # Retornar los módulos actuales sin cambios
+            return Group.objects.filter(navigation__category=self.instance)
+
+        return modules
+
+    def clean(self):
+        """Validación general del formulario"""
+        cleaned_data = super().clean()
+
+        # Validaciones adicionales si es necesario
+        return cleaned_data
+
+    def save(self, commit=True):
+        """Guarda la categoría y gestiona la asignación de módulos"""
+        category = super().save(commit=commit)
+
+        if commit:
+            # Gestionar asignación de módulos
+            selected_modules = self.cleaned_data.get('modules', [])
+
+            # Si no es una categoría protegida, actualizar módulos
+            if not (category.is_system and category.name == 'ADMINISTRACIÓN DEL SISTEMA'):
+                self.update_modules_category(category, selected_modules)
+
+        return category
+
+    def update_modules_category(self, category, selected_modules):
+        """Actualiza la categoría de los módulos seleccionados"""
+        # Obtener módulos que actualmente pertenecen a esta categoría
+        current_modules = set(Group.objects.filter(navigation__category=category))
+        new_modules = set(selected_modules)
+
+        # Módulos que se van a quitar de esta categoría
+        modules_to_remove = current_modules - new_modules
+
+        # Módulos que se van a agregar a esta categoría
+        modules_to_add = new_modules - current_modules
+
+        # Quitar módulos de esta categoría (los dejamos sin categoría o en una categoría por defecto)
+        for module in modules_to_remove:
+            try:
+                navigation = module.navigation
+                # Buscar una categoría por defecto o crear una
+                default_category, created = MenuCategory.objects.get_or_create(
+                    name='SIN CATEGORÍA',
+                    defaults={
+                        'description': 'Módulos sin categoría específica',
+                        'icon': 'fas fa-question',
+                        'color': 'gray',
+                        'order': 999,
+                        'is_system': False
+                    }
+                )
+                navigation.category = default_category
+                navigation.save()
+            except Navigation.DoesNotExist:
+                continue
+
+        # Agregar módulos a esta categoría
+        for module in modules_to_add:
+            try:
+                navigation = module.navigation
+                navigation.category = category
+                navigation.save()
+            except Navigation.DoesNotExist:
+                continue

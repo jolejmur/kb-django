@@ -1,3 +1,5 @@
+# apps/accounts/urls.py - ACTUALIZAR LAS RUTAS DE CATEGORÍAS
+
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
@@ -16,7 +18,7 @@ urlpatterns = [
     path('admin/modules/<int:pk>/delete/', views.module_delete, name='module_delete'),
     path('admin/modules/<int:pk>/', views.module_detail, name='module_detail'),
 
-    # === CATEGORÍAS DEL MENÚ ===
+    # === CATEGORÍAS DEL MENÚ - VERSIÓN AVANZADA ===
     path('admin/categories/', views.categories_list, name='categories_list'),
     path('admin/categories/create/', views.category_create, name='category_create'),
     path('admin/categories/<int:pk>/edit/', views.category_edit, name='category_edit'),
