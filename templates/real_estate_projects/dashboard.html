@@ -1,0 +1,250 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">{{ title }}</h1>
+        <p class="text-gray-600 mt-1">Resumen general de proyectos inmobiliarios</p>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <!-- Total Proyectos -->
+        <div class="bg-white rounded-lg shadow-sm border p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-building text-blue-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Total Proyectos</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ stats.total_proyectos }}</p>
+                    <p class="text-xs text-gray-400">
+                        {{ stats.proyectos_departamentos }} departamentos, {{ stats.proyectos_terrenos }} terrenos
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Inmuebles -->
+        <div class="bg-white rounded-lg shadow-sm border p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-home text-green-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Total Inmuebles</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ stats.total_inmuebles }}</p>
+                    <p class="text-xs text-gray-400">
+                        {{ stats.area_total_m2|floatformat:0 }} m² totales
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vendidos -->
+        <div class="bg-white rounded-lg shadow-sm border p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-chart-line text-red-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Vendidos</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ stats.inmuebles_vendidos }}</p>
+                    <p class="text-xs text-gray-400">
+                        {{ stats.porcentaje_vendidos }}% del total
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comercializables -->
+        <div class="bg-white rounded-lg shadow-sm border p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-shopping-cart text-purple-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Comercializables</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ stats.inmuebles_comercializables }}</p>
+                    <p class="text-xs text-gray-400">
+                        {{ stats.porcentaje_comercializables }}% disponibles
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Statistics Row -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <!-- Disponibles -->
+        <div class="bg-white rounded-lg shadow-sm border p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500">Disponibles</p>
+                    <p class="text-xl font-semibold text-green-600">{{ stats.inmuebles_disponibles }}</p>
+                </div>
+                <div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-check text-green-600 text-xs"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reservados -->
+        <div class="bg-white rounded-lg shadow-sm border p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500">Reservados</p>
+                    <p class="text-xl font-semibold text-yellow-600">{{ stats.inmuebles_reservados }}</p>
+                </div>
+                <div class="w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-clock text-yellow-600 text-xs"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ponderadores -->
+        <div class="bg-white rounded-lg shadow-sm border p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500">Ponderadores</p>
+                    <p class="text-xl font-semibold text-blue-600">{{ stats.total_ponderadores }}</p>
+                </div>
+                <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-percentage text-blue-600 text-xs"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Área Promedio -->
+        <div class="bg-white rounded-lg shadow-sm border p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500">Área Promedio</p>
+                    <p class="text-xl font-semibold text-orange-600">{{ stats.area_promedio_m2|floatformat:0 }} m²</p>
+                </div>
+                <div class="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-expand text-orange-600 text-xs"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Projects -->
+    <div class="bg-white rounded-lg shadow-sm border">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <h2 class="text-lg font-medium text-gray-900">Proyectos Recientes</h2>
+            <a href="{% url 'projects:list' %}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                Ver todos
+            </a>
+        </div>
+
+        {% if proyectos_recientes %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Proyecto
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Tipo
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Creado
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Acciones
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for proyecto in proyectos_recientes %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div>
+                                        <div class="text-sm font-medium text-gray-900">{{ proyecto.nombre }}</div>
+                                        {% if proyecto.descripcion %}
+                                            <div class="text-sm text-gray-500">{{ proyecto.descripcion|truncatechars:40 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                        {% if proyecto.tipo == 'departamentos' %}bg-blue-100 text-blue-800
+                                        {% elif proyecto.tipo == 'terrenos' %}bg-green-100 text-green-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ proyecto.get_tipo_display }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ proyecto.created_at|date:"d/m/Y" }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <a href="{% url 'projects:detail' proyecto.pk %}"
+                                       class="text-blue-600 hover:text-blue-900">Ver</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-12">
+                <i class="fas fa-building text-gray-400 text-3xl mb-4"></i>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No hay proyectos</h3>
+                <p class="text-gray-500 mb-4">Comienza creando tu primer proyecto inmobiliario.</p>
+                <a href="{% url 'projects:create' %}" 
+                   class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+                    <i class="fas fa-plus mr-2"></i>
+                    Crear Proyecto
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <a href="{% url 'projects:create' %}" 
+           class="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-plus text-blue-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-lg font-medium text-gray-900">Nuevo Proyecto</h3>
+                    <p class="text-sm text-gray-500">Crear un proyecto inmobiliario</p>
+                </div>
+            </div>
+        </a>
+
+        <a href="{% url 'projects:inmuebles_list' %}" 
+           class="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-home text-green-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-lg font-medium text-gray-900">Gestionar Inmuebles</h3>
+                    <p class="text-sm text-gray-500">Ver todos los inmuebles</p>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+{% endblock %}

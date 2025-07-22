@@ -1,0 +1,383 @@
+<!-- templates/sales_team_management/dashboard.html -->
+{% extends 'base/base.html' %}
+
+{% block title %}Dashboard - Gestión de Equipos de Ventas{% endblock %}
+
+{% block header %}Dashboard - Gestión de Equipos de Ventas{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">🎯 Dashboard de Gestión de Equipos</h1>
+        <p class="text-gray-600">Panel de control para la gestión integral de equipos de ventas, jerarquías y estructura organizacional</p>
+    </div>
+
+    <!-- Alertas -->
+    {% if alertas %}
+    <div class="mb-8 space-y-4">
+        {% for alerta in alertas %}
+        <div class="{% if alerta.tipo == 'warning' %}bg-yellow-50 border-l-4 border-yellow-400{% elif alerta.tipo == 'info' %}bg-blue-50 border-l-4 border-blue-400{% endif %} p-4 rounded-r-lg">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    {% if alerta.tipo == 'warning' %}
+                        <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                    {% elif alerta.tipo == 'info' %}
+                        <i class="fas fa-info-circle text-blue-400"></i>
+                    {% endif %}
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium {% if alerta.tipo == 'warning' %}text-yellow-800{% elif alerta.tipo == 'info' %}text-blue-800{% endif %}">
+                        {{ alerta.titulo }}
+                    </p>
+                    <p class="text-sm {% if alerta.tipo == 'warning' %}text-yellow-700{% elif alerta.tipo == 'info' %}text-blue-700{% endif %}">
+                        {{ alerta.mensaje }}
+                    </p>
+                </div>
+                <div class="ml-auto">
+                    <a href="{% url alerta.url %}" class="{% if alerta.tipo == 'warning' %}text-yellow-600 hover:text-yellow-800{% elif alerta.tipo == 'info' %}text-blue-600 hover:text-blue-800{% endif %} text-sm font-medium">
+                        Revisar →
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Estadísticas principales -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Total Equipos Activos -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-users text-blue-600 text-xl"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Equipos Activos</p>
+                    <p class="text-3xl font-bold text-gray-900">{{ stats.total_equipos_activos }}</p>
+                    {% if stats.total_equipos_inactivos > 0 %}
+                        <p class="text-xs text-gray-400">{{ stats.total_equipos_inactivos }} inactivos</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Miembros Activos -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-user-friends text-green-600 text-xl"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Miembros Activos</p>
+                    <p class="text-3xl font-bold text-gray-900">{{ stats.total_miembros_activos }}</p>
+                    {% if stats.total_miembros_inactivos > 0 %}
+                        <p class="text-xs text-gray-400">{{ stats.total_miembros_inactivos }} inactivos</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Proyectos -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-building text-purple-600 text-xl"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Proyectos Activos</p>
+                    <p class="text-3xl font-bold text-gray-900">{{ stats.total_proyectos }}</p>
+                    <p class="text-xs text-gray-400">{{ stats.total_inmuebles }} inmuebles</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ratio Eficiencia -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-chart-line text-orange-600 text-xl"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Promedio Miembros/Equipo</p>
+                    {% if stats.total_equipos_activos > 0 %}
+                        {% widthratio stats.total_miembros_activos stats.total_equipos_activos 1 as promedio %}
+                        <p class="text-3xl font-bold text-gray-900">{{ promedio|floatformat:1 }}</p>
+                    {% else %}
+                        <p class="text-3xl font-bold text-gray-900">0</p>
+                    {% endif %}
+                    <p class="text-xs text-gray-400">miembros por equipo</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Distribución por Roles -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+        <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+            <i class="fas fa-sitemap mr-3 text-blue-600"></i>
+            Distribución por Roles en la Organización
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Gerentes -->
+            <div class="text-center p-4 bg-blue-50 rounded-lg">
+                <div class="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-user-tie text-white text-xl"></i>
+                </div>
+                <h4 class="font-semibold text-blue-900">Gerentes</h4>
+                <p class="text-2xl font-bold text-blue-700">{{ roles_distribution.gerentes.activos }}</p>
+                <p class="text-sm text-blue-600">activos</p>
+                {% if roles_distribution.gerentes.inactivos > 0 %}
+                    <p class="text-xs text-gray-500">{{ roles_distribution.gerentes.inactivos }} inactivos</p>
+                {% endif %}
+            </div>
+
+            <!-- Jefes de Venta -->
+            <div class="text-center p-4 bg-green-50 rounded-lg">
+                <div class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-user-cog text-white text-xl"></i>
+                </div>
+                <h4 class="font-semibold text-green-900">Jefes de Venta</h4>
+                <p class="text-2xl font-bold text-green-700">{{ roles_distribution.jefes.activos }}</p>
+                <p class="text-sm text-green-600">activos</p>
+                {% if roles_distribution.jefes.inactivos > 0 %}
+                    <p class="text-xs text-gray-500">{{ roles_distribution.jefes.inactivos }} inactivos</p>
+                {% endif %}
+            </div>
+
+            <!-- Team Leaders -->
+            <div class="text-center p-4 bg-purple-50 rounded-lg">
+                <div class="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-users-cog text-white text-xl"></i>
+                </div>
+                <h4 class="font-semibold text-purple-900">Team Leaders</h4>
+                <p class="text-2xl font-bold text-purple-700">{{ roles_distribution.leaders.activos }}</p>
+                <p class="text-sm text-purple-600">activos</p>
+                {% if roles_distribution.leaders.inactivos > 0 %}
+                    <p class="text-xs text-gray-500">{{ roles_distribution.leaders.inactivos }} inactivos</p>
+                {% endif %}
+            </div>
+
+            <!-- Vendedores -->
+            <div class="text-center p-4 bg-orange-50 rounded-lg">
+                <div class="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-handshake text-white text-xl"></i>
+                </div>
+                <h4 class="font-semibold text-orange-900">Vendedores</h4>
+                <p class="text-2xl font-bold text-orange-700">{{ roles_distribution.vendedores.activos }}</p>
+                <p class="text-sm text-orange-600">activos</p>
+                {% if roles_distribution.vendedores.inactivos > 0 %}
+                    <p class="text-xs text-gray-500">{{ roles_distribution.vendedores.inactivos }} inactivos</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Accesos rápidos -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <!-- Gestión de Equipos -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-users mr-3 text-blue-600"></i>
+                Gestión de Equipos
+            </h3>
+            <p class="text-gray-600 mb-4">Administra equipos de venta y su estructura organizacional</p>
+            <div class="space-y-2">
+                <a href="{% url 'sales:equipos_list' %}"
+                   class="block w-full bg-blue-50 hover:bg-blue-100 text-blue-700 text-center py-2 px-4 rounded-lg font-medium transition-colors">
+                    📋 Ver Todos los Equipos
+                </a>
+                <a href="{% url 'sales:equipos_create' %}"
+                   class="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center py-2 px-4 rounded-lg font-medium transition-colors">
+                    ➕ Crear Nuevo Equipo
+                </a>
+            </div>
+        </div>
+
+        <!-- Gestión de Jerarquía -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-sitemap mr-3 text-green-600"></i>
+                Gestión de Jerarquía
+            </h3>
+            <p class="text-gray-600 mb-4">Administra la estructura jerárquica y miembros de equipos</p>
+            <div class="space-y-2">
+                <a href="{% url 'sales:jerarquia_list' %}"
+                   class="block w-full bg-green-50 hover:bg-green-100 text-green-700 text-center py-2 px-4 rounded-lg font-medium transition-colors">
+                    🏗️ Ver Jerarquía Global
+                </a>
+                <a href="{% url 'sales:jerarquia_create_member' %}"
+                   class="block w-full bg-green-600 hover:bg-green-700 text-white text-center py-2 px-4 rounded-lg font-medium transition-colors">
+                    👤 Agregar Miembro
+                </a>
+            </div>
+        </div>
+
+        <!-- Gestión de Proyectos -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-building mr-3 text-purple-600"></i>
+                Gestión de Proyectos
+            </h3>
+            <p class="text-gray-600 mb-4">Administra proyectos inmobiliarios y asignaciones</p>
+            <div class="space-y-2">
+                <a href="{% url 'sales:proyectos_list' %}"
+                   class="block w-full bg-purple-50 hover:bg-purple-100 text-purple-700 text-center py-2 px-4 rounded-lg font-medium transition-colors">
+                    🏙️ Ver Proyectos
+                </a>
+                <a href="{% url 'sales:proyectos_create' %}"
+                   class="block w-full bg-purple-600 hover:bg-purple-700 text-white text-center py-2 px-4 rounded-lg font-medium transition-colors">
+                    🏗️ Crear Proyecto
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rankings y Detalles -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Equipos con Mayor Jerarquía -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+                <i class="fas fa-trophy mr-3 text-yellow-600"></i>
+                Equipos Mejor Estructurados
+            </h3>
+            {% if equipos_con_jerarquia %}
+                <div class="space-y-4">
+                    {% for item in equipos_con_jerarquia %}
+                    <div class="flex items-center justify-between p-4 {% if item.tiene_configuracion_completa %}bg-green-50 border border-green-200{% else %}bg-gray-50 border border-gray-200{% endif %} rounded-lg">
+                        <div class="flex-1">
+                            <div class="flex items-center mb-2">
+                                <h4 class="font-medium text-gray-900">{{ item.equipo.nombre }}</h4>
+                                {% if item.tiene_configuracion_completa %}
+                                    <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        ✓ Completo
+                                    </span>
+                                {% else %}
+                                    <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                        ⚠ Incompleto
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <div class="grid grid-cols-4 gap-2 text-xs">
+                                <div class="text-center">
+                                    <div class="text-blue-600 font-semibold">{{ item.gerentes }}</div>
+                                    <div class="text-gray-500">Gerentes</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-green-600 font-semibold">{{ item.jefes }}</div>
+                                    <div class="text-gray-500">Jefes</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-purple-600 font-semibold">{{ item.leaders }}</div>
+                                    <div class="text-gray-500">Leaders</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-orange-600 font-semibold">{{ item.vendedores }}</div>
+                                    <div class="text-gray-500">Vendedores</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ml-4 text-right">
+                            <div class="text-2xl font-bold text-gray-900">{{ item.total_miembros }}</div>
+                            <div class="text-xs text-gray-500">total</div>
+                            <a href="{% url 'sales:equipos_detail' item.equipo.pk %}"
+                               class="text-xs text-blue-600 hover:text-blue-800 block mt-1">Ver detalles</a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-8">
+                    <i class="fas fa-users-slash text-gray-300 text-4xl mb-4"></i>
+                    <h4 class="text-lg font-medium text-gray-900 mb-2">No hay equipos configurados</h4>
+                    <p class="text-gray-500">Crea tu primer equipo para comenzar</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Proyectos Activos -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+                <i class="fas fa-city mr-3 text-indigo-600"></i>
+                Proyectos Más Activos
+            </h3>
+            {% if proyectos_activos %}
+                <div class="space-y-4">
+                    {% for proyecto in proyectos_activos %}
+                    <div class="flex items-center justify-between p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+                        <div>
+                            <h4 class="font-medium text-gray-900">{{ proyecto.nombre }}</h4>
+                            <p class="text-sm text-gray-600">{{ proyecto.descripcion|truncatechars:40 }}</p>
+                            <div class="flex items-center mt-2 space-x-4 text-xs">
+                                <span class="text-indigo-600">
+                                    <i class="fas fa-home mr-1"></i>
+                                    {{ proyecto.total_inmuebles }} inmuebles
+                                </span>
+                                <span class="text-green-600">
+                                    <i class="fas fa-check-circle mr-1"></i>
+                                    {{ proyecto.inmuebles_vendidos }} vendidos
+                                </span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            {% if proyecto.total_inmuebles > 0 %}
+                                {% widthratio proyecto.inmuebles_vendidos proyecto.total_inmuebles 100 as porcentaje %}
+                                <div class="text-lg font-bold text-green-600">{{ porcentaje }}%</div>
+                                <div class="text-xs text-gray-500">vendido</div>
+                            {% else %}
+                                <div class="text-lg font-bold text-gray-400">0%</div>
+                                <div class="text-xs text-gray-500">sin inmuebles</div>
+                            {% endif %}
+                            <a href="{% url 'sales:proyectos_detail' proyecto.pk %}"
+                               class="text-xs text-blue-600 hover:text-blue-800 block mt-1">Ver detalles</a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-8">
+                    <i class="fas fa-building text-gray-300 text-4xl mb-4"></i>
+                    <h4 class="text-lg font-medium text-gray-900 mb-2">No hay proyectos activos</h4>
+                    <p class="text-gray-500">Crea tu primer proyecto para comenzar</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+/* Animaciones suaves */
+.hover\:shadow-md:hover {
+    transition: box-shadow 0.3s ease;
+}
+
+.transition-shadow {
+    transition: box-shadow 0.2s ease;
+}
+
+.transition-colors {
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Mejoras visuales para los iconos */
+.fas {
+    font-weight: 900;
+}
+
+/* Grid responsivo personalizado */
+@media (max-width: 768px) {
+    .grid-cols-4 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+</style>
+{% endblock %}

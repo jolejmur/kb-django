@@ -1,0 +1,350 @@
+{% extends 'base/base.html' %}
+
+{% block title %}{{ title }} - Django CRM{% endblock %}
+
+{% block header %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Back Button -->
+    <div class="mb-6">
+        <a href="{% url 'accounts:roles_list' %}"
+           class="inline-flex items-center text-purple-600 hover:text-purple-800 font-medium">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Volver a Roles
+        </a>
+    </div>
+
+    <!-- Help Text -->
+    {% if help_text %}
+        <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
+            <div class="flex">
+                <i class="fas fa-info-circle text-purple-400 mt-0.5 mr-3"></i>
+                <div>
+                    <h4 class="text-sm font-medium text-purple-800 mb-1">¿Qué es un Rol?</h4>
+                    <p class="text-sm text-purple-700">{{ help_text }}</p>
+                    <p class="text-sm text-purple-700 mt-1">Ejemplo: "Vendedor" podría incluir módulos de "Clientes" + "Ventas" + "Reportes".</p>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <form method="post" class="space-y-8">
+        {% csrf_token %}
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Información Básica del Rol -->
+            <div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+                        <i class="fas fa-user-tag mr-3 text-purple-600"></i>
+                        Información del Rol
+                    </h2>
+
+                    <div class="space-y-4">
+                        <!-- Nombre del Rol -->
+                        <div>
+                            <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.name.label }}
+                            </label>
+                            {{ form.name }}
+                            {% if form.name.help_text %}
+                                <p class="text-xs text-gray-500 mt-1">{{ form.name.help_text }}</p>
+                            {% endif %}
+                            {% if form.name.errors %}
+                                <div class="mt-2 text-sm text-red-600">
+                                    {% for error in form.name.errors %}
+                                        <p>{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Descripción del Rol -->
+                        <div>
+                            <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.description.label }}
+                            </label>
+                            {{ form.description }}
+                            {% if form.description.help_text %}
+                                <p class="text-xs text-gray-500 mt-1">{{ form.description.help_text }}</p>
+                            {% endif %}
+                            {% if form.description.errors %}
+                                <div class="mt-2 text-sm text-red-600">
+                                    {% for error in form.description.errors %}
+                                        <p>{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Selección de Módulos -->
+            <div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+                        <i class="fas fa-cubes mr-3 text-blue-600"></i>
+                        Módulos Incluidos
+                    </h2>
+
+                    {% if modules_by_category %}
+                        <div class="space-y-3 max-h-96 overflow-y-auto">
+                            {% for category, modules in modules_by_category.items %}
+                                <div class="category-section border border-gray-200 rounded-lg">
+                                    <!-- Título de Categoría Colapsable -->
+                                    <div class="category-header cursor-pointer select-none hover:bg-gray-50 p-4 rounded-t-lg transition-colors"
+                                         data-category="{{ category.name|slugify }}">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center">
+                                                <!-- Chevron -->
+                                                <i class="fas fa-chevron-right category-chevron transition-transform duration-200 text-gray-400 mr-3"
+                                                   data-category="{{ category.name|slugify }}"></i>
+                                                   
+                                                <!-- Ícono de categoría -->
+                                                <div class="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style="background-color: {{ category.color }}20;">
+                                                    <i class="{{ category.icon }} text-{{ category.color }}-600 text-sm"></i>
+                                                </div>
+                                                
+                                                <!-- Nombre y contador -->
+                                                <div>
+                                                    <h4 class="font-semibold text-gray-800">{{ category.name }}</h4>
+                                                    <span class="text-xs text-gray-500">({{ modules|length }} módulos disponibles)</span>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Botón para seleccionar/deseleccionar toda la categoría -->
+                                            <div class="flex items-center space-x-2">
+                                                <span class="selected-count text-xs text-gray-500" data-category="{{ category.name|slugify }}">
+                                                    <span class="count">0</span> seleccionados
+                                                </span>
+                                                <button type="button" 
+                                                        class="text-xs text-blue-600 hover:text-blue-800 font-medium category-toggle px-2 py-1 rounded hover:bg-blue-50"
+                                                        data-category="{{ category.name|slugify }}"
+                                                        onclick="event.stopPropagation()">
+                                                    Seleccionar todos
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Módulos de la categoría (colapsables) -->
+                                    <div class="category-modules collapsed overflow-hidden transition-all duration-300 ease-in-out" 
+                                         data-category="{{ category.name|slugify }}"
+                                         style="max-height: 0;">
+                                        <div class="p-4 pt-0 space-y-2">
+                                            {% for module_data in modules %}
+                                                <div class="flex items-start p-3 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors">
+                                                    <input type="checkbox"
+                                                           name="modules"
+                                                           value="{{ module_data.group.id }}"
+                                                           id="module_{{ module_data.group.id }}"
+                                                           class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded mt-1 category-checkbox"
+                                                           data-category="{{ category.name|slugify }}"
+                                                           {% if form.instance.pk %}
+                                                               {% for selected_group in form.instance.groups.all %}
+                                                                   {% if selected_group.id == module_data.group.id %}checked{% endif %}
+                                                               {% endfor %}
+                                                           {% endif %}>
+                                                    <div class="ml-3 flex-1">
+                                                        <label for="module_{{ module_data.group.id }}" class="cursor-pointer">
+                                                            <div class="flex items-center mb-1">
+                                                                <div class="w-6 h-6 bg-blue-100 rounded flex items-center justify-center mr-3">
+                                                                    <i class="{{ module_data.navigation.icon }} text-blue-600 text-xs"></i>
+                                                                </div>
+                                                                <span class="text-sm font-medium text-gray-900">{{ module_data.group.name }}</span>
+                                                            </div>
+                                                            <p class="text-xs text-gray-500">
+                                                                {{ module_data.permissions_count }} permisos • {{ module_data.navigation.url }}
+                                                            </p>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mt-4 p-3 bg-blue-50 rounded-lg">
+                            <p class="text-xs text-blue-700">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                Selecciona los módulos por categoría. Usa "Seleccionar todos" para elegir toda una categoría completa.
+                            </p>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-8">
+                            <i class="fas fa-cubes text-gray-300 text-4xl mb-4"></i>
+                            <p class="text-gray-500 mb-4">No hay módulos disponibles</p>
+                            <a href="{% url 'accounts:module_create' %}"
+                               class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                Crear primer módulo
+                            </a>
+                        </div>
+                    {% endif %}
+
+                    {% if form.modules.errors %}
+                        <div class="mt-4 text-sm text-red-600">
+                            {% for error in form.modules.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+            <a href="{% url 'accounts:roles_list' %}"
+               class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors">
+                Cancelar
+            </a>
+            <button type="submit"
+                    class="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center">
+                <i class="fas fa-save mr-2"></i>
+                {{ action }} Rol
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // === FUNCIONALIDAD DE COLAPSAR/EXPANDIR CATEGORÍAS ===
+    
+    function toggleCategory(categorySlug, forceState = null) {
+        const categoryModules = document.querySelector(`.category-modules[data-category="${categorySlug}"]`);
+        const chevron = document.querySelector(`.category-chevron[data-category="${categorySlug}"]`);
+        
+        if (!categoryModules || !chevron) return;
+        
+        const isCollapsed = forceState !== null ? !forceState : categoryModules.classList.contains('collapsed');
+        
+        if (isCollapsed) {
+            // Expandir
+            categoryModules.classList.remove('collapsed');
+            categoryModules.style.maxHeight = categoryModules.scrollHeight + 'px';
+            chevron.style.transform = 'rotate(90deg)';
+            
+            // Guardar estado expandido
+            localStorage.setItem(`category_${categorySlug}`, 'expanded');
+        } else {
+            // Colapsar
+            categoryModules.classList.add('collapsed');
+            categoryModules.style.maxHeight = '0px';
+            chevron.style.transform = 'rotate(0deg)';
+            
+            // Guardar estado colapsado
+            localStorage.setItem(`category_${categorySlug}`, 'collapsed');
+        }
+    }
+    
+    // Event listeners para headers de categorías
+    document.querySelectorAll('.category-header').forEach(header => {
+        header.addEventListener('click', function() {
+            const categorySlug = this.getAttribute('data-category');
+            toggleCategory(categorySlug);
+        });
+    });
+    
+    // === FUNCIONALIDAD DE SELECCIÓN DE MÓDULOS ===
+    
+    function updateCategoryCounter(categorySlug) {
+        const checkboxes = document.querySelectorAll(`input[data-category="${categorySlug}"]`);
+        const counterElement = document.querySelector(`.selected-count[data-category="${categorySlug}"] .count`);
+        const toggleButton = document.querySelector(`.category-toggle[data-category="${categorySlug}"]`);
+        
+        if (!counterElement || !toggleButton) return;
+        
+        const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+        const totalCount = checkboxes.length;
+        
+        // Actualizar contador
+        counterElement.textContent = checkedCount;
+        
+        // Actualizar texto del botón
+        if (checkedCount === totalCount && totalCount > 0) {
+            toggleButton.textContent = 'Deseleccionar todos';
+        } else {
+            toggleButton.textContent = 'Seleccionar todos';
+        }
+        
+        // Cambiar color del contador
+        const counterContainer = counterElement.parentElement;
+        if (checkedCount > 0) {
+            counterContainer.classList.remove('text-gray-500');
+            counterContainer.classList.add('text-green-600', 'font-medium');
+        } else {
+            counterContainer.classList.remove('text-green-600', 'font-medium');
+            counterContainer.classList.add('text-gray-500');
+        }
+    }
+    
+    // Event listeners para botones de seleccionar/deseleccionar todos
+    document.querySelectorAll('.category-toggle').forEach(toggle => {
+        toggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            
+            const categorySlug = this.getAttribute('data-category');
+            const checkboxes = document.querySelectorAll(`input[data-category="${categorySlug}"]`);
+            
+            // Verificar si todos están seleccionados
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            const shouldCheck = !allChecked;
+            
+            // Cambiar estado de todos los checkboxes
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = shouldCheck;
+            });
+            
+            // Actualizar contador
+            updateCategoryCounter(categorySlug);
+        });
+    });
+    
+    // Event listeners para checkboxes individuales
+    document.querySelectorAll('.category-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const categorySlug = this.getAttribute('data-category');
+            updateCategoryCounter(categorySlug);
+        });
+    });
+    
+    // === INICIALIZACIÓN ===
+    
+    // Restaurar estados de categorías desde localStorage
+    document.querySelectorAll('.category-modules').forEach(categoryModules => {
+        const categorySlug = categoryModules.getAttribute('data-category');
+        const savedState = localStorage.getItem(`category_${categorySlug}`);
+        
+        // Por defecto expandir las primeras 2 categorías si no hay estado guardado
+        const shouldExpand = savedState === 'expanded' || 
+            (savedState === null && Array.from(document.querySelectorAll('.category-modules')).indexOf(categoryModules) < 2);
+        
+        if (shouldExpand) {
+            toggleCategory(categorySlug, true);
+        }
+    });
+    
+    // Inicializar contadores de todas las categorías
+    document.querySelectorAll('.category-modules').forEach(categoryModules => {
+        const categorySlug = categoryModules.getAttribute('data-category');
+        updateCategoryCounter(categorySlug);
+    });
+    
+    // Expandir automáticamente categorías que tienen elementos seleccionados
+    document.querySelectorAll('.category-checkbox:checked').forEach(checkbox => {
+        const categorySlug = checkbox.getAttribute('data-category');
+        const categoryModules = document.querySelector(`.category-modules[data-category="${categorySlug}"]`);
+        
+        if (categoryModules && categoryModules.classList.contains('collapsed')) {
+            toggleCategory(categorySlug, true);
+        }
+    });
+});
+</script>
+
+{% endblock %}

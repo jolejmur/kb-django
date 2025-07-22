@@ -1,0 +1,26 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Home - Django CRM{% endblock %}
+
+{% block header %}Welcome to Django CRM{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Welcome to Django CRM</h5>
+                <p class="card-text">
+                    This is a simple CRM system built with Django. It includes user management with roles, groups, and permissions.
+                </p>
+                
+                {% if user.is_authenticated %}
+                    <a href="{% url 'core:dashboard' %}" class="btn btn-primary">Go to Dashboard</a>
+                {% else %}
+                    <a href="{% url 'accounts:login' %}" class="btn btn-primary">Login</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

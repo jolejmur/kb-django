@@ -1,0 +1,385 @@
+<!-- templates/sales/jerarquia/confirm_reassign.html -->
+{% extends 'base/base.html' %}
+
+{% block title %}
+    {% if tipo_reemplazo == 'gerente' %}
+        Confirmar Reasignación de Gerente - Django CRM
+    {% elif tipo_reemplazo == 'jefe' %}
+        Confirmar Reasignación de Jefe de Venta - Django CRM
+    {% elif tipo_reemplazo == 'team_leader' %}
+        Confirmar Reasignación de Team Leader - Django CRM
+    {% endif %}
+{% endblock %}
+
+{% block header %}
+    {% if tipo_reemplazo == 'gerente' %}
+        Confirmar Reasignación de Gerente
+    {% elif tipo_reemplazo == 'jefe' %}
+        Confirmar Reasignación de Jefe de Venta
+    {% elif tipo_reemplazo == 'team_leader' %}
+        Confirmar Reasignación de Team Leader
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Breadcrumb -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            <li class="inline-flex items-center">
+                <a href="{% url 'sales:jerarquia_list' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    <i class="fas fa-sitemap mr-2"></i>
+                    Jerarquía de Equipos
+                </a>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <a href="{% url 'sales:jerarquia_member_detail' miembro.id rol_actual %}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
+                        {{ usuario.get_full_name|default:usuario.username }}
+                    </a>
+                </div>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <span class="text-sm font-medium text-gray-500">Confirmar Reasignación</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-900">
+                <i class="fas fa-exchange-alt mr-2 text-amber-600"></i>
+                {% if tipo_reemplazo == 'gerente' %}
+                    Confirmar Reasignación como Gerente
+                {% elif tipo_reemplazo == 'jefe' %}
+                    Confirmar Reasignación como Jefe de Venta
+                {% elif tipo_reemplazo == 'team_leader' %}
+                    Confirmar Reasignación como Team Leader
+                {% endif %}
+            </h2>
+            <p class="text-sm text-gray-600 mt-1">
+                {% if tipo_reemplazo == 'gerente' %}
+                    Estás reasignando a este usuario como gerente. El equipo ya tiene un gerente activo.
+                {% elif tipo_reemplazo == 'jefe' %}
+                    Estás reasignando a este usuario como jefe de venta. Ya existe un jefe de venta bajo este gerente.
+                {% elif tipo_reemplazo == 'team_leader' %}
+                    Estás reasignando a este usuario como team leader. Ya existe un team leader bajo este jefe de venta.
+                {% endif %}
+            </p>
+        </div>
+
+        <!-- Advertencia principal -->
+        <div class="px-6 py-4 bg-amber-50 border-b border-gray-200">
+            <div class="flex items-start">
+                <i class="fas fa-exclamation-triangle text-amber-600 text-xl mr-3 mt-1"></i>
+                <div>
+                    <h3 class="text-lg font-medium text-amber-900">
+                        {% if tipo_reemplazo == 'gerente' %}
+                            ¡Atención! Conflicto de gerente detectado
+                        {% elif tipo_reemplazo == 'jefe' %}
+                            ¡Atención! Conflicto de jefe de venta detectado
+                        {% elif tipo_reemplazo == 'team_leader' %}
+                            ¡Atención! Conflicto de team leader detectado
+                        {% endif %}
+                    </h3>
+                    <p class="text-sm text-amber-800 mt-1">
+                        Estás reasignando a <strong>{{ usuario.get_full_name|default:usuario.username }}</strong> 
+                        {% if tipo_reemplazo == 'gerente' %}
+                            como gerente del equipo <strong>{{ equipo_destino.nombre }}</strong>, pero este equipo ya tiene un gerente activo.
+                        {% elif tipo_reemplazo == 'jefe' %}
+                            como jefe de venta bajo <strong>{{ supervisor_destino.usuario.get_full_name|default:supervisor_destino.usuario.username }}</strong>, pero ya existe un jefe de venta activo en esta posición.
+                        {% elif tipo_reemplazo == 'team_leader' %}
+                            como team leader bajo <strong>{{ supervisor_destino.usuario.get_full_name|default:supervisor_destino.usuario.username }}</strong>, pero ya existe un team leader activo en esta posición.
+                        {% endif %}
+                        Si continúas, 
+                        {% if tipo_reemplazo == 'gerente' %}
+                            el gerente actual
+                        {% elif tipo_reemplazo == 'jefe' %}
+                            el jefe de venta actual
+                        {% elif tipo_reemplazo == 'team_leader' %}
+                            el team leader actual
+                        {% endif %}
+                        será <strong>desactivado automáticamente</strong>.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6">
+            <!-- Información del cambio de rol -->
+            <div class="mb-6 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+                <h4 class="text-sm font-medium text-indigo-900 mb-2">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Cambio de Rol
+                </h4>
+                <div class="flex items-center justify-center">
+                    <div class="text-center">
+                        <div class="inline-flex items-center">
+                            <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                                {{ rol_display_actual }}
+                            </span>
+                            <i class="fas fa-arrow-right mx-4 text-gray-400"></i>
+                            <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                                Gerente
+                            </span>
+                        </div>
+                        <p class="text-sm text-indigo-700 mt-2">
+                            {% if tipo_cambio == 'promocion' %}
+                                <i class="fas fa-arrow-up text-green-600 mr-1"></i>
+                                Promoción
+                            {% elif tipo_cambio == 'degradacion' %}
+                                <i class="fas fa-arrow-down text-red-600 mr-1"></i>
+                                Degradación
+                            {% else %}
+                                <i class="fas fa-exchange-alt text-blue-600 mr-1"></i>
+                                Cambio lateral
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comparación de miembros -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <!-- Miembro Actual (será reemplazado) -->
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <h4 class="text-sm font-medium text-red-900 mb-3 flex items-center">
+                        <i class="fas fa-user-times mr-2"></i>
+                        {% if tipo_reemplazo == 'gerente' %}
+                            Gerente Actual (será desactivado)
+                        {% elif tipo_reemplazo == 'jefe' %}
+                            Jefe de Venta Actual (será desactivado)
+                        {% elif tipo_reemplazo == 'team_leader' %}
+                            Team Leader Actual (será desactivado)
+                        {% endif %}
+                    </h4>
+                    <div class="flex items-center">
+                        <div class="h-12 w-12 bg-red-100 rounded-full flex items-center justify-center mr-3">
+                            {% if tipo_reemplazo == 'gerente' %}
+                                <i class="fas fa-user-tie text-red-600"></i>
+                            {% elif tipo_reemplazo == 'jefe' %}
+                                <i class="fas fa-user-cog text-red-600"></i>
+                            {% elif tipo_reemplazo == 'team_leader' %}
+                                <i class="fas fa-users text-red-600"></i>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <p class="font-medium text-red-900">
+                                {% if tipo_reemplazo == 'gerente' %}
+                                    {{ gerente_actual.usuario.get_full_name|default:gerente_actual.usuario.username }}
+                                {% elif tipo_reemplazo == 'jefe' %}
+                                    {{ jefe_actual.usuario.get_full_name|default:jefe_actual.usuario.username }}
+                                {% elif tipo_reemplazo == 'team_leader' %}
+                                    {{ leader_actual.usuario.get_full_name|default:leader_actual.usuario.username }}
+                                {% endif %}
+                            </p>
+                            <p class="text-sm text-red-700">
+                                {% if tipo_reemplazo == 'gerente' %}
+                                    {{ gerente_actual.usuario.email }}
+                                {% elif tipo_reemplazo == 'jefe' %}
+                                    {{ jefe_actual.usuario.email }}
+                                {% elif tipo_reemplazo == 'team_leader' %}
+                                    {{ leader_actual.usuario.email }}
+                                {% endif %}
+                            </p>
+                            <p class="text-xs text-red-600">Activo desde: 
+                                {% if tipo_reemplazo == 'gerente' %}
+                                    {{ gerente_actual.created_at|date:"d/m/Y" }}
+                                {% elif tipo_reemplazo == 'jefe' %}
+                                    {{ jefe_actual.created_at|date:"d/m/Y" }}
+                                {% elif tipo_reemplazo == 'team_leader' %}
+                                    {{ leader_actual.created_at|date:"d/m/Y" }}
+                                {% endif %}
+                            </p>
+                            {% if tipo_reemplazo == 'jefe' or tipo_reemplazo == 'team_leader' %}
+                                <p class="text-xs text-red-600">
+                                    Supervisor: 
+                                    {% if tipo_reemplazo == 'jefe' %}
+                                        {{ jefe_actual.gerente_equipo.usuario.get_full_name|default:jefe_actual.gerente_equipo.usuario.username }}
+                                    {% elif tipo_reemplazo == 'team_leader' %}
+                                        {{ leader_actual.jefe_venta.usuario.get_full_name|default:leader_actual.jefe_venta.usuario.username }}
+                                    {% endif %}
+                                </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Nuevo Miembro -->
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h4 class="text-sm font-medium text-green-900 mb-3 flex items-center">
+                        <i class="fas fa-user-check mr-2"></i>
+                        {% if tipo_reemplazo == 'gerente' %}
+                            Nuevo Gerente
+                        {% elif tipo_reemplazo == 'jefe' %}
+                            Nuevo Jefe de Venta
+                        {% elif tipo_reemplazo == 'team_leader' %}
+                            Nuevo Team Leader
+                        {% endif %}
+                    </h4>
+                    <div class="flex items-center">
+                        <div class="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                            {% if tipo_reemplazo == 'gerente' %}
+                                <i class="fas fa-user-tie text-green-600"></i>
+                            {% elif tipo_reemplazo == 'jefe' %}
+                                <i class="fas fa-user-cog text-green-600"></i>
+                            {% elif tipo_reemplazo == 'team_leader' %}
+                                <i class="fas fa-users text-green-600"></i>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <p class="font-medium text-green-900">
+                                {{ usuario.get_full_name|default:usuario.username }}
+                            </p>
+                            <p class="text-sm text-green-700">{{ usuario.email }}</p>
+                            <p class="text-xs text-green-600">
+                                Rol actual: {{ rol_display_actual }} en {{ equipo_actual.nombre }}
+                            </p>
+                            {% if supervisor_destino %}
+                                <p class="text-xs text-green-600">
+                                    Nuevo supervisor: {{ supervisor_destino.usuario.get_full_name|default:supervisor_destino.usuario.username }}
+                                </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Subordinados que serán transferidos -->
+            {% if tipo_reemplazo == 'gerente' and gerente_actual.jefeventas.exists %}
+            <div class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h4 class="text-sm font-medium text-blue-900 mb-2">
+                    <i class="fas fa-exchange-alt mr-1"></i>
+                    Jefes de Venta que serán transferidos
+                </h4>
+                <p class="text-sm text-blue-800 mb-3">
+                    Los siguientes jefes de venta serán automáticamente reasignados al nuevo gerente:
+                </p>
+                <ul class="text-sm text-blue-800 space-y-1">
+                    {% for jefe in gerente_actual.jefeventas.all %}
+                        {% if jefe.activo %}
+                            <li>• <strong>{{ jefe.usuario.get_full_name|default:jefe.usuario.username }}</strong> ({{ jefe.usuario.email }})</li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% elif tipo_reemplazo == 'jefe' and jefe_actual.teamleaders.exists %}
+            <div class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h4 class="text-sm font-medium text-blue-900 mb-2">
+                    <i class="fas fa-exchange-alt mr-1"></i>
+                    Team Leaders que serán transferidos
+                </h4>
+                <p class="text-sm text-blue-800 mb-3">
+                    Los siguientes team leaders serán automáticamente reasignados al nuevo jefe de venta:
+                </p>
+                <ul class="text-sm text-blue-800 space-y-1">
+                    {% for leader in jefe_actual.teamleaders.all %}
+                        {% if leader.activo %}
+                            <li>• <strong>{{ leader.usuario.get_full_name|default:leader.usuario.username }}</strong> ({{ leader.usuario.email }})</li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% elif tipo_reemplazo == 'team_leader' and leader_actual.vendedores.exists %}
+            <div class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h4 class="text-sm font-medium text-blue-900 mb-2">
+                    <i class="fas fa-exchange-alt mr-1"></i>
+                    Vendedores que serán transferidos
+                </h4>
+                <p class="text-sm text-blue-800 mb-3">
+                    Los siguientes vendedores serán automáticamente reasignados al nuevo team leader:
+                </p>
+                <ul class="text-sm text-blue-800 space-y-1">
+                    {% for vendedor in leader_actual.vendedores.all %}
+                        {% if vendedor.activo %}
+                            <li>• <strong>{{ vendedor.usuario.get_full_name|default:vendedor.usuario.username }}</strong> ({{ vendedor.usuario.email }})</li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Consecuencias del cambio -->
+            <div class="mb-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                <h4 class="text-sm font-medium text-yellow-900 mb-2">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Consecuencias de la reasignación
+                </h4>
+                <ul class="text-sm text-yellow-800 space-y-1">
+                    <li>• La asignación actual de {{ usuario.get_full_name|default:usuario.username }} como {{ rol_display_actual }} será <strong>eliminada</strong></li>
+                    {% if tipo_reemplazo == 'gerente' %}
+                        <li>• El gerente actual <strong>{{ gerente_actual.usuario.get_full_name|default:gerente_actual.usuario.username }}</strong> será desactivado</li>
+                        <li>• {{ usuario.get_full_name|default:usuario.username }} será asignado como gerente del equipo {{ equipo_destino.nombre }}</li>
+                        {% if gerente_actual.jefeventas.exists %}
+                            <li>• Todos los jefes de venta serán <strong>automáticamente transferidos</strong> al nuevo gerente</li>
+                        {% endif %}
+                        <li>• El nuevo gerente obtendrá todos los permisos de gestión del equipo</li>
+                    {% elif tipo_reemplazo == 'jefe' %}
+                        <li>• El jefe de venta actual <strong>{{ jefe_actual.usuario.get_full_name|default:jefe_actual.usuario.username }}</strong> será desactivado</li>
+                        <li>• {{ usuario.get_full_name|default:usuario.username }} será asignado como jefe de venta bajo {{ supervisor_destino.usuario.get_full_name|default:supervisor_destino.usuario.username }}</li>
+                        {% if jefe_actual.teamleaders.exists %}
+                            <li>• Todos los team leaders serán <strong>automáticamente transferidos</strong> al nuevo jefe de venta</li>
+                        {% endif %}
+                        <li>• El nuevo jefe obtendrá todos los permisos de gestión de su área</li>
+                    {% elif tipo_reemplazo == 'team_leader' %}
+                        <li>• El team leader actual <strong>{{ leader_actual.usuario.get_full_name|default:leader_actual.usuario.username }}</strong> será desactivado</li>
+                        <li>• {{ usuario.get_full_name|default:usuario.username }} será asignado como team leader bajo {{ supervisor_destino.usuario.get_full_name|default:supervisor_destino.usuario.username }}</li>
+                        {% if leader_actual.vendedores.exists %}
+                            <li>• Todos los vendedores serán <strong>automáticamente transferidos</strong> al nuevo team leader</li>
+                        {% endif %}
+                        <li>• El nuevo team leader obtendrá todos los permisos de gestión de su equipo</li>
+                    {% endif %}
+                    <li>• Se mantendrá el historial de todos los usuarios involucrados</li>
+                    <li>• La jerarquía inferior permanecerá intacta</li>
+                </ul>
+            </div>
+
+            <!-- Formulario de confirmación -->
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="nuevo_rol" value="gerente">
+                <input type="hidden" name="equipo" value="{{ equipo_destino.id }}">
+                <input type="hidden" name="confirmar_reemplazo" value="true">
+
+                <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+                    <a href="{% url 'sales:jerarquia_member_reassign' miembro.id rol_actual %}" 
+                       class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors">
+                        <i class="fas fa-times mr-2"></i>Cancelar
+                    </a>
+                    
+                    <button type="submit" 
+                            class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                        <i class="fas fa-exchange-alt mr-2"></i>
+                        {% if tipo_reemplazo == 'gerente' %}
+                            Sí, Confirmar Reasignación como Gerente
+                        {% elif tipo_reemplazo == 'jefe' %}
+                            Sí, Confirmar Reasignación como Jefe
+                        {% elif tipo_reemplazo == 'team_leader' %}
+                            Sí, Confirmar Reasignación como Team Leader
+                        {% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Información adicional -->
+    <div class="mt-6 bg-blue-50 rounded-xl border border-blue-200 p-4">
+        <h3 class="text-sm font-medium text-blue-900 mb-2">
+            <i class="fas fa-lightbulb mr-1"></i>
+            ¿Por qué se requiere confirmación?
+        </h3>
+        <ul class="text-sm text-blue-800 space-y-1">
+            <li>• Solo puede haber <strong>un gerente activo</strong> por equipo</li>
+            <li>• La reasignación implica un <strong>cambio completo en la jerarquía</strong> del equipo</li>
+            <li>• Se transfieren automáticamente las relaciones de supervisión</li>
+            <li>• Todos los usuarios mantendrán su historial en el sistema</li>
+            <li>• Este cambio puede afectar la estructura organizacional del equipo</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

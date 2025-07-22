@@ -1,0 +1,186 @@
+<!-- templates/sales/jerarquia/confirm_reactivate.html -->
+{% extends 'base/base.html' %}
+
+{% block title %}Confirmar Reactivación de Gerente - Django CRM{% endblock %}
+
+{% block header %}Confirmar Reactivación de Gerente{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Breadcrumb -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            <li class="inline-flex items-center">
+                <a href="{% url 'sales:jerarquia_list' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    <i class="fas fa-sitemap mr-2"></i>
+                    Jerarquía de Equipos
+                </a>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <a href="{% url 'sales:jerarquia_member_detail' miembro_inactivo.id rol %}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
+                        {{ usuario_reactivar.get_full_name|default:usuario_reactivar.username }}
+                    </a>
+                </div>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <span class="text-sm font-medium text-gray-500">Confirmar Reactivación</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-900">
+                <i class="fas fa-user-check mr-2 text-green-600"></i>
+                Confirmar Reactivación de Gerente
+            </h2>
+            <p class="text-sm text-gray-600 mt-1">
+                Estás reactivando un gerente inactivo. El equipo ya tiene un gerente activo.
+            </p>
+        </div>
+
+        <!-- Advertencia principal -->
+        <div class="px-6 py-4 bg-amber-50 border-b border-gray-200">
+            <div class="flex items-start">
+                <i class="fas fa-exclamation-triangle text-amber-600 text-xl mr-3 mt-1"></i>
+                <div>
+                    <h3 class="text-lg font-medium text-amber-900">¡Atención! Reactivación con conflicto de gerente</h3>
+                    <p class="text-sm text-amber-800 mt-1">
+                        Estás reactivando a <strong>{{ usuario_reactivar.get_full_name|default:usuario_reactivar.username }}</strong> 
+                        como gerente del equipo <strong>{{ equipo.nombre }}</strong>, pero este equipo ya tiene un gerente activo. 
+                        Si continúas, el gerente actual será <strong>desactivado automáticamente</strong>.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6">
+            <!-- Comparación de gerentes -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <!-- Gerente Actual -->
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <h4 class="text-sm font-medium text-red-900 mb-3 flex items-center">
+                        <i class="fas fa-user-times mr-2"></i>
+                        Gerente Actual (será desactivado)
+                    </h4>
+                    <div class="flex items-center">
+                        <div class="h-12 w-12 bg-red-100 rounded-full flex items-center justify-center mr-3">
+                            <i class="fas fa-user-tie text-red-600"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium text-red-900">
+                                {{ gerente_actual.usuario.get_full_name|default:gerente_actual.usuario.username }}
+                            </p>
+                            <p class="text-sm text-red-700">{{ gerente_actual.usuario.email }}</p>
+                            <p class="text-xs text-red-600">Activo desde: {{ gerente_actual.created_at|date:"d/m/Y" }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gerente a Reactivar -->
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h4 class="text-sm font-medium text-green-900 mb-3 flex items-center">
+                        <i class="fas fa-user-check mr-2"></i>
+                        Gerente a Reactivar
+                    </h4>
+                    <div class="flex items-center">
+                        <div class="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                            <i class="fas fa-user-tie text-green-600"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium text-green-900">
+                                {{ usuario_reactivar.get_full_name|default:usuario_reactivar.username }}
+                            </p>
+                            <p class="text-sm text-green-700">{{ usuario_reactivar.email }}</p>
+                            <p class="text-xs text-green-600">
+                                Fue gerente desde: {{ miembro_inactivo.created_at|date:"d/m/Y" }}
+                                {% if miembro_inactivo.updated_at != miembro_inactivo.created_at %}
+                                    (Desactivado: {{ miembro_inactivo.updated_at|date:"d/m/Y" }})
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Jefes de venta que serán transferidos -->
+            {% if gerente_actual.jefeventas.exists %}
+            <div class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h4 class="text-sm font-medium text-blue-900 mb-2">
+                    <i class="fas fa-exchange-alt mr-1"></i>
+                    Jefes de Venta que serán transferidos
+                </h4>
+                <p class="text-sm text-blue-800 mb-3">
+                    Los siguientes jefes de venta serán automáticamente reasignados al gerente reactivado:
+                </p>
+                <ul class="text-sm text-blue-800 space-y-1">
+                    {% for jefe in gerente_actual.jefeventas.all %}
+                        {% if jefe.activo %}
+                            <li>• <strong>{{ jefe.usuario.get_full_name|default:jefe.usuario.username }}</strong> ({{ jefe.usuario.email }})</li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Consecuencias del cambio -->
+            <div class="mb-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                <h4 class="text-sm font-medium text-yellow-900 mb-2">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Consecuencias de la reactivación
+                </h4>
+                <ul class="text-sm text-yellow-800 space-y-1">
+                    <li>• El gerente actual <strong>{{ gerente_actual.usuario.get_full_name|default:gerente_actual.usuario.username }}</strong> será desactivado</li>
+                    <li>• {{ usuario_reactivar.get_full_name|default:usuario_reactivar.username }} será reactivado como gerente del equipo {{ equipo.nombre }}</li>
+                    {% if gerente_actual.jefeventas.exists %}
+                        <li>• Todos los jefes de venta serán <strong>automáticamente transferidos</strong> al gerente reactivado</li>
+                    {% endif %}
+                    <li>• Se mantendrá el historial de ambos gerentes</li>
+                    <li>• La jerarquía de team leaders y vendedores permanecerá intacta</li>
+                    <li>• El gerente reactivado recuperará todos los permisos de gestión</li>
+                </ul>
+            </div>
+
+            <!-- Formulario de confirmación -->
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="equipo" value="{{ equipo.id }}">
+                <input type="hidden" name="activo" value="on">
+                <input type="hidden" name="confirmar_reactivacion" value="true">
+
+                <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+                    <a href="{% url 'sales:jerarquia_member_edit' miembro_inactivo.id rol %}" 
+                       class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors">
+                        <i class="fas fa-times mr-2"></i>Cancelar
+                    </a>
+                    
+                    <button type="submit" 
+                            class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                        <i class="fas fa-user-check mr-2"></i>
+                        Sí, Reactivar Gerente
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Información adicional -->
+    <div class="mt-6 bg-blue-50 rounded-xl border border-blue-200 p-4">
+        <h3 class="text-sm font-medium text-blue-900 mb-2">
+            <i class="fas fa-lightbulb mr-1"></i>
+            ¿Por qué se requiere confirmación?
+        </h3>
+        <ul class="text-sm text-blue-800 space-y-1">
+            <li>• Solo puede haber <strong>un gerente activo</strong> por equipo</li>
+            <li>• La reactivación implica un <strong>cambio en la jerarquía</strong> del equipo</li>
+            <li>• Se transfieren automáticamente las relaciones de supervisión</li>
+            <li>• Ambos gerentes mantendrán su historial en el sistema</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

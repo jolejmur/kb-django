@@ -1,0 +1,523 @@
+<!-- templates/sales/jerarquia/edit.html -->
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Editar {{ rol_display }} - Django CRM{% endblock %}
+
+{% block extra_css %}
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+      crossorigin="" />
+<link rel="stylesheet" href="{% static 'css/user-search-widget.css' %}">
+{% endblock %}
+
+{% block header %}Editar {{ rol_display }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Breadcrumb -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            <li class="inline-flex items-center">
+                <a href="{% url 'sales:jerarquia_list' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    <i class="fas fa-sitemap mr-2"></i>
+                    Jerarquía de Equipos
+                </a>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <a href="{% url 'sales:jerarquia_member_detail' miembro.id rol %}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
+                        {{ miembro.usuario.get_full_name|default:miembro.usuario.username }}
+                    </a>
+                </div>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <span class="text-sm font-medium text-gray-500">Editar</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-900">
+                <i class="fas fa-edit mr-2 text-yellow-600"></i>
+                Editar {{ rol_display }}
+            </h2>
+            <p class="text-sm text-gray-600 mt-1">
+                Modifica la información del miembro, incluyendo cambio de equipo si es necesario
+            </p>
+        </div>
+
+        <!-- Información actual -->
+        <div class="px-6 py-4 {% if not miembro.activo %}bg-red-50{% else %}bg-blue-50{% endif %} border-b border-gray-200">
+            <div class="flex items-center">
+                <div class="h-12 w-12 rounded-full flex items-center justify-center
+                    {% if rol == 'gerente' %}bg-blue-100{% elif rol == 'jefe' %}bg-green-100{% elif rol == 'team_leader' %}bg-yellow-100{% else %}bg-purple-100{% endif %}">
+                    {% if rol == 'gerente' %}
+                        <i class="fas fa-user-tie text-blue-600"></i>
+                    {% elif rol == 'jefe' %}
+                        <i class="fas fa-user-cog text-green-600"></i>
+                    {% elif rol == 'team_leader' %}
+                        <i class="fas fa-users text-yellow-600"></i>
+                    {% else %}
+                        <i class="fas fa-user text-purple-600"></i>
+                    {% endif %}
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-lg font-medium text-gray-900">
+                        {{ miembro.usuario.get_full_name|default:miembro.usuario.username }}
+                        {% if not miembro.activo %}
+                            <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                <i class="fas fa-times-circle mr-1"></i>
+                                Inactivo
+                            </span>
+                        {% endif %}
+                    </h3>
+                    <p class="text-sm text-gray-600">{{ miembro.usuario.email }}</p>
+                    <p class="text-sm {% if not miembro.activo %}text-red-600{% else %}text-blue-600{% endif %}">
+                        Equipo actual: {{ equipo_actual.nombre }}
+                    </p>
+                </div>
+            </div>
+            {% if not miembro.activo %}
+                <div class="mt-3 p-3 bg-red-100 rounded-lg border border-red-200">
+                    <p class="text-sm text-red-800">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        <strong>Usuario inactivo:</strong> Puedes reactivarlo en el mismo rol activando el checkbox "Activo"
+                        {% if rol == 'gerente' %}
+                            (se verificará si el equipo ya tiene un gerente activo)
+                        {% endif %}
+                        o usar "Cambiar Rol" para asignar un rol diferente.
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+
+        <form method="post" class="p-6" id="editForm">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Equipo -->
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Equipo <span class="text-red-500">*</span>
+                    </label>
+                    <select name="equipo" id="equipo" required onchange="loadSupervisors()"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        {% for equipo in equipos %}
+                            <option value="{{ equipo.id }}" {% if equipo.id == equipo_actual.id %}selected{% endif %}>
+                                {{ equipo.nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <p class="mt-1 text-sm text-gray-500">
+                        Cambiar de equipo requiere que no tenga subalternos asignados
+                    </p>
+                </div>
+
+                <!-- Supervisor (solo visible para roles que lo requieren) -->
+                {% if rol != 'gerente' %}
+                <div class="md:col-span-2" id="supervisorField">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Supervisor <span class="text-red-500">*</span>
+                    </label>
+                    <select name="supervisor" id="supervisor" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Cargando supervisores...</option>
+                    </select>
+                    <p class="mt-1 text-sm text-gray-500" id="supervisorHelp">
+                        {% if rol == 'jefe' %}
+                            Selecciona el gerente de equipo que supervisará a este jefe de venta
+                        {% elif rol == 'team_leader' %}
+                            Selecciona el jefe de venta que supervisará a este team leader
+                        {% elif rol == 'vendedor' %}
+                            Selecciona el team leader que supervisará a este vendedor
+                        {% endif %}
+                    </p>
+                </div>
+                {% endif %}
+
+                <!-- Estado Activo -->
+                <div>
+                    <label class="flex items-center">
+                        <input type="checkbox" name="activo" id="activoCheckbox" {% if miembro.activo %}checked{% endif %}
+                               class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                               onchange="toggleReplacementField()">
+                        <span class="ml-2 text-sm font-medium text-gray-700">Activo</span>
+                    </label>
+                    <p class="mt-1 text-sm text-gray-500">
+                        Los miembros inactivos no aparecerán en reportes ni tendrán permisos
+                    </p>
+                </div>
+
+                <!-- Campo de Reemplazo (oculto por defecto) -->
+                <div id="replacementField" class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Seleccionar Reemplazo <span class="text-red-500">*</span>
+                    </label>
+                    <select name="reemplazo" id="reemplazoSelect"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Selecciona un usuario para reemplazar a {{ miembro.usuario.get_full_name|default:miembro.usuario.username }}</option>
+                    </select>
+                    <div id="replacementInfo" class="mt-2 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                        <p class="text-sm text-orange-800">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            <strong>Atención:</strong> Este usuario tiene subordinados asignados que serán transferidos al reemplazo seleccionado.
+                        </p>
+                        <div id="subordinatesList" class="mt-2 text-sm text-orange-700">
+                            <!-- Lista de subordinados se cargará dinámicamente -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Información de Usuario -->
+            <div class="mt-8 pt-6 border-t border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-user mr-2 text-blue-600"></i>
+                    Información de Usuario
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Información básica -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Nombre
+                        </label>
+                        <input type="text" name="first_name" value="{{ miembro.usuario.first_name }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Apellido
+                        </label>
+                        <input type="text" name="last_name" value="{{ miembro.usuario.last_name }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Email
+                        </label>
+                        <input type="email" name="email" value="{{ miembro.usuario.email }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Cédula de Identidad
+                        </label>
+                        <input type="text" name="cedula" value="{{ miembro.usuario.cedula }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="Ej: 12345678-9">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Fecha de Nacimiento
+                        </label>
+                        <input type="date" name="fecha_nacimiento" value="{{ miembro.usuario.fecha_nacimiento|date:'Y-m-d' }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Usuario
+                        </label>
+                        <input type="text" name="username" value="{{ miembro.usuario.username }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50"
+                               readonly>
+                        <p class="mt-1 text-xs text-gray-500">El nombre de usuario no se puede cambiar</p>
+                    </div>
+                    
+                    <!-- Domicilio -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Domicilio
+                        </label>
+                        <input type="text" name="domicilio" value="{{ miembro.usuario.domicilio }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="Dirección completa del domicilio">
+                    </div>
+                    
+                    <!-- Ubicación geográfica -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Ubicación Geográfica
+                        </label>
+                        <div class="space-y-2">
+                            <div class="relative">
+                                <button type="button" id="editLocationBtn" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-left focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:bg-gray-50">
+                                    <i class="fas fa-map-marker-alt mr-2 text-blue-600"></i>
+                                    <span id="editLocationText">
+                                        {% if miembro.usuario.has_coordenadas %}
+                                            Ubicación seleccionada ({{ miembro.usuario.latitud }}, {{ miembro.usuario.longitud }})
+                                        {% else %}
+                                            Seleccionar ubicación en el mapa
+                                        {% endif %}
+                                    </span>
+                                </button>
+                                <input type="hidden" name="latitud" id="editLatitud" value="{{ miembro.usuario.latitud }}">
+                                <input type="hidden" name="longitud" id="editLongitud" value="{{ miembro.usuario.longitud }}">
+                            </div>
+                            {% if miembro.usuario.has_coordenadas %}
+                                <div class="coordinates-display bg-blue-50 p-2 rounded text-sm text-blue-700">
+                                    <i class="fas fa-map-marker-alt mr-1"></i>
+                                    <span id="editCoordinatesText">Lat: {{ miembro.usuario.latitud }}, Lng: {{ miembro.usuario.longitud }}</span>
+                                </div>
+                            {% else %}
+                                <div class="coordinates-display hidden bg-blue-50 p-2 rounded text-sm text-blue-700">
+                                    <i class="fas fa-map-marker-alt mr-1"></i>
+                                    <span id="editCoordinatesText"></span>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">Opcional: Selecciona la ubicación del domicilio</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Validaciones importantes -->
+            <div class="mt-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                <h4 class="text-sm font-medium text-yellow-900 mb-2">
+                    <i class="fas fa-exclamation-triangle mr-1"></i>
+                    Validaciones para Cambio de Equipo
+                </h4>
+                <ul class="text-sm text-yellow-800 space-y-1">
+                    {% if rol == 'gerente' %}
+                        <li>• El gerente no debe tener jefes de venta asignados</li>
+                    {% elif rol == 'jefe' %}
+                        <li>• El jefe no debe tener team leaders asignados</li>
+                    {% elif rol == 'team_leader' %}
+                        <li>• El team leader no debe tener vendedores asignados</li>
+                    {% elif rol == 'vendedor' %}
+                        <li>• El vendedor no debe tener procesos de venta vigentes</li>
+                    {% endif %}
+                    <li>• El nuevo equipo debe tener supervisores disponibles del tipo requerido</li>
+                </ul>
+            </div>
+
+            <!-- Botones de acción -->
+            <div class="mt-8 flex items-center justify-between pt-6 border-t border-gray-200">
+                <div class="flex items-center space-x-3">
+                    <a href="{% url 'sales:jerarquia_list' %}" 
+                       class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors">
+                        <i class="fas fa-times mr-2"></i>Cancelar
+                    </a>
+                    
+                    {% if not miembro.activo %}
+                        <a href="{% url 'sales:jerarquia_member_reassign' miembro.id rol %}" 
+                           class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                            <i class="fas fa-exchange-alt mr-2"></i>Cambiar Rol
+                        </a>
+                    {% else %}
+                        <button type="button" 
+                                onclick="alert('Este usuario debe estar inactivo para usar cambio de rol de ventas.')"
+                                class="bg-gray-300 text-gray-500 px-4 py-2 rounded-lg font-medium cursor-not-allowed">
+                            <i class="fas fa-exchange-alt mr-2"></i>Cambiar Rol
+                        </button>
+                    {% endif %}
+                </div>
+                
+                <button type="submit" 
+                        class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                    <i class="fas fa-save mr-2"></i>
+                    Guardar Cambios
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function loadSupervisors() {
+    const equipoId = document.getElementById('equipo').value;
+    const rol = '{{ rol }}';
+    const supervisorSelect = document.getElementById('supervisor');
+    
+    if (!equipoId || rol === 'gerente') {
+        return;
+    }
+    
+    // Limpiar opciones
+    supervisorSelect.innerHTML = '<option value="">Cargando...</option>';
+    
+    // Hacer petición AJAX para obtener supervisores disponibles
+    fetch(`/sales/ajax/supervisores/?equipo=${equipoId}&rol=${rol}`)
+        .then(response => response.json())
+        .then(data => {
+            supervisorSelect.innerHTML = '<option value="">Selecciona un supervisor</option>';
+            data.supervisores.forEach(supervisor => {
+                const option = document.createElement('option');
+                option.value = supervisor.id;
+                option.textContent = supervisor.nombre;
+                
+                // Seleccionar el supervisor actual si existe
+                {% if rol == 'jefe' %}
+                    if (supervisor.id == {{ miembro.gerente_equipo.id }}) {
+                        option.selected = true;
+                    }
+                {% elif rol == 'team_leader' %}
+                    if (supervisor.id == {{ miembro.jefe_venta.id }}) {
+                        option.selected = true;
+                    }
+                {% elif rol == 'vendedor' %}
+                    if (supervisor.id == {{ miembro.team_leader.id }}) {
+                        option.selected = true;
+                    }
+                {% endif %}
+                
+                supervisorSelect.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            supervisorSelect.innerHTML = '<option value="">Error al cargar supervisores</option>';
+        });
+}
+
+// Función para mostrar/ocultar el campo de reemplazo
+function toggleReplacementField() {
+    const activoCheckbox = document.getElementById('activoCheckbox');
+    const replacementField = document.getElementById('replacementField');
+    const reemplazoSelect = document.getElementById('reemplazoSelect');
+    
+    // Si el usuario era activo y ahora se desmarca (se va a inactivar)
+    if (!activoCheckbox.checked && {{ miembro.activo|yesno:"true,false" }}) {
+        // Verificar si tiene subordinados
+        checkSubordinates();
+    } else {
+        // Ocultar el campo de reemplazo
+        replacementField.classList.add('hidden');
+        reemplazoSelect.removeAttribute('required');
+    }
+}
+
+// Función para verificar subordinados
+function checkSubordinates() {
+    const memberId = {{ miembro.id }};
+    const rol = '{{ rol }}';
+    
+    // Solo verificar para roles que pueden tener subordinados
+    if (rol === 'vendedor') {
+        return; // Los vendedores no tienen subordinados
+    }
+    
+    // Hacer petición AJAX para verificar subordinados
+    fetch(`/sales/ajax/miembros/verificar-subordinados/?member_id=${memberId}&rol=${rol}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.has_subordinados) {
+                showReplacementField(data.subordinados, data.replacements);
+            } else {
+                showNoSubordinatesInfo();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // En caso de error, mostrar el campo por si acaso
+            showReplacementField([], []);
+        });
+}
+
+// Función para mostrar el campo de reemplazo cuando hay subordinados
+function showReplacementField(subordinados, replacements) {
+    const replacementField = document.getElementById('replacementField');
+    const reemplazoSelect = document.getElementById('reemplazoSelect');
+    const subordinatesList = document.getElementById('subordinatesList');
+    
+    // Limpiar opciones anteriores
+    reemplazoSelect.innerHTML = '<option value="">Selecciona un usuario para reemplazar a {{ miembro.usuario.get_full_name|default:miembro.usuario.username }}</option>';
+    
+    // Agregar opciones de reemplazo
+    replacements.forEach(replacement => {
+        const option = document.createElement('option');
+        option.value = replacement.id;
+        option.textContent = `${replacement.nombre} (${replacement.email}) - ${replacement.tipo}`;
+        reemplazoSelect.appendChild(option);
+    });
+    
+    // Mostrar lista de subordinados
+    if (subordinados.length > 0) {
+        subordinatesList.innerHTML = '<strong>Subordinados que serán transferidos:</strong><ul class="mt-1 space-y-1">' +
+            subordinados.map(sub => `<li>• ${sub.nombre} (${sub.rol})</li>`).join('') +
+            '</ul>';
+    }
+    
+    // Mostrar el campo y hacerlo requerido
+    replacementField.classList.remove('hidden');
+    reemplazoSelect.setAttribute('required', 'required');
+}
+
+// Función para mostrar información cuando no hay subordinados
+function showNoSubordinatesInfo() {
+    const replacementField = document.getElementById('replacementField');
+    const reemplazoSelect = document.getElementById('reemplazoSelect');
+    
+    // Ocultar el campo de reemplazo
+    replacementField.classList.add('hidden');
+    reemplazoSelect.removeAttribute('required');
+    
+    // Mostrar mensaje informativo
+    if (!document.getElementById('noSubordinatesInfo')) {
+        const infoDiv = document.createElement('div');
+        infoDiv.id = 'noSubordinatesInfo';
+        infoDiv.className = 'mt-2 p-3 bg-green-50 rounded-lg border border-green-200';
+        infoDiv.innerHTML = `
+            <p class="text-sm text-green-800">
+                <i class="fas fa-check-circle mr-1"></i>
+                <strong>Listo para inactivar:</strong> Este usuario no tiene subordinados asignados. 
+                Puedes proceder a guardar los cambios para inactivarlo.
+            </p>
+        `;
+        
+        // Insertar después del checkbox de activo
+        const activoDiv = document.getElementById('activoCheckbox').closest('div');
+        activoDiv.parentNode.insertBefore(infoDiv, activoDiv.nextSibling);
+        
+        // Remover el mensaje después de 5 segundos
+        setTimeout(() => {
+            const existingInfo = document.getElementById('noSubordinatesInfo');
+            if (existingInfo) {
+                existingInfo.remove();
+            }
+        }, 5000);
+    }
+}
+
+// Cargar supervisores al inicio
+document.addEventListener('DOMContentLoaded', function() {
+    loadSupervisors();
+    
+    // Inicializar selector de ubicación
+    const editLocationBtn = document.getElementById('editLocationBtn');
+    if (editLocationBtn) {
+        editLocationBtn.addEventListener('click', function() {
+            const locationModal = new LocationSelectorModal({
+                onLocationSelected: (lat, lng) => {
+                    document.getElementById('editLatitud').value = lat;
+                    document.getElementById('editLongitud').value = lng;
+                    document.getElementById('editLocationText').textContent = `Ubicación seleccionada (${lat.toFixed(6)}, ${lng.toFixed(6)})`;
+                    document.getElementById('editCoordinatesText').textContent = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+                    document.querySelector('.coordinates-display').classList.remove('hidden');
+                }
+            });
+            locationModal.show();
+        });
+    }
+});
+</script>
+
+<!-- Scripts necesarios -->
+<!-- Leaflet JavaScript -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
+        crossorigin=""></script>
+<script src="{% static 'js/user-search-widget.js' %}"></script>
+{% endblock %}

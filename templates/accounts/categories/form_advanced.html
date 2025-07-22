@@ -1,0 +1,438 @@
+{% extends 'base/base.html' %}
+
+{% block title %}{{ title }} - Django CRM{% endblock %}
+
+{% block header %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Back Button -->
+    <div class="mb-6">
+        <a href="{% url 'accounts:categories_list' %}"
+           class="inline-flex items-center text-orange-600 hover:text-orange-800 font-medium">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Volver a Categorías
+        </a>
+    </div>
+
+    <!-- Help Text y Warnings -->
+    <div class="space-y-4 mb-6">
+        <!-- Help Text General -->
+        <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
+            <div class="flex">
+                <i class="fas fa-info-circle text-orange-400 mt-0.5 mr-3"></i>
+                <div>
+                    <h4 class="text-sm font-medium text-orange-800 mb-1">¿Qué es una Categoría?</h4>
+                    <p class="text-sm text-orange-700">Las categorías organizan los módulos en el menú lateral del sistema.</p>
+                    <p class="text-sm text-orange-700 mt-1">Ejemplo: "VENTAS" podría contener módulos como "Clientes", "Cotizaciones", "Facturas".</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Warning para categorías del sistema -->
+        {% if category and category.is_system %}
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div class="flex">
+                    <i class="fas fa-shield-alt text-red-400 mt-0.5 mr-3"></i>
+                    <div>
+                        <h4 class="text-sm font-medium text-red-800 mb-1">⚠️ Categoría del Sistema Protegida</h4>
+                        <ul class="text-sm text-red-700 space-y-1">
+                            <li>• Esta categoría es crítica para el funcionamiento del sistema</li>
+                            <li>• Algunos campos están protegidos y no se pueden modificar</li>
+                            {% if category.name == 'ADMINISTRACIÓN DEL SISTEMA' %}
+                                <li>• Los módulos de administración no se pueden reasignar por seguridad</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <form method="post" class="space-y-8">
+        {% csrf_token %}
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Información Básica de la Categoría -->
+            <div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+                        <i class="fas fa-folder-open mr-3 text-orange-600"></i>
+                        Información de la Categoría
+                    </h2>
+
+                    <div class="space-y-4">
+                        <!-- Nombre del Título/Categoría -->
+                        <div>
+                            <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                📝 {{ form.name.label }} (Título)
+                                {% if category and category.is_system %}
+                                    <span class="text-xs text-red-600 ml-1">(Protegido)</span>
+                                {% endif %}
+                            </label>
+                            {{ form.name }}
+                            <p class="text-xs text-blue-600 mt-1">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                Este será el título que aparece en el menú lateral (ej: "VENTAS", "ADMINISTRACIÓN")
+                            </p>
+                            {% if form.name.errors %}
+                                <div class="mt-2 text-sm text-red-600">
+                                    {% for error in form.name.errors %}
+                                        <p>{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Descripción -->
+                        <div>
+                            <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.description.label }}
+                            </label>
+                            {{ form.description }}
+                            {% if form.description.help_text %}
+                                <p class="text-xs text-gray-500 mt-1">{{ form.description.help_text }}</p>
+                            {% endif %}
+                            {% if form.description.errors %}
+                                <div class="mt-2 text-sm text-red-600">
+                                    {% for error in form.description.errors %}
+                                        <p>{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Ícono y Color -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="{{ form.icon.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                    {{ form.icon.label }}
+                                </label>
+                                {{ form.icon }}
+                                {% if form.icon.help_text %}
+                                    <p class="text-xs text-gray-500 mt-1">{{ form.icon.help_text }}</p>
+                                {% endif %}
+                                {% if form.icon.errors %}
+                                    <div class="mt-2 text-sm text-red-600">
+                                        {% for error in form.icon.errors %}
+                                            <p>{{ error }}</p>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div>
+                                <label for="{{ form.color.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                    {{ form.color.label }}
+                                </label>
+                                <select name="color" id="{{ form.color.id_for_label }}"
+                                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500">
+                                    <option value="blue" {% if form.color.value == 'blue' %}selected{% endif %}>Azul</option>
+                                    <option value="green" {% if form.color.value == 'green' %}selected{% endif %}>Verde</option>
+                                    <option value="red" {% if form.color.value == 'red' %}selected{% endif %}>Rojo</option>
+                                    <option value="purple" {% if form.color.value == 'purple' %}selected{% endif %}>Morado</option>
+                                    <option value="yellow" {% if form.color.value == 'yellow' %}selected{% endif %}>Amarillo</option>
+                                    <option value="orange" {% if form.color.value == 'orange' %}selected{% endif %}>Naranja</option>
+                                    <option value="gray" {% if form.color.value == 'gray' %}selected{% endif %}>Gris</option>
+                                    <option value="pink" {% if form.color.value == 'pink' %}selected{% endif %}>Rosa</option>
+                                    <option value="indigo" {% if form.color.value == 'indigo' %}selected{% endif %}>Índigo</option>
+                                </select>
+                                {% if form.color.help_text %}
+                                    <p class="text-xs text-gray-500 mt-1">{{ form.color.help_text }}</p>
+                                {% endif %}
+                                {% if form.color.errors %}
+                                    <div class="mt-2 text-sm text-red-600">
+                                        {% for error in form.color.errors %}
+                                            <p>{{ error }}</p>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Orden -->
+                        <div>
+                            <label for="{{ form.order.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.order.label }}
+                            </label>
+                            {{ form.order }}
+                            {% if form.order.help_text %}
+                                <p class="text-xs text-gray-500 mt-1">{{ form.order.help_text }}</p>
+                            {% endif %}
+                            {% if form.order.errors %}
+                                <div class="mt-2 text-sm text-red-600">
+                                    {% for error in form.order.errors %}
+                                        <p>{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Estados -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="flex items-center">
+                                {{ form.is_active }}
+                                <label for="{{ form.is_active.id_for_label }}" class="ml-2 text-sm text-gray-700">
+                                    {{ form.is_active.label }}
+                                </label>
+                            </div>
+
+                            <div class="flex items-center">
+                                {{ form.is_system }}
+                                <label for="{{ form.is_system.id_for_label }}" class="ml-2 text-sm text-gray-700">
+                                    {{ form.is_system.label }}
+                                    {% if category and category.is_system %}
+                                        <span class="text-xs text-red-600 ml-1">(Protegido)</span>
+                                    {% endif %}
+                                </label>
+                            </div>
+                        </div>
+
+                        {% if form.is_active.errors or form.is_system.errors %}
+                            <div class="mt-2 text-sm text-red-600">
+                                {% for error in form.is_active.errors %}
+                                    <p>{{ error }}</p>
+                                {% endfor %}
+                                {% for error in form.is_system.errors %}
+                                    <p>{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- GESTIÓN INTUITIVA DE MÓDULOS -->
+            <div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-cubes mr-3 text-blue-600"></i>
+                        Asignar Módulos a esta Categoría
+                        {% if category and category.is_system and category.name == 'ADMINISTRACIÓN DEL SISTEMA' %}
+                            <span class="ml-2 text-xs text-red-600">(Protegidos)</span>
+                        {% endif %}
+                    </h2>
+                    
+                    <!-- Instrucciones claras -->
+                    <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div class="flex">
+                            <i class="fas fa-lightbulb text-blue-500 mt-0.5 mr-3"></i>
+                            <div>
+                                <h4 class="text-sm font-medium text-blue-800 mb-1">¿Cómo funciona?</h4>
+                                <p class="text-sm text-blue-700">Selecciona los módulos que quieres que aparezcan en esta categoría del menú.</p>
+                                <p class="text-sm text-blue-700 mt-1">Los módulos se moverán automáticamente desde su categoría actual.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Información de módulos disponibles -->
+                    <!-- DEBUG: Total módulos = {{ all_modules|length }} -->
+                    {% if all_modules %}
+                        <div class="mb-4 flex items-center justify-between">
+                            <div class="text-sm text-gray-600">
+                                <i class="fas fa-cube mr-1"></i>
+                                {{ all_modules|length }} módulos disponibles
+                            </div>
+                            <button type="button" onclick="toggleAllModules()" 
+                                    class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                                Seleccionar/Deseleccionar Todos
+                            </button>
+                        </div>
+
+                        <div class="space-y-3 max-h-96 overflow-y-auto">
+                            {% for module in all_modules %}
+                                <div class="flex items-start p-3 border border-gray-200 rounded-lg hover:bg-gray-50
+                                           {% if category and category.is_system and category.name == 'ADMINISTRACIÓN DEL SISTEMA' %}bg-gray-100{% endif %}">
+
+                                    <input type="checkbox"
+                                           name="modules"
+                                           value="{{ module.id }}"
+                                           id="module_{{ module.id }}"
+                                           class="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded mt-1
+                                                  {% if category and category.is_system and category.name == 'ADMINISTRACIÓN DEL SISTEMA' %}cursor-not-allowed{% endif %}"
+                                           {% if module in current_modules %}checked{% endif %}
+                                           {% if category and category.is_system and category.name == 'ADMINISTRACIÓN DEL SISTEMA' %}disabled{% endif %}>
+
+                                    <div class="ml-3 flex-1">
+                                        <label for="module_{{ module.id }}" class="cursor-pointer
+                                               {% if category and category.is_system and category.name == 'ADMINISTRACIÓN DEL SISTEMA' %}cursor-not-allowed text-gray-500{% endif %}">
+                                            <div class="flex items-center mb-1">
+                                                <div class="w-6 h-6 bg-blue-100 rounded flex items-center justify-center mr-2">
+                                                    {% if module.navigation.icon %}
+                                                        <i class="{{ module.navigation.icon }} text-blue-600 text-xs"></i>
+                                                    {% else %}
+                                                        <i class="fas fa-cube text-blue-600 text-xs"></i>
+                                                    {% endif %}
+                                                </div>
+                                                <span class="text-sm font-medium text-gray-900">{{ module.name }}</span>
+                                                {% if module.navigation %}
+                                                    {% if module.navigation.category.is_system %}
+                                                        <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                                            <i class="fas fa-shield-alt mr-1"></i>
+                                                            Sistema
+                                                        </span>
+                                                    {% endif %}
+                                                {% endif %}
+                                            </div>
+                                            <p class="text-xs text-gray-500">{{ module.permissions.count }} permisos incluidos</p>
+                                            {% if module.navigation %}
+                                                <p class="text-xs text-blue-600">Menú: {{ module.navigation.name }}</p>
+                                                <p class="text-xs text-gray-400">URL: {{ module.navigation.url }}</p>
+                                                <p class="text-xs text-gray-400">Categoría actual: {{ module.navigation.category.name }}</p>
+                                            {% else %}
+                                                <p class="text-xs text-gray-400">Sin navegación configurada</p>
+                                            {% endif %}
+                                        </label>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mt-4 p-3 bg-blue-50 rounded-lg">
+                            <p class="text-xs text-blue-700">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                {% if category and category.is_system and category.name == 'ADMINISTRACIÓN DEL SISTEMA' %}
+                                    Los módulos de administración están protegidos y no se pueden modificar por seguridad del sistema.
+                                {% else %}
+                                    Selecciona los módulos que aparecerán en esta categoría del menú. Los módulos se moverán automáticamente entre categorías.
+                                {% endif %}
+                            </p>
+                        </div>
+                    {% else %}
+                        <!-- DEBUG INFO -->
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                            <h4 class="text-red-800 font-medium">🔍 DEBUG INFO:</h4>
+                            <p class="text-sm text-red-700">form.modules.queryset.count = {{ form.modules.queryset.count }}</p>
+                            <p class="text-sm text-red-700">form.modules.queryset = {{ form.modules.queryset }}</p>
+                            <p class="text-sm text-red-700">Condición > 0: {% if form.modules.queryset.count > 0 %}TRUE{% else %}FALSE{% endif %}</p>
+                        </div>
+                        
+                        <!-- Mensaje cuando no hay módulos -->
+                        <div class="text-center py-8">
+                            <i class="fas fa-cube text-gray-300 text-4xl mb-4"></i>
+                            <h3 class="text-lg font-medium text-gray-900 mb-2">No hay módulos disponibles</h3>
+                            <p class="text-sm text-gray-600 mb-6">
+                                Para poder asignar módulos a esta categoría, primero necesitas crear algunos módulos en el sistema.
+                            </p>
+                            <div class="space-y-3">
+                                <a href="{% url 'accounts:module_create' %}"
+                                   class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
+                                    <i class="fas fa-plus mr-2"></i>
+                                    Crear Primer Módulo
+                                </a>
+                                <div class="text-xs text-gray-500">
+                                    También puedes revisar los 
+                                    <a href="{% url 'accounts:modules_list' %}" class="text-blue-600 hover:text-blue-800">módulos existentes</a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    {% if form.modules.errors %}
+                        <div class="mt-4 text-sm text-red-600">
+                            {% for error in form.modules.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Información de módulos actuales (solo en edición) -->
+                {% if category %}
+                    <div class="bg-gray-50 rounded-xl border border-gray-200 p-6 mt-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                            <i class="fas fa-info-circle mr-2 text-gray-600"></i>
+                            Estado Actual
+                        </h3>
+
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Módulos asignados:</span>
+                                <span class="font-medium text-gray-900">{{ category.get_modules.count }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Orden actual:</span>
+                                <span class="font-medium text-gray-900">{{ category.order }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Estado:</span>
+                                <span class="font-medium {% if category.is_active %}text-green-600{% else %}text-red-600{% endif %}">
+                                    {% if category.is_active %}Activa{% else %}Inactiva{% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+            <a href="{% url 'accounts:categories_list' %}"
+               class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors">
+                Cancelar
+            </a>
+            <button type="submit"
+                    class="px-6 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors flex items-center">
+                <i class="fas fa-save mr-2"></i>
+                {{ action }} Categoría
+            </button>
+        </div>
+    </form>
+</div>
+
+{% if form.non_field_errors %}
+    <div class="mt-4 text-sm text-red-600">
+        {% for error in form.non_field_errors %}
+            <p>{{ error }}</p>
+        {% endfor %}
+    </div>
+{% endif %}
+
+<!-- ✅ DEBUG SCRIPT -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔍 DEBUG: Formulario de categorías cargado');
+
+    // Debug del queryset de módulos
+    const moduleCheckboxes = document.querySelectorAll('input[name="modules"]');
+    console.log(`📦 Total de módulos en el formulario: ${moduleCheckboxes.length}`);
+
+    moduleCheckboxes.forEach((checkbox, index) => {
+        const label = document.querySelector(`label[for="${checkbox.id}"]`);
+        const moduleName = label ? label.textContent.trim() : 'Desconocido';
+        console.log(`   ${index + 1}. ${moduleName} (ID: ${checkbox.value}) - ${checkbox.checked ? 'Seleccionado' : 'No seleccionado'}`);
+    });
+
+    // Funcionalidad de seleccionar todos
+    window.toggleAllModules = function() {
+        const checkboxes = document.querySelectorAll('input[name="modules"]:not([disabled])');
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+
+        checkboxes.forEach(cb => {
+            cb.checked = !allChecked;
+        });
+
+        console.log(`🔄 ${allChecked ? 'Deseleccionados' : 'Seleccionados'} todos los módulos`);
+    };
+});
+</script>
+
+<!-- Botón de debug (solo en desarrollo) -->
+{% if debug %}
+<div class="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+    <h4 class="text-sm font-medium text-yellow-800 mb-2">🔧 Información de Debug</h4>
+    <div class="text-xs text-yellow-700 space-y-1">
+        <p><strong>Total módulos disponibles:</strong> {{ form.modules.queryset.count }}</p>
+        <p><strong>Módulos seleccionados:</strong> {{ form.modules.value|length|default:0 }}</p>
+        {% if category %}
+            <p><strong>Módulos actuales de la categoría:</strong> {{ category.get_modules.count }}</p>
+        {% endif %}
+    </div>
+    <button type="button" onclick="toggleAllModules()"
+            class="mt-2 px-3 py-1 bg-yellow-600 text-white text-xs rounded hover:bg-yellow-700">
+        Seleccionar/Deseleccionar Todos
+    </button>
+</div>
+{% endif %}
+{% endblock %}

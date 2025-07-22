@@ -1,0 +1,89 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Dashboard - Django CRM{% endblock %}
+
+{% block header %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">User Information</h5>
+                <p class="card-text">
+                    <strong>Username:</strong> {{ user.username }}<br>
+                    <strong>Name:</strong> {{ user.get_full_name|default:"Not provided" }}<br>
+                    <strong>Email:</strong> {{ user.email|default:"Not provided" }}<br>
+                    <strong>Phone:</strong> {{ user.phone_number|default:"Not provided" }}<br>
+                    <strong>Role:</strong> {{ user.role.name|default:"No role assigned" }}
+                </p>
+                <a href="{% url 'accounts:profile' %}" class="btn btn-primary">View Profile</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Your Permissions</h5>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Permission</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for permission in user.get_permissions %}
+                                <tr>
+                                    <td>{{ permission.codename }}</td>
+                                    <td>{{ permission.name }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="2">No permissions assigned.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Navigation Items</h5>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>URL</th>
+                                <th>Icon</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in user.get_navigation_items %}
+                                <tr>
+                                    <td>{{ item.name }}</td>
+                                    <td>{{ item.url }}</td>
+                                    <td>{{ item.icon|default:"No icon" }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="3">No navigation items assigned.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

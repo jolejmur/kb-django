@@ -1,0 +1,153 @@
+<!-- templates/sales/equipos/list.html -->
+{% extends 'base/base.html' %}
+
+{% block title %}Equipos de Venta - Django CRM{% endblock %}
+
+{% block header %}Equipos de Venta{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header con botón de crear y filtros -->
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Equipos de Venta</h1>
+            <p class="text-gray-600 mt-1">Gestiona los equipos y su estructura jerárquica</p>
+        </div>
+        <a href="{% url 'sales:equipos_create' %}"
+           class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center transition-colors">
+            <i class="fas fa-plus mr-2"></i>
+            Crear Equipo
+        </a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                <input type="text" name="nombre" value="{{ request.GET.nombre }}" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                <select name="activo" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                    <option value="">Todos</option>
+                    <option value="true" {% if request.GET.activo == 'true' %}selected{% endif %}>Activos</option>
+                    <option value="false" {% if request.GET.activo == 'false' %}selected{% endif %}>Inactivos</option>
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium mr-2">
+                    <i class="fas fa-search mr-2"></i>Filtrar
+                </button>
+                <a href="{% url 'sales:equipos_list' %}" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg font-medium">
+                    Limpiar
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Lista de equipos -->
+    {% if page_obj %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for equipo in page_obj %}
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900">{{ equipo.nombre }}</h3>
+                            {% if equipo.activo %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    <i class="fas fa-check-circle mr-1"></i>
+                                    Activo
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                    <i class="fas fa-times-circle mr-1"></i>
+                                    Inactivo
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        {% if equipo.descripcion %}
+                            <p class="text-sm text-gray-600 mb-4">{{ equipo.descripcion|truncatechars:100 }}</p>
+                        {% endif %}
+
+                        <div class="space-y-2 mb-6">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-500">Gerentes:</span>
+                                <span class="font-medium">{{ equipo.gerentes_equipo.count }}</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-500">Total Vendedores:</span>
+                                <span class="font-medium">{{ equipo.total_vendedores }}</span>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-center space-x-2">
+                            <a href="{% url 'sales:equipos_detail' equipo.pk %}"
+                               class="bg-blue-50 hover:bg-blue-100 text-blue-700 p-2 rounded-lg transition-colors"
+                               title="Ver Equipo">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{% url 'sales:equipos_edit' equipo.pk %}"
+                               class="bg-yellow-50 hover:bg-yellow-100 text-yellow-700 p-2 rounded-lg transition-colors"
+                               title="Editar Equipo">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            {% if equipo.can_be_deleted %}
+                                <a href="{% url 'sales:equipos_delete' equipo.pk %}"
+                                   class="bg-red-50 hover:bg-red-100 text-red-700 p-2 rounded-lg transition-colors"
+                                   title="Eliminar Equipo"
+                                   onclick="return confirm('¿Estás seguro de que quieres eliminar este equipo?')">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            {% else %}
+                                <span class="bg-gray-50 text-gray-400 p-2 rounded-lg cursor-not-allowed"
+                                      title="No se puede eliminar - tiene usuarios asignados">
+                                    <i class="fas fa-trash"></i>
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Paginación -->
+        {% if page_obj.has_other_pages %}
+            <div class="mt-8 flex justify-center">
+                <nav class="flex space-x-2">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}"
+                           class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+                            Anterior
+                        </a>
+                    {% endif %}
+
+                    <span class="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm">
+                        {{ page_obj.number }}
+                    </span>
+
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}"
+                           class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+                            Siguiente
+                        </a>
+                    {% endif %}
+                </nav>
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="text-center py-12">
+            <i class="fas fa-users text-gray-300 text-6xl mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No hay equipos de venta</h3>
+            <p class="text-gray-500 mb-6">Comienza creando tu primer equipo de ventas.</p>
+            <a href="{% url 'sales:equipos_create' %}"
+               class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium inline-flex items-center">
+                <i class="fas fa-plus mr-2"></i>
+                Crear Primer Equipo
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

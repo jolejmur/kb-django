@@ -1,0 +1,12 @@
+Django>=5.2.2
+djangorestframework>=3.14.0
+django-extensions>=3.2.0
+asgiref==3.8.1
+Django==5.2.2
+django-extensions==4.1
+djangorestframework==3.16.0
+pillow==11.2.1
+sqlparse==0.5.3
+redis>=5.0.0
+channels>=4.0.0
+channels-redis>=4.0.0

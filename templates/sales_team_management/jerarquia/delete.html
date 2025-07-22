@@ -1,0 +1,180 @@
+<!-- templates/sales/jerarquia/delete.html -->
+{% extends 'base/base.html' %}
+
+{% block title %}Eliminar {{ rol_display }} - Django CRM{% endblock %}
+
+{% block header %}Eliminar {{ rol_display }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Breadcrumb -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            <li class="inline-flex items-center">
+                <a href="{% url 'sales:jerarquia_list' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    <i class="fas fa-sitemap mr-2"></i>
+                    Jerarquía de Equipos
+                </a>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <a href="{% url 'sales:jerarquia_member_detail' miembro.id rol %}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
+                        {{ usuario.get_full_name|default:usuario.username }}
+                    </a>
+                </div>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <span class="text-sm font-medium text-gray-500">Eliminar</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-900">
+                <i class="fas fa-user-times mr-2 text-red-600"></i>
+                Remover {{ rol_display }} del Equipo
+            </h2>
+            <p class="text-sm text-gray-600 mt-1">
+                Esta acción removerá al usuario del equipo de ventas. El usuario no será eliminado del sistema.
+            </p>
+        </div>
+
+        <!-- Información del miembro a eliminar -->
+        <div class="px-6 py-4 bg-red-50 border-b border-gray-200">
+            <div class="flex items-center">
+                <div class="h-12 w-12 rounded-full flex items-center justify-center
+                    {% if rol == 'gerente' %}bg-blue-100{% elif rol == 'jefe' %}bg-green-100{% elif rol == 'team_leader' %}bg-yellow-100{% else %}bg-purple-100{% endif %}">
+                    {% if rol == 'gerente' %}
+                        <i class="fas fa-user-tie text-blue-600"></i>
+                    {% elif rol == 'jefe' %}
+                        <i class="fas fa-user-cog text-green-600"></i>
+                    {% elif rol == 'team_leader' %}
+                        <i class="fas fa-users text-yellow-600"></i>
+                    {% else %}
+                        <i class="fas fa-user text-purple-600"></i>
+                    {% endif %}
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-lg font-medium text-gray-900">
+                        {{ usuario.get_full_name|default:usuario.username }}
+                    </h3>
+                    <p class="text-sm text-gray-600">{{ usuario.email }}</p>
+                    <p class="text-sm text-red-600">{{ rol_display }} en {{ equipo.nombre }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6">
+            {% if puede_eliminar %}
+                <!-- Confirmación de eliminación -->
+                <div class="mb-6">
+                    <div class="flex items-center p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <i class="fas fa-exclamation-triangle text-yellow-600 text-xl mr-3"></i>
+                        <div>
+                            <h4 class="text-sm font-medium text-yellow-800">¿Estás seguro?</h4>
+                            <p class="text-sm text-yellow-700 mt-1">
+                                Esta acción removerá a 
+                                <strong>{{ usuario.get_full_name|default:usuario.username }}</strong> 
+                                como {{ rol_display }} del equipo <strong>{{ equipo.nombre }}</strong>.
+                                El usuario permanecerá en el sistema y podrá ser reasignado posteriormente.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+                    <h4 class="text-sm font-medium text-gray-900 mb-2">
+                        <i class="fas fa-info-circle mr-1 text-blue-500"></i>
+                        Consecuencias de la eliminación
+                    </h4>
+                    <ul class="text-sm text-gray-700 space-y-1">
+                        <li>• El usuario perderá acceso a las funciones de {{ rol_display }}</li>
+                        <li>• Ya no aparecerá en reportes del equipo {{ equipo.nombre }}</li>
+                        <li>• Se mantendrá el historial de actividades pasadas</li>
+                        <li>• El usuario puede ser reasignado posteriormente si es necesario</li>
+                    </ul>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+                        <a href="{% url 'sales:jerarquia_member_detail' miembro.id rol %}" 
+                           class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors">
+                            <i class="fas fa-times mr-2"></i>Cancelar
+                        </a>
+                        
+                        <button type="submit" 
+                                class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                            <i class="fas fa-user-times mr-2"></i>
+                            Sí, Remover del Equipo
+                        </button>
+                    </div>
+                </form>
+
+            {% else %}
+                <!-- No se puede eliminar -->
+                <div class="mb-6">
+                    <div class="flex items-center p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <i class="fas fa-ban text-red-600 text-xl mr-3"></i>
+                        <div>
+                            <h4 class="text-sm font-medium text-red-800">No se puede eliminar</h4>
+                            <p class="text-sm text-red-700 mt-1">
+                                No es posible eliminar esta asignación por las siguientes razones:
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-6 p-4 bg-red-50 rounded-lg border border-red-200">
+                    <h4 class="text-sm font-medium text-red-900 mb-2">
+                        <i class="fas fa-exclamation-circle mr-1"></i>
+                        Razones que impiden la eliminación
+                    </h4>
+                    <ul class="text-sm text-red-800 space-y-1">
+                        {% for razon in razon_bloqueo %}
+                            <li>• {{ razon }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h4 class="text-sm font-medium text-blue-900 mb-2">
+                        <i class="fas fa-lightbulb mr-1"></i>
+                        Para poder eliminar esta asignación
+                    </h4>
+                    <ul class="text-sm text-blue-800 space-y-1">
+                        {% if rol == 'gerente' %}
+                            <li>• Primero reasigna o elimina a todos los jefes de venta bajo este gerente</li>
+                        {% elif rol == 'jefe' %}
+                            <li>• Primero reasigna o elimina a todos los team leaders bajo este jefe</li>
+                        {% elif rol == 'team_leader' %}
+                            <li>• Primero reasigna o elimina a todos los vendedores bajo este team leader</li>
+                        {% elif rol == 'vendedor' %}
+                            <li>• Asegúrate de que no tenga procesos de venta vigentes</li>
+                        {% endif %}
+                        <li>• Luego regresa a intentar eliminar esta asignación</li>
+                    </ul>
+                </div>
+
+                <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+                    <a href="{% url 'sales:jerarquia_member_detail' miembro.id rol %}" 
+                       class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>Volver a Detalles
+                    </a>
+                    
+                    <a href="{% url 'sales:jerarquia_list' %}" 
+                       class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors">
+                        <i class="fas fa-list mr-2"></i>Ver Lista Completa
+                    </a>
+                </div>
+
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

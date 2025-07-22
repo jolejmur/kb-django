@@ -1,0 +1,282 @@
+<!-- templates/sales/equipos/detail.html -->
+{% extends 'base/base.html' %}
+
+{% block title %}{{ equipo.nombre }} - Equipo de Venta{% endblock %}
+
+{% block header %}Detalle del Equipo{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Breadcrumb -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            <li class="inline-flex items-center">
+                <a href="{% url 'sales:equipos_list' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    <i class="fas fa-users mr-2"></i>
+                    Equipos de Venta
+                </a>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <span class="text-sm font-medium text-gray-500">{{ equipo.nombre }}</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+
+    <!-- Header con acciones -->
+    <div class="flex justify-between items-start mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ equipo.nombre }}</h1>
+            {% if equipo.descripcion %}
+                <p class="text-gray-600">{{ equipo.descripcion }}</p>
+            {% endif %}
+        </div>
+        
+    </div>
+
+    <!-- Información general -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <!-- Card de información básica -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900">Información General</h2>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Estado</label>
+                            {% if equipo.activo %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                    <i class="fas fa-check-circle mr-2"></i>
+                                    Activo
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                                    <i class="fas fa-times-circle mr-2"></i>
+                                    Inactivo
+                                </span>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Fecha de Creación</label>
+                            <p class="text-gray-900">{{ equipo.created_at|date:"d/m/Y H:i" }}</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Última Actualización</label>
+                            <p class="text-gray-900">{{ equipo.updated_at|date:"d/m/Y H:i" }}</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Total Vendedores</label>
+                            <p class="text-2xl font-bold text-blue-600">{{ equipo.total_vendedores }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card de estadísticas rápidas -->
+        <div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900">Estadísticas</h2>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-500">Gerentes</span>
+                        <span class="text-lg font-semibold text-gray-900">{{ equipo.gerentes_equipo.count }}</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-500">Jefes de Venta</span>
+                        <span class="text-lg font-semibold text-gray-900">{{ stats.total_jefes }}</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-500">Team Leaders</span>
+                        <span class="text-lg font-semibold text-gray-900">0</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-500">Vendedores</span>
+                        <span class="text-lg font-semibold text-gray-900">0</span>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-500">Proyectos Asignados</span>
+                        <span class="text-lg font-semibold text-blue-600">{{ equipo.proyectos.count }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Miembros del Equipo -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h2 class="text-lg font-semibold text-gray-900">Miembros del Equipo</h2>
+        </div>
+        <div class="p-6">
+            {% if equipo.gerentes_equipo.exists %}
+                <div class="space-y-6">
+                    {% for gerente in equipo.gerentes_equipo.all %}
+                        <!-- Gerente -->
+                        <div class="border-l-4 border-blue-500 pl-4">
+                            <div class="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-user-tie text-blue-600"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <p class="text-sm font-medium text-gray-900">
+                                            {{ gerente.usuario.get_full_name|default:gerente.usuario.username }}
+                                        </p>
+                                        <p class="text-sm text-gray-500">{{ gerente.usuario.email }}</p>
+                                        <p class="text-xs font-medium text-blue-600">Gerente de Equipo</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    {% if gerente.activo %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            Activo
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                            Inactivo
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- Jefes de Venta bajo este gerente -->
+                            {% if gerente.jefeventas.exists %}
+                                <div class="ml-6 mt-4 space-y-2">
+                                    {% for jefe in gerente.jefeventas.all %}
+                                        <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg border-l-4 border-green-400">
+                                            <div class="flex items-center">
+                                                <div class="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
+                                                    <i class="fas fa-user-cog text-green-600 text-sm"></i>
+                                                </div>
+                                                <div class="ml-3">
+                                                    <p class="text-sm font-medium text-gray-900">
+                                                        {{ jefe.usuario.get_full_name|default:jefe.usuario.username }}
+                                                    </p>
+                                                    <p class="text-xs text-gray-500">{{ jefe.usuario.email }}</p>
+                                                    <p class="text-xs font-medium text-green-600">Jefe de Venta</p>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center space-x-2">
+                                                {% if jefe.activo %}
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                        Activo
+                                                    </span>
+                                                {% else %}
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                        Inactivo
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-8">
+                    <i class="fas fa-user-plus text-gray-300 text-4xl mb-4"></i>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">No hay miembros asignados</h3>
+                    <p class="text-gray-500">Este equipo aún no tiene miembros asignados.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Proyectos Asignados -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h2 class="text-lg font-semibold text-gray-900">Proyectos Asignados</h2>
+        </div>
+        <div class="p-6">
+            {% if equipo.proyectos.exists %}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {% for proyecto in equipo.proyectos.all %}
+                        <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                            <div class="flex justify-between items-start mb-2">
+                                <h3 class="font-medium text-gray-900">{{ proyecto.nombre }}</h3>
+                                {% if proyecto.estado == 'comercializacion' %}
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        En Venta
+                                    </span>
+                                {% elif proyecto.estado == 'construccion' %}
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                        En Construcción
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                        {{ proyecto.get_estado_display }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <p class="text-sm text-gray-500 mb-3">{{ proyecto.descripcion|truncatechars:60 }}</p>
+                            <div class="text-xs text-gray-400">
+                                <p>{{ proyecto.total_inmuebles }} inmuebles</p>
+                                <p>{{ proyecto.inmuebles_vendidos }} vendidos ({{ proyecto.porcentaje_vendido }}%)</p>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-8">
+                    <i class="fas fa-building text-gray-300 text-4xl mb-4"></i>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">No hay proyectos asignados</h3>
+                    <p class="text-gray-500">Este equipo aún no tiene proyectos asignados para venta.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Configuración de Comisiones -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h2 class="text-lg font-semibold text-gray-900">Configuración de Comisiones</h2>
+        </div>
+        <div class="p-6">
+            {% if equipo.comision_venta %}
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="text-center">
+                        <p class="text-2xl font-bold text-green-600">{{ equipo.comision_venta.porcentaje_gerente_equipo }}%</p>
+                        <p class="text-sm text-gray-500">Gerente</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-2xl font-bold text-green-600">{{ equipo.comision_venta.porcentaje_jefe_venta }}%</p>
+                        <p class="text-sm text-gray-500">Jefe de Venta</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-2xl font-bold text-green-600">{{ equipo.comision_venta.porcentaje_team_leader }}%</p>
+                        <p class="text-sm text-gray-500">Team Leader</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-2xl font-bold text-green-600">{{ equipo.comision_venta.porcentaje_vendedor }}%</p>
+                        <p class="text-sm text-gray-500">Vendedor</p>
+                    </div>
+                </div>
+            {% else %}
+                <div class="text-center py-8">
+                    <i class="fas fa-percentage text-gray-300 text-4xl mb-4"></i>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Comisiones no configuradas</h3>
+                    <p class="text-gray-500">Este equipo aún no tiene configuradas las comisiones.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

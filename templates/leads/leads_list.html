@@ -1,0 +1,408 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Gestión de Leads{% endblock %}
+
+{% block extra_css %}
+<style>
+    .lead-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .lead-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    .priority-alta {
+        border-left: 4px solid #ef4444;
+    }
+    .chart-container {
+        position: relative;
+        height: 300px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    
+    <!-- Header with Toggle Buttons -->
+    <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between">
+        <div class="mb-4 md:mb-0">
+            <h1 class="text-3xl font-bold text-gray-900 flex items-center">
+                <i class="fas fa-exclamation-triangle text-yellow-500 mr-3"></i>
+                Leads Pendientes de Asignación
+            </h1>
+            <p class="text-gray-600 mt-1">{{ mensaje_sistema }}</p>
+        </div>
+        
+        <!-- View Toggle Buttons -->
+        <div class="flex space-x-2">
+            <a href="?view=dashboard" class="inline-flex items-center px-4 py-2 {% if view_type == 'dashboard' %}bg-blue-600 text-white{% else %}bg-white text-gray-700 border border-gray-300 hover:bg-gray-50{% endif %} rounded-md font-medium transition-colors">
+                <i class="fas fa-chart-pie mr-2"></i>
+                Dashboard
+            </a>
+            <a href="?view=list" class="inline-flex items-center px-4 py-2 {% if view_type == 'list' %}bg-blue-600 text-white{% else %}bg-white text-gray-700 border border-gray-300 hover:bg-gray-50{% endif %} rounded-md font-medium transition-colors">
+                <i class="fas fa-list mr-2"></i>
+                Lista
+            </a>
+        </div>
+    </div>
+
+    <!-- Alert Banner -->
+    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+        <div class="flex items-start">
+            <i class="fas fa-info-circle text-yellow-600 mr-3 mt-0.5"></i>
+            <div>
+                <h3 class="text-sm font-medium text-yellow-800">Atención requerida</h3>
+                <p class="text-sm text-yellow-700 mt-1">
+                    Estos leads están pendientes porque no hay Team Leaders disponibles para asignación automática. 
+                    Se requiere asignación manual inmediata.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    {% if view_type == 'dashboard' %}
+    <!-- Dashboard View -->
+    <div class="dashboard-view">
+        
+        <!-- Main Statistics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Total Pendientes -->
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">Leads Pendientes</p>
+                        <p class="text-3xl font-bold text-red-600">{{ total_pendientes }}</p>
+                        <p class="text-xs text-gray-400">Requieren asignación</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prioridad Alta -->
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-fire text-orange-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">Prioridad Alta</p>
+                        <p class="text-3xl font-bold text-orange-600">{{ alta_count }}</p>
+                        <p class="text-xs text-gray-400">Urgente</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Origen WhatsApp -->
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                            <i class="fab fa-whatsapp text-green-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">Origen WhatsApp</p>
+                        <p class="text-3xl font-bold text-green-600">{{ whatsapp_count }}</p>
+                        <p class="text-xs text-gray-400">Canal principal</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Team Leaders -->
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-user-tie text-gray-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">Team Leaders</p>
+                        <p class="text-3xl font-bold text-gray-600">0</p>
+                        <p class="text-xs text-red-400">Disponibles</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts and Metrics -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <!-- Leads Chart -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-lg shadow-sm border p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-chart-line text-blue-600 mr-2"></i>
+                        Leads por Hora
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="leadsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Response Time -->
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <i class="fas fa-clock text-red-600 mr-2"></i>
+                    Tiempo de Respuesta
+                </h3>
+                <div class="text-center">
+                    <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-clock text-red-600 text-2xl"></i>
+                    </div>
+                    <h4 class="text-2xl font-bold text-red-600 mb-2">2h 15m</h4>
+                    <p class="text-sm text-gray-600 mb-4">Tiempo promedio sin asignar</p>
+                    <div class="w-full bg-gray-200 rounded-full h-3 mb-2">
+                        <div class="bg-red-600 h-3 rounded-full" style="width: 85%"></div>
+                    </div>
+                    <p class="text-xs text-red-600">⚠️ Tiempo crítico excedido</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Leads Table -->
+        <div class="bg-white rounded-lg shadow-sm border overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-clock text-gray-600 mr-2"></i>
+                    Últimos Leads Recibidos
+                </h3>
+                <a href="?view=list" class="inline-flex items-center px-3 py-1 border border-blue-300 text-blue-700 bg-blue-50 rounded-md text-sm font-medium hover:bg-blue-100">
+                    <i class="fas fa-list mr-1"></i>
+                    Ver todos
+                </a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teléfono</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mensaje</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Origen</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prioridad</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for lead in leads %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <i class="fab fa-whatsapp text-green-500 mr-2"></i>
+                                    <span class="font-medium text-gray-900">{{ lead.telefono }}</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="text-sm text-gray-900">{{ lead.mensaje }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                    {{ lead.origen }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                                    <i class="fas fa-circle mr-1" style="font-size: 6px;"></i>
+                                    {{ lead.prioridad|capfirst }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ lead.fecha_creacion }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <div class="flex space-x-2">
+                                    <button onclick="asignarLead({{ lead.id }})" class="text-blue-600 hover:text-blue-900">
+                                        <i class="fas fa-user-check"></i>
+                                    </button>
+                                    <button onclick="contactarLead('{{ lead.telefono }}')" class="text-green-600 hover:text-green-900">
+                                        <i class="fab fa-whatsapp"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    {% else %}
+    <!-- List View -->
+    <div class="list-view">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for lead in leads %}
+            <div class="bg-white rounded-lg shadow-sm border lead-card priority-alta hover:shadow-lg">
+                <div class="p-6">
+                    <!-- Header -->
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex items-center">
+                            <i class="fab fa-whatsapp text-green-500 text-xl mr-3"></i>
+                            <h3 class="text-lg font-semibold text-gray-900">{{ lead.telefono }}</h3>
+                        </div>
+                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                            Pendiente
+                        </span>
+                    </div>
+
+                    <!-- Message -->
+                    <div class="mb-4">
+                        <div class="flex items-start">
+                            <i class="fas fa-comment-dots text-blue-500 mr-2 mt-1"></i>
+                            <p class="text-gray-700 text-sm">"{{ lead.mensaje }}"</p>
+                        </div>
+                    </div>
+
+                    <!-- Details Grid -->
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="text-center">
+                            <div class="flex items-center justify-center mb-1">
+                                <i class="fab fa-whatsapp text-green-500 mr-1"></i>
+                                <span class="text-xs text-gray-500">Origen</span>
+                            </div>
+                            <p class="text-sm font-medium text-gray-900">{{ lead.origen }}</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="flex items-center justify-center mb-1">
+                                <i class="fas fa-circle text-red-500 mr-1" style="font-size: 8px;"></i>
+                                <span class="text-xs text-gray-500">Prioridad</span>
+                            </div>
+                            <p class="text-sm font-medium text-red-600">{{ lead.prioridad|capfirst }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Timestamp -->
+                    <div class="border-t pt-3 mb-4">
+                        <div class="flex items-center text-xs text-gray-500">
+                            <i class="fas fa-clock mr-1"></i>
+                            {{ lead.fecha_creacion }}
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="space-y-2">
+                        <button onclick="asignarLead({{ lead.id }})" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors flex items-center justify-center">
+                            <i class="fas fa-user-check mr-2"></i>
+                            Asignar Lead
+                        </button>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="contactarLead('{{ lead.telefono }}')" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-3 rounded-md transition-colors flex items-center justify-center text-sm">
+                                <i class="fab fa-whatsapp mr-1"></i>
+                                WhatsApp
+                            </button>
+                            <button onclick="verDetalleLead({{ lead.id }})" class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-3 rounded-md transition-colors flex items-center justify-center text-sm">
+                                <i class="fas fa-eye mr-1"></i>
+                                Ver
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Footer Statistics -->
+    <div class="mt-8 bg-white rounded-lg shadow-sm border p-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
+            <div>
+                <h4 class="text-2xl font-bold text-red-600">{{ total_pendientes }}</h4>
+                <p class="text-sm text-gray-500">Total Pendientes</p>
+            </div>
+            <div>
+                <h4 class="text-2xl font-bold text-orange-600">{{ alta_count }}</h4>
+                <p class="text-sm text-gray-500">Prioridad Alta</p>
+            </div>
+            <div>
+                <h4 class="text-2xl font-bold text-green-600">{{ whatsapp_count }}</h4>
+                <p class="text-sm text-gray-500">Origen WhatsApp</p>
+            </div>
+            <div>
+                <h4 class="text-2xl font-bold text-gray-600">0</h4>
+                <p class="text-sm text-gray-500">Team Leaders Disponibles</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Initialize leads chart for dashboard view
+    {% if view_type == 'dashboard' %}
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('leadsChart').getContext('2d');
+        const leadsChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['10:00', '10:30', '11:00', '11:15', '11:30', '12:00', '12:30'],
+                datasets: [{
+                    label: 'Leads Recibidos',
+                    data: [0, 0, 0, 1, 1, 2, 3],
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#ef4444',
+                    pointBorderColor: '#ef4444',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 5,
+                        grid: {
+                            color: '#f3f4f6'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: '#f3f4f6'
+                        }
+                    }
+                }
+            }
+        });
+    });
+    {% endif %}
+
+    // Action functions
+    function asignarLead(leadId) {
+        alert(`Funcionalidad de asignación para Lead ID: ${leadId} - En desarrollo`);
+    }
+    
+    function contactarLead(telefono) {
+        window.open(`https://wa.me/591${telefono}`, '_blank');
+    }
+    
+    function verDetalleLead(leadId) {
+        alert(`Ver detalle del Lead ID: ${leadId} - En desarrollo`);
+    }
+    
+    // Auto refresh every 30 seconds
+    setInterval(function() {
+        console.log('Actualizando lista de leads...');
+        // Here you could implement AJAX refresh
+    }, 30000);
+</script>
+{% endblock %}

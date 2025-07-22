@@ -1,0 +1,316 @@
+<!-- templates/sales/equipos/add_member.html -->
+{% extends 'base/base.html' %}
+
+{% block title %}Agregar Miembro - {{ equipo.nombre }}{% endblock %}
+
+{% block header %}Agregar Miembro al Equipo{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Breadcrumb -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            <li class="inline-flex items-center">
+                <a href="{% url 'sales:equipos_list' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    <i class="fas fa-users mr-2"></i>
+                    Equipos de Venta
+                </a>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <a href="{% url 'sales:equipos_detail' equipo.pk %}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
+                        {{ equipo.nombre }}
+                    </a>
+                </div>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <a href="{% url 'sales:jerarquia_list' %}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
+                        Gestionar Miembros
+                    </a>
+                </div>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <span class="text-sm font-medium text-gray-500">Agregar Miembro</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ title }}</h1>
+            <p class="text-gray-600">{{ help_text }}</p>
+        </div>
+        <a href="{% url 'sales:jerarquia_list' %}" 
+           class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors">
+            <i class="fas fa-arrow-left mr-2"></i>Cancelar
+        </a>
+    </div>
+
+    <!-- Información del equipo -->
+    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+        <div class="flex items-center">
+            <div class="h-10 w-10 bg-blue-500 rounded-full flex items-center justify-center text-white mr-3">
+                <i class="fas fa-users"></i>
+            </div>
+            <div>
+                <h3 class="text-lg font-medium text-blue-900">{{ equipo.nombre }}</h3>
+                <p class="text-sm text-blue-700">{{ equipo.descripcion|default:"Equipo de ventas" }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Advertencia si ya hay un gerente - Solo mostrar si se intenta agregar otro gerente -->
+    <div id="advertencia-gerente" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6" style="display: none;">
+        <div class="flex items-start">
+            <i class="fas fa-exclamation-triangle text-yellow-400 mt-0.5 mr-3"></i>
+            <div>
+                <h3 class="text-sm font-medium text-yellow-800">Gerente ya asignado</h3>
+                <div class="mt-1 text-sm text-yellow-700">
+                    <p>Este equipo ya tiene un gerente activo. Solo puede haber un gerente por equipo.</p>
+                    <p class="mt-2">Si necesitas cambiar el gerente, primero desactiva el actual en la página de jerarquía.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estado del equipo -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+        <h3 class="text-sm font-semibold text-gray-900 mb-3">Estado actual del equipo</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <div>
+                <p class="text-2xl font-bold text-blue-600">{{ stats.total_gerentes|default:0 }}</p>
+                <p class="text-xs text-gray-500">Gerentes</p>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-green-600">{{ stats.total_jefes|default:0 }}</p>
+                <p class="text-xs text-gray-500">Jefes de Venta</p>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-purple-600">{{ stats.total_leaders|default:0 }}</p>
+                <p class="text-xs text-gray-500">Team Leaders</p>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-orange-600">{{ stats.total_vendedores|default:0 }}</p>
+                <p class="text-xs text-gray-500">Vendedores</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h2 class="text-lg font-semibold text-gray-900">Información del Miembro</h2>
+        </div>
+        
+        <form method="post" class="p-6">
+            {% csrf_token %}
+            
+            <div class="space-y-6">
+                <!-- Usuario -->
+                <div>
+                    <label for="{{ form.usuario.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.usuario.label }}
+                    </label>
+                    {{ form.usuario }}
+                    {% if form.usuario.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ form.usuario.help_text }}</p>
+                    {% endif %}
+                    {% if form.usuario.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {% for error in form.usuario.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Rol -->
+                <div>
+                    <label for="{{ form.rol.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.rol.label }}
+                    </label>
+                    <select id="{{ form.rol.id_for_label }}" name="{{ form.rol.name }}" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            onchange="updateSupervisorOptions()">
+                        <option value="">Selecciona un rol...</option>
+                        {% for value, label in form.rol.field.choices %}
+                            <option value="{{ value }}" {% if form.rol.value == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    {% if form.rol.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ form.rol.help_text }}</p>
+                    {% endif %}
+                    {% if form.rol.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {% for error in form.rol.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Supervisor (dinámico) -->
+                <div id="supervisor-container" style="display: none;">
+                    <label for="{{ form.supervisor.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        <span id="supervisor-label">Supervisor</span>
+                    </label>
+                    <select id="{{ form.supervisor.id_for_label }}" name="{{ form.supervisor.name }}" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="">Selecciona un supervisor...</option>
+                    </select>
+                    <p id="supervisor-help" class="mt-1 text-sm text-gray-500"></p>
+                    {% if form.supervisor.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {% for error in form.supervisor.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Información de jerarquía -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h3 class="text-sm font-semibold text-gray-900 mb-3">Estructura de Roles</h3>
+                    <div class="space-y-2 text-sm text-gray-600">
+                        <div class="flex items-center">
+                            <div class="h-3 w-3 bg-blue-500 rounded-full mr-2"></div>
+                            <span><strong>Gerente de Equipo:</strong> Nivel más alto (solo 1 por equipo)</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="h-3 w-3 bg-green-500 rounded-full mr-2"></div>
+                            <span><strong>Jefe de Venta:</strong> Reporta al Gerente de Equipo</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="h-3 w-3 bg-purple-500 rounded-full mr-2"></div>
+                            <span><strong>Team Leader:</strong> Reporta al Jefe de Venta</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="h-3 w-3 bg-orange-500 rounded-full mr-2"></div>
+                            <span><strong>Vendedor:</strong> Reporta al Team Leader</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Errores generales del formulario -->
+                {% if form.non_field_errors %}
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-triangle text-red-400 mr-2"></i>
+                            <span class="text-red-800 font-medium">Errores de validación:</span>
+                        </div>
+                        <ul class="mt-2 text-sm text-red-700 list-disc list-inside">
+                            {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Botones -->
+            <div class="flex justify-end space-x-3 mt-8 pt-6 border-t border-gray-200">
+                <a href="{% url 'sales:jerarquia_list' %}" 
+                   class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors">
+                    Cancelar
+                </a>
+                <button type="submit" 
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                    <i class="fas fa-plus mr-2"></i>Agregar Miembro
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Datos de supervisores desde el contexto de Django
+    const supervisoresData = JSON.parse('{{ supervisores_data|escapejs }}');
+    
+    function updateSupervisorOptions() {
+        const rolSelect = document.getElementById('{{ form.rol.id_for_label }}');
+        const supervisorContainer = document.getElementById('supervisor-container');
+        const supervisorSelect = document.getElementById('{{ form.supervisor.id_for_label }}');
+        const supervisorLabel = document.getElementById('supervisor-label');
+        const supervisorHelp = document.getElementById('supervisor-help');
+        const advertenciaGerente = document.getElementById('advertencia-gerente');
+        
+        const selectedRole = rolSelect.value;
+        
+        // Limpiar opciones actuales
+        supervisorSelect.innerHTML = '<option value="">Selecciona un supervisor...</option>';
+        
+        // Mostrar/ocultar advertencia de gerente
+        if (selectedRole === 'gerente' && {{ tiene_gerente_activo|yesno:"true,false" }}) {
+            advertenciaGerente.style.display = 'block';
+        } else {
+            advertenciaGerente.style.display = 'none';
+        }
+        
+        if (selectedRole === 'gerente') {
+            // Los gerentes no necesitan supervisor
+            supervisorContainer.style.display = 'none';
+        } else if (selectedRole === 'jefe_venta') {
+            // Los jefes de venta reportan a gerentes
+            supervisorContainer.style.display = 'block';
+            supervisorLabel.textContent = 'Gerente Supervisor';
+            supervisorHelp.textContent = 'Selecciona el gerente al que reportará este jefe de venta';
+            
+            supervisoresData.gerentes.forEach(gerente => {
+                const option = document.createElement('option');
+                option.value = gerente.id;
+                option.textContent = gerente.name;
+                supervisorSelect.appendChild(option);
+            });
+        } else if (selectedRole === 'team_leader') {
+            // Los team leaders reportan a jefes de venta
+            supervisorContainer.style.display = 'block';
+            supervisorLabel.textContent = 'Jefe de Venta Supervisor';
+            supervisorHelp.textContent = 'Selecciona el jefe de venta al que reportará este team leader';
+            
+            supervisoresData.jefes_venta.forEach(jefe => {
+                const option = document.createElement('option');
+                option.value = jefe.id;
+                option.textContent = jefe.name;
+                supervisorSelect.appendChild(option);
+            });
+        } else if (selectedRole === 'vendedor') {
+            // Los vendedores reportan a team leaders
+            supervisorContainer.style.display = 'block';
+            supervisorLabel.textContent = 'Team Leader Supervisor';
+            supervisorHelp.textContent = 'Selecciona el team leader al que reportará este vendedor';
+            
+            supervisoresData.team_leaders.forEach(leader => {
+                const option = document.createElement('option');
+                option.value = leader.id;
+                option.textContent = leader.name;
+                supervisorSelect.appendChild(option);
+            });
+        } else {
+            supervisorContainer.style.display = 'none';
+        }
+    }
+    
+    // Inicializar el formulario
+    document.addEventListener('DOMContentLoaded', function() {
+        updateSupervisorOptions();
+        
+        // Deshabilitar la opción de gerente si ya hay uno activo
+        {% if tiene_gerente_activo %}
+            const rolSelect = document.getElementById('{{ form.rol.id_for_label }}');
+            const gerenteOption = rolSelect.querySelector('option[value="gerente"]');
+            if (gerenteOption) {
+                gerenteOption.disabled = true;
+                gerenteOption.textContent += ' (Ya existe un gerente activo)';
+                gerenteOption.style.color = '#9CA3AF';
+            }
+        {% endif %}
+    });
+</script>
+{% endblock %}

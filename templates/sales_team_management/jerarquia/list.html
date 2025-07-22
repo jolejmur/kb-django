@@ -1,0 +1,325 @@
+<!-- templates/sales/jerarquia/list.html -->
+{% extends 'base/base.html' %}
+
+{% block title %}Jerarquía de Equipos - Django CRM{% endblock %}
+
+{% block header %}Jerarquía de Equipos{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Jerarquía de Equipos</h1>
+            <p class="text-gray-600 mt-1">Vista completa de la estructura organizacional de ventas</p>
+        </div>
+        <a href="{% url 'sales:jerarquia_create_member' %}"
+           class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center transition-colors">
+            <i class="fas fa-plus mr-2"></i>
+            Asignar Usuario
+        </a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <!-- Búsqueda por nombre -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Buscar</label>
+                <input type="text" name="search" value="{{ search }}" 
+                       placeholder="Nombre, email o usuario..."
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <!-- Filtro por equipo -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Equipo</label>
+                <select name="equipo" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">Todos los equipos</option>
+                    {% for equipo in equipos %}
+                        <option value="{{ equipo.id }}" {% if equipo_seleccionado|stringformat:"s" == equipo.id|stringformat:"s" %}selected{% endif %}>
+                            {{ equipo.nombre }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Filtro por rol -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Rol</label>
+                <select name="rol" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="todos">Todos los roles</option>
+                    <option value="gerente" {% if rol_seleccionado == 'gerente' %}selected{% endif %}>Gerente de Equipo</option>
+                    <option value="jefe" {% if rol_seleccionado == 'jefe' %}selected{% endif %}>Jefe de Venta</option>
+                    <option value="team_leader" {% if rol_seleccionado == 'team_leader' %}selected{% endif %}>Team Leader</option>
+                    <option value="vendedor" {% if rol_seleccionado == 'vendedor' %}selected{% endif %}>Vendedor</option>
+                </select>
+            </div>
+
+            <!-- Filtro por estado -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Estado</label>
+                <select name="activo" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="todos">Todos</option>
+                    <option value="true" {% if activo_seleccionado == 'true' %}selected{% endif %}>Activos</option>
+                    <option value="false" {% if activo_seleccionado == 'false' %}selected{% endif %}>Inactivos</option>
+                </select>
+            </div>
+
+            <!-- Botones -->
+            <div class="flex items-end space-x-2">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                    <i class="fas fa-search mr-2"></i>Filtrar
+                </button>
+                <a href="{% url 'sales:jerarquia_list' %}" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors">
+                    Limpiar
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Resultados -->
+    {% if page_obj %}
+        <!-- Estadísticas -->
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <div class="flex items-center">
+                    <div class="p-2 bg-blue-100 rounded-lg">
+                        <i class="fas fa-users text-blue-600"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-gray-500">Total Miembros</p>
+                        <p class="text-lg font-semibold text-gray-900">{{ stats.total_miembros }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <div class="flex items-center">
+                    <div class="p-2 bg-green-100 rounded-lg">
+                        <i class="fas fa-user-tie text-green-600"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-gray-500">Gerentes</p>
+                        <p class="text-lg font-semibold text-gray-900">{{ stats.total_gerentes }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <div class="flex items-center">
+                    <div class="p-2 bg-yellow-100 rounded-lg">
+                        <i class="fas fa-user-cog text-yellow-600"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-gray-500">Jefes de Venta</p>
+                        <p class="text-lg font-semibold text-gray-900">{{ stats.total_jefes }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <div class="flex items-center">
+                    <div class="p-2 bg-orange-100 rounded-lg">
+                        <i class="fas fa-users text-orange-600"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-gray-500">Team Leaders</p>
+                        <p class="text-lg font-semibold text-gray-900">{{ stats.total_team_leaders }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <div class="flex items-center">
+                    <div class="p-2 bg-purple-100 rounded-lg">
+                        <i class="fas fa-user text-purple-600"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-gray-500">Vendedores</p>
+                        <p class="text-lg font-semibold text-gray-900">{{ stats.total_vendedores }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de resultados -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Usuario
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Equipo
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Rol
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Supervisor
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Estado
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Fecha Asignación
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Acciones
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for miembro in page_obj %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="h-10 w-10 rounded-full flex items-center justify-center
+                                            {% if miembro.rol_key == 'gerente' %}bg-blue-100{% elif miembro.rol_key == 'jefe' %}bg-green-100{% elif miembro.rol_key == 'team_leader' %}bg-yellow-100{% else %}bg-purple-100{% endif %}">
+                                            {% if miembro.rol_key == 'gerente' %}
+                                                <i class="fas fa-user-tie text-blue-600"></i>
+                                            {% elif miembro.rol_key == 'jefe' %}
+                                                <i class="fas fa-user-cog text-green-600"></i>
+                                            {% elif miembro.rol_key == 'team_leader' %}
+                                                <i class="fas fa-users text-yellow-600"></i>
+                                            {% else %}
+                                                <i class="fas fa-user text-purple-600"></i>
+                                            {% endif %}
+                                        </div>
+                                        <div class="ml-4">
+                                            <div class="text-sm font-medium text-gray-900">
+                                                {{ miembro.usuario.get_full_name|default:miembro.usuario.username }}
+                                            </div>
+                                            <div class="text-sm text-gray-500">
+                                                {{ miembro.usuario.email }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-gray-900">{{ miembro.equipo.nombre }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                        {% if miembro.rol_key == 'gerente' %}bg-blue-100 text-blue-800{% elif miembro.rol_key == 'jefe' %}bg-green-100 text-green-800{% elif miembro.rol_key == 'team_leader' %}bg-yellow-100 text-yellow-800{% else %}bg-purple-100 text-purple-800{% endif %}">
+                                        {{ miembro.rol }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {% if miembro.supervisor %}
+                                        {{ miembro.supervisor }}
+                                    {% else %}
+                                        <span class="text-gray-400">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    {% if miembro.activo %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            <i class="fas fa-check-circle mr-1"></i>
+                                            Activo
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                            <i class="fas fa-times-circle mr-1"></i>
+                                            Inactivo
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ miembro.fecha_asignacion|date:"d/m/Y" }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <div class="flex space-x-2">
+                                        <!-- Ver -->
+                                        <a href="{% url 'sales:jerarquia_member_detail' miembro.objeto.id miembro.rol_key %}"
+                                           class="bg-blue-50 hover:bg-blue-100 text-blue-700 p-2 rounded-lg transition-colors"
+                                           title="Ver Datos del Usuario">
+                                            <i class="fas fa-eye text-sm"></i>
+                                        </a>
+                                        <!-- Editar -->
+                                        <a href="{% url 'sales:jerarquia_member_edit' miembro.objeto.id miembro.rol_key %}"
+                                           class="bg-yellow-50 hover:bg-yellow-100 text-yellow-700 p-2 rounded-lg transition-colors"
+                                           title="Editar Usuario">
+                                            <i class="fas fa-edit text-sm"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Paginación intuitiva -->
+        <div class="mt-6 flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
+            <!-- Información de resultados -->
+            <div class="text-sm text-gray-600">
+                Mostrando {{ page_obj.start_index }} a {{ page_obj.end_index }} de {{ page_obj.paginator.count }} resultados
+            </div>
+            
+            <!-- Navegación de páginas -->
+            {% if page_obj.has_other_pages %}
+                <nav class="flex items-center space-x-2">
+                    {% if page_obj.has_previous %}
+                        <a href="?page=1{% if search %}&search={{ search }}{% endif %}{% if equipo_seleccionado %}&equipo={{ equipo_seleccionado }}{% endif %}{% if rol_seleccionado %}&rol={{ rol_seleccionado }}{% endif %}{% if activo_seleccionado %}&activo={{ activo_seleccionado }}{% endif %}{% if page_size %}&page_size={{ page_size }}{% endif %}"
+                           class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50" title="Primera página">
+                            <i class="fas fa-angle-double-left"></i>
+                        </a>
+                        <a href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if equipo_seleccionado %}&equipo={{ equipo_seleccionado }}{% endif %}{% if rol_seleccionado %}&rol={{ rol_seleccionado }}{% endif %}{% if activo_seleccionado %}&activo={{ activo_seleccionado }}{% endif %}{% if page_size %}&page_size={{ page_size }}{% endif %}"
+                           class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+                            <i class="fas fa-angle-left"></i> Anterior
+                        </a>
+                    {% endif %}
+
+                    <span class="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm">
+                        {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                    </span>
+
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if equipo_seleccionado %}&equipo={{ equipo_seleccionado }}{% endif %}{% if rol_seleccionado %}&rol={{ rol_seleccionado }}{% endif %}{% if activo_seleccionado %}&activo={{ activo_seleccionado }}{% endif %}{% if page_size %}&page_size={{ page_size }}{% endif %}"
+                           class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+                            Siguiente <i class="fas fa-angle-right"></i>
+                        </a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if equipo_seleccionado %}&equipo={{ equipo_seleccionado }}{% endif %}{% if rol_seleccionado %}&rol={{ rol_seleccionado }}{% endif %}{% if activo_seleccionado %}&activo={{ activo_seleccionado }}{% endif %}{% if page_size %}&page_size={{ page_size }}{% endif %}"
+                           class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50" title="Última página">
+                            <i class="fas fa-angle-double-right"></i>
+                        </a>
+                    {% endif %}
+                </nav>
+            {% endif %}
+            
+            <!-- Selector de entradas por página -->
+            <div class="flex items-center space-x-2">
+                <label class="text-sm text-gray-600">Mostrar:</label>
+                <select name="page_size" onchange="changePageSize(this.value)" 
+                        class="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
+                    <option value="25" {% if page_size == 25 %}selected{% endif %}>25</option>
+                    <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
+                    <option value="100" {% if page_size == 100 %}selected{% endif %}>100</option>
+                </select>
+                <span class="text-sm text-gray-600">entradas</span>
+            </div>
+        </div>
+    {% else %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 text-center py-12">
+            <i class="fas fa-users text-gray-300 text-6xl mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No se encontraron miembros</h3>
+            <p class="text-gray-500">Ajusta los filtros para ver los miembros de los equipos.</p>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+function changePageSize(size) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('page_size', size);
+    url.searchParams.delete('page'); // Reset to first page when changing page size
+    window.location.href = url.toString();
+}
+</script>
+{% endblock %}

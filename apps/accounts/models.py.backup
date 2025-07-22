@@ -1,0 +1,326 @@
+# apps/accounts/management/commands/setup_default_menu.py
+
+from django.core.management.base import BaseCommand
+from django.contrib.auth.models import Group, Permission
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.auth import get_user_model
+from apps.accounts.models import MenuCategory, Navigation, Role
+from django.db import IntegrityError
+
+User = get_user_model()
+
+
+class Command(BaseCommand):
+    help = 'Crea la estructura de menú por defecto para el sistema - SIN DUPLICADOS'
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--force',
+            action='store_true',
+            help='Fuerza la recreación de categorías existentes',
+        )
+
+    def handle(self, *args, **options):
+        self.stdout.write(self.style.SUCCESS('🚀 Configurando estructura de menú (SIN DUPLICADOS)...'))
+
+        # 1. Crear categorías por defecto
+        admin_category = self.create_admin_category(options['force'])
+
+        # 2. Crear módulos de administración (SIN DUPLICADOS)
+        self.create_admin_modules(admin_category)
+
+        # 3. Crear otras categorías básicas
+        self.create_other_categories(options['force'])
+
+        # 4. Asignar todos los módulos al superadmin
+        self.assign_modules_to_superadmin()
+
+        self.stdout.write(
+            self.style.SUCCESS('✅ Estructura de menú configurada exitosamente (SIN DUPLICADOS)!')
+        )
+
+    def create_admin_category(self, force=False):
+        """Crea la categoría de Administración del Sistema - SIN DUPLICADOS"""
+        category_data = {
+            'description': 'Gestión de módulos, roles, usuarios y configuración',
+            'icon': 'fas fa-cogs',
+            'color': 'red',
+            'order': 20,
+            'is_system': True,
+            'is_active': True
+        }
+
+        # USAR get_or_create para evitar duplicados
+        category, created = MenuCategory.objects.get_or_create(
+            name='ADMINISTRACIÓN DEL SISTEMA',  # Campo unique
+            defaults=category_data
+        )
+
+        if created:
+            self.stdout.write(f"  ✅ Categoría creada: {category.name}")
+        else:
+            if force:
+                for key, value in category_data.items():
+                    setattr(category, key, value)
+                category.save()
+                self.stdout.write(f"  🔄 Categoría actualizada: {category.name}")
+            else:
+                self.stdout.write(f"  ⏭️  Categoría ya existe: {category.name} (ID: {category.id})")
+
+        return category
+
+    def create_admin_modules(self, admin_category):
+        """Crea los módulos de administración del sistema - SIN DUPLICADOS"""
+
+        # Obtener content types para los permisos
+        group_ct = ContentType.objects.get_for_model(Group)
+        permission_ct = ContentType.objects.get_for_model(Permission)
+        role_ct = ContentType.objects.get_for_model(Role)
+        user_ct = ContentType.objects.get_for_model(User)
+        category_ct = ContentType.objects.get_for_model(MenuCategory)
+        navigation_ct = ContentType.objects.get_for_model(Navigation)
+
+        admin_modules = [
+            {
+                'group_name': 'Gestión de Módulos',
+                'navigation': {
+                    'name': 'Módulos (Groups)',
+                    'url': '/accounts/admin/modules/',
+                    'icon': 'fas fa-cubes',
+                    'order': 10,
+                    'category': admin_category
+                },
+                'permissions': [
+                    f'{group_ct.app_label}.add_group',
+                    f'{group_ct.app_label}.change_group',
+                    f'{group_ct.app_label}.delete_group',
+                    f'{group_ct.app_label}.view_group',
+                    f'{permission_ct.app_label}.view_permission',
+                ]
+            },
+            {
+                'group_name': 'Gestión de Categorías',
+                'navigation': {
+                    'name': 'Categorías del Menú',
+                    'url': '/accounts/admin/categories/',
+                    'icon': 'fas fa-folder-open',
+                    'order': 20,
+                    'category': admin_category
+                },
+                'permissions': [
+                    f'{category_ct.app_label}.add_menucategory',
+                    f'{category_ct.app_label}.change_menucategory',
+                    f'{category_ct.app_label}.delete_menucategory',
+                    f'{category_ct.app_label}.view_menucategory',
+                ]
+            },
+            {
+                'group_name': 'Gestión de Navegación',
+                'navigation': {
+                    'name': 'Elementos del Menú',
+                    'url': '/accounts/admin/navigation/',
+                    'icon': 'fas fa-bars',
+                    'order': 30,
+                    'category': admin_category
+                },
+                'permissions': [
+                    f'{navigation_ct.app_label}.add_navigation',
+                    f'{navigation_ct.app_label}.change_navigation',
+                    f'{navigation_ct.app_label}.delete_navigation',
+                    f'{navigation_ct.app_label}.view_navigation',
+                ]
+            },
+            {
+                'group_name': 'Gestión de Roles',
+                'navigation': {
+                    'name': 'Roles de Usuario',
+                    'url': '/accounts/admin/roles/',
+                    'icon': 'fas fa-user-tag',
+                    'order': 40,
+                    'category': admin_category
+                },
+                'permissions': [
+                    f'{role_ct.app_label}.add_role',
+                    f'{role_ct.app_label}.change_role',
+                    f'{role_ct.app_label}.delete_role',
+                    f'{role_ct.app_label}.view_role',
+                ]
+            },
+            {
+                'group_name': 'Gestión de Usuarios',
+                'navigation': {
+                    'name': 'Usuarios del Sistema',
+                    'url': '/accounts/admin/users/',
+                    'icon': 'fas fa-users',
+                    'order': 50,
+                    'category': admin_category
+                },
+                'permissions': [
+                    f'{user_ct.app_label}.add_user',
+                    f'{user_ct.app_label}.change_user',
+                    f'{user_ct.app_label}.delete_user',
+                    f'{user_ct.app_label}.view_user',
+                    f'{role_ct.app_label}.view_role',
+                ]
+            },
+            {
+                'group_name': 'Asignación de Permisos',
+                'navigation': {
+                    'name': 'Asignar Módulos a Roles',
+                    'url': '/accounts/admin/role-assignments/',
+                    'icon': 'fas fa-link',
+                    'order': 60,
+                    'category': admin_category
+                },
+                'permissions': [
+                    f'{role_ct.app_label}.view_role',
+                    f'{role_ct.app_label}.change_role',
+                    f'{group_ct.app_label}.view_group',
+                ]
+            }
+        ]
+
+        for module_data in admin_modules:
+            # ✅ USAR get_or_create para evitar duplicados en Group
+            group, group_created = Group.objects.get_or_create(
+                name=module_data['group_name']  # Campo unique en auth_group
+            )
+
+            if group_created:
+                self.stdout.write(f"  ✅ Módulo creado: {group.name}")
+            else:
+                self.stdout.write(f"  ⏭️  Módulo ya existe: {group.name} (ID: {group.id})")
+
+            # Limpiar y asignar permisos específicos
+            permissions_to_assign = []
+            for perm_codename in module_data['permissions']:
+                try:
+                    app_label, codename = perm_codename.split('.')
+                    permission = Permission.objects.get(
+                        content_type__app_label=app_label,
+                        codename=codename
+                    )
+                    permissions_to_assign.append(permission)
+                except Permission.DoesNotExist:
+                    self.stdout.write(
+                        self.style.WARNING(f"    ⚠️  Permiso no encontrado: {perm_codename}")
+                    )
+
+            if permissions_to_assign:
+                group.permissions.set(permissions_to_assign)
+                self.stdout.write(f"    📋 Asignados {len(permissions_to_assign)} permisos específicos")
+
+            # ✅ CREAR O ACTUALIZAR NAVEGACIÓN (SIN DUPLICADOS)
+            try:
+                navigation, nav_created = Navigation.objects.get_or_create(
+                    group=group,  # Campo unique en Navigation
+                    defaults=module_data['navigation']
+                )
+
+                if nav_created:
+                    self.stdout.write(f"    🔗 Navegación creada: {navigation.name}")
+                else:
+                    # Actualizar navegación existente
+                    for key, value in module_data['navigation'].items():
+                        setattr(navigation, key, value)
+                    navigation.save()
+                    self.stdout.write(f"    🔄 Navegación actualizada: {navigation.name}")
+            except IntegrityError as e:
+                self.stdout.write(f"    ⚠️  Error de integridad en navegación: {e}")
+
+    def create_other_categories(self, force=False):
+        """Crea otras categorías básicas del sistema - SIN DUPLICADOS"""
+        other_categories = [
+            {
+                'name': 'DASHBOARDS',
+                'description': 'Panel principal de usuario',
+                'icon': 'fas fa-tachometer-alt',
+                'color': 'blue',
+                'order': 10,
+                'is_system': True
+            },
+            {
+                'name': 'VENTAS',
+                'description': 'Gestión de ventas y clientes',
+                'icon': 'fas fa-chart-line',
+                'color': 'green',
+                'order': 30,
+                'is_system': False
+            },
+            {
+                'name': 'RECURSOS HUMANOS',
+                'description': 'Gestión de empleados y nóminas',
+                'icon': 'fas fa-users-cog',
+                'color': 'purple',
+                'order': 40,
+                'is_system': False
+            },
+            {
+                'name': 'REPORTES',
+                'description': 'Análisis y reportes del sistema',
+                'icon': 'fas fa-chart-bar',
+                'color': 'yellow',
+                'order': 50,
+                'is_system': False
+            }
+        ]
+
+        for cat_data in other_categories:
+            # ✅ USAR get_or_create para evitar duplicados
+            category, created = MenuCategory.objects.get_or_create(
+                name=cat_data['name'],  # Campo unique
+                defaults={k: v for k, v in cat_data.items() if k != 'name'}
+            )
+
+            if created:
+                self.stdout.write(f"  ✅ Categoría creada: {category.name}")
+            elif force:
+                for key, value in cat_data.items():
+                    if key != 'name':  # No cambiar el nombre (es unique)
+                        setattr(category, key, value)
+                category.save()
+                self.stdout.write(f"  🔄 Categoría actualizada: {category.name}")
+
+    def assign_modules_to_superadmin(self):
+        """Asigna todos los módulos del sistema a los superadmins - SIN DUPLICADOS"""
+        superadmins = User.objects.filter(is_superuser=True)
+
+        if not superadmins.exists():
+            self.stdout.write(
+                self.style.WARNING('  ⚠️  No hay superadmins en el sistema')
+            )
+            return
+
+        # ✅ CREAR O OBTENER ROL DE SUPERADMIN (SIN DUPLICADOS)
+        superadmin_role, created = Role.objects.get_or_create(
+            name='Super Administrador',  # Campo unique
+            defaults={
+                'description': 'Acceso completo a todas las funciones del sistema'
+            }
+        )
+
+        if created:
+            self.stdout.write(f"  ✅ Rol creado: {superadmin_role.name}")
+        else:
+            self.stdout.write(f"  ⏭️  Rol ya existe: {superadmin_role.name} (ID: {superadmin_role.id})")
+
+        # Asignar todos los grupos (módulos) al rol de superadmin
+        all_groups = Group.objects.all()
+        superadmin_role.groups.set(all_groups)
+
+        self.stdout.write(
+            f"  📦 Asignados {all_groups.count()} módulos al rol de superadmin"
+        )
+
+        # Asignar el rol a todos los superadmins que no tengan rol
+        for superadmin in superadmins:
+            if not superadmin.role:
+                superadmin.role = superadmin_role
+                superadmin.save()
+                self.stdout.write(
+                    f"  👤 Rol asignado a superadmin: {superadmin.username}"
+                )
+            else:
+                self.stdout.write(
+                    f"  ⏭️  Superadmin ya tiene rol: {superadmin.username} ({superadmin.role.name})"
+                )

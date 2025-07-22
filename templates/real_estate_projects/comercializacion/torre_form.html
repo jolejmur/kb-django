@@ -1,0 +1,150 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Gestión de Comercialización - Torre {{ torre.numero_torre }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <div class="max-w-2xl mx-auto">
+        <!-- Header -->
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold text-gray-900">Gestión de Comercialización</h1>
+            <p class="text-gray-600 mt-1">
+                Torre {{ torre.numero_torre }} - {{ torre.nombre }}
+            </p>
+            <p class="text-sm text-gray-500">
+                {{ torre.fase.nombre }} - {{ torre.fase.proyecto.nombre }}
+            </p>
+        </div>
+
+        <!-- Current Status -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div class="flex items-center">
+                <svg class="w-5 h-5 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                </svg>
+                <div>
+                    <h3 class="text-sm font-medium text-blue-800">Estado Actual</h3>
+                    <p class="text-sm text-blue-700">
+                        {% if torre.es_comercializable %}
+                            Esta torre tiene <strong>{{ torre.inmuebles_comercializables }}</strong> de <strong>{{ torre.total_inmuebles }}</strong> inmuebles comercializables
+                        {% else %}
+                            Esta torre no tiene inmuebles comercializables
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Configuración de Comercialización</h2>
+                
+                <!-- Marcar torre como comercializable -->
+                <div class="mb-6">
+                    <div class="flex items-center">
+                        {{ form.comercializable }}
+                        <label for="{{ form.comercializable.id_for_label }}" class="ml-2 text-sm font-medium text-gray-700">
+                            Marcar todos los inmuebles de esta torre como comercializables
+                        </label>
+                    </div>
+                    {% if form.comercializable.errors %}
+                        <p class="text-red-500 text-sm mt-1">{{ form.comercializable.errors.0 }}</p>
+                    {% endif %}
+                    <p class="text-sm text-gray-500 mt-2">
+                        Al activar esta opción, se marcarán automáticamente como comercializables todos los inmuebles de 
+                        <strong>{{ torre.pisos.count }}</strong> piso{% if torre.pisos.count != 1 %}s{% endif %} en esta torre.
+                    </p>
+                </div>
+
+                <!-- Detalle por pisos -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h3 class="text-sm font-medium text-gray-900 mb-3">Pisos en esta torre:</h3>
+                    <div class="space-y-2 max-h-64 overflow-y-auto">
+                        {% for piso in torre.pisos.all %}
+                            <div class="flex justify-between items-center text-sm p-2 bg-white rounded border">
+                                <div>
+                                    <span class="text-gray-700 font-medium">Piso {{ piso.numero_piso }}</span>
+                                    {% if piso.nombre %}
+                                        <span class="text-gray-500">- {{ piso.nombre }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-gray-900">{{ piso.total_inmuebles }} inmuebles</div>
+                                    {% with comercializables=piso.inmuebles.filter:disponible_comercializacion=True.count %}
+                                        <div class="text-xs {% if comercializables > 0 %}text-green-600{% else %}text-gray-500{% endif %}">
+                                            {{ comercializables }} comercializables
+                                        </div>
+                                    {% endwith %}
+                                </div>
+                            </div>
+                        {% empty %}
+                            <p class="text-sm text-gray-500">No hay pisos creados en esta torre.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Estadísticas</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="text-center p-3 bg-blue-50 rounded-lg">
+                        <div class="text-2xl font-bold text-blue-600">{{ torre.total_inmuebles }}</div>
+                        <div class="text-sm text-blue-800">Total Inmuebles</div>
+                    </div>
+                    <div class="text-center p-3 bg-green-50 rounded-lg">
+                        <div class="text-2xl font-bold text-green-600">{{ torre.inmuebles_comercializables }}</div>
+                        <div class="text-sm text-green-800">Comercializables</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Warning -->
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-yellow-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                    <div>
+                        <h3 class="text-sm font-medium text-yellow-800">Atención</h3>
+                        <p class="text-sm text-yellow-700 mt-1">
+                            Esta acción afectará el estado de comercialización de todos los inmuebles en esta torre 
+                            ({{ torre.total_inmuebles }} inmuebles en {{ torre.pisos.count }} pisos).
+                            Asegúrese de que esta es la acción deseada antes de continuar.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex justify-end space-x-3">
+                <a href="{% url 'projects:fase_comercializacion' torre.fase.proyecto.pk torre.fase.pk %}" 
+                   class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg transition-colors">
+                    Volver a Fase
+                </a>
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    Aplicar Cambios
+                </button>
+            </div>
+        </form>
+
+        <!-- Individual Property Management -->
+        <div class="mt-6 bg-white rounded-lg shadow-sm border p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Gestión Individual de Inmuebles</h3>
+            <p class="text-sm text-gray-600 mb-4">
+                Para una gestión más granular, puede acceder a la vista de inmuebles de esta torre.
+            </p>
+            <a href="{% url 'projects:inmuebles_list' %}?torre={{ torre.pk }}" 
+               class="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium">
+                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+                Ver Inmuebles de esta Torre
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

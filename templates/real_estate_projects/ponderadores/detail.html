@@ -1,0 +1,240 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{{ ponderador.nombre }} - Ponderadores{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="mb-6 flex justify-between items-start">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">{{ ponderador.nombre }}</h1>
+                <p class="text-gray-600 mt-1">
+                    Ponderador de {{ proyecto.nombre }}
+                </p>
+            </div>
+            <div class="flex space-x-3">
+                <a href="{% url 'projects:ponderador_edit' proyecto.pk ponderador.pk %}" 
+                   class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    Editar
+                </a>
+                {% if ponderador.activo %}
+                    <a href="{% url 'projects:ponderador_deactivate' proyecto.pk ponderador.pk %}" 
+                       class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors">
+                        Desactivar
+                    </a>
+                {% else %}
+                    <a href="{% url 'projects:ponderador_activate' proyecto.pk ponderador.pk %}" 
+                       class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors">
+                        Activar
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Status Badge -->
+        <div class="mb-6">
+            {% if ponderador.esta_vigente %}
+                <span class="inline-flex px-3 py-1 text-sm font-semibold rounded-full bg-green-100 text-green-800">
+                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                    Vigente
+                </span>
+            {% elif ponderador.activo %}
+                <span class="inline-flex px-3 py-1 text-sm font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+                    </svg>
+                    Programado
+                </span>
+            {% else %}
+                <span class="inline-flex px-3 py-1 text-sm font-semibold rounded-full bg-red-100 text-red-800">
+                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                    </svg>
+                    Inactivo
+                </span>
+            {% endif %}
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Información Principal -->
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Información Principal</h2>
+                
+                <dl class="space-y-3">
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Tipo</dt>
+                        <dd class="text-sm text-gray-900">{{ ponderador.get_tipo_display }}</dd>
+                    </div>
+                    
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Nivel de Aplicación</dt>
+                        <dd class="text-sm text-gray-900">{{ ponderador.get_nivel_aplicacion_display }}</dd>
+                    </div>
+                    
+                    {% if ponderador.fase %}
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Fase</dt>
+                        <dd class="text-sm text-gray-900">{{ ponderador.fase.nombre }}</dd>
+                    </div>
+                    {% endif %}
+                    
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Valor</dt>
+                        <dd class="text-lg font-bold {% if ponderador.porcentaje and ponderador.porcentaje >= 0 %}text-green-600{% elif ponderador.porcentaje and ponderador.porcentaje < 0 %}text-red-600{% else %}text-blue-600{% endif %}">
+                            {{ ponderador.valor_display }}
+                        </dd>
+                    </div>
+                    
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Versión</dt>
+                        <dd class="text-sm text-gray-900">v{{ ponderador.version }}</dd>
+                    </div>
+                </dl>
+            </div>
+
+            <!-- Vigencia -->
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Vigencia</h2>
+                
+                <dl class="space-y-3">
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Fecha de Activación</dt>
+                        <dd class="text-sm text-gray-900">{{ ponderador.fecha_activacion|date:"d/m/Y H:i" }}</dd>
+                    </div>
+                    
+                    {% if ponderador.fecha_desactivacion %}
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Fecha de Desactivación</dt>
+                        <dd class="text-sm text-gray-900">{{ ponderador.fecha_desactivacion|date:"d/m/Y H:i" }}</dd>
+                    </div>
+                    {% else %}
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Duración</dt>
+                        <dd class="text-sm text-gray-900">Permanente</dd>
+                    </div>
+                    {% endif %}
+                    
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Estado Actual</dt>
+                        <dd class="text-sm">
+                            {% if ponderador.esta_vigente %}
+                                <span class="text-green-600 font-medium">Vigente</span>
+                            {% elif ponderador.activo %}
+                                <span class="text-yellow-600 font-medium">Programado</span>
+                                <div class="text-xs text-gray-500 mt-1">
+                                    Se activará el {{ ponderador.fecha_activacion|date:"d/m/Y H:i" }}
+                                </div>
+                            {% else %}
+                                <span class="text-red-600 font-medium">Inactivo</span>
+                            {% endif %}
+                        </dd>
+                    </div>
+                </dl>
+            </div>
+
+            <!-- Descripción -->
+            {% if ponderador.descripcion %}
+            <div class="bg-white rounded-lg shadow-sm border p-6 lg:col-span-2">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Descripción</h2>
+                <p class="text-gray-700 whitespace-pre-line">{{ ponderador.descripcion }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Justificación -->
+            {% if ponderador.justificacion %}
+            <div class="bg-white rounded-lg shadow-sm border p-6 lg:col-span-2">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Justificación</h2>
+                <p class="text-gray-700 whitespace-pre-line">{{ ponderador.justificacion }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Auditoría -->
+            <div class="bg-white rounded-lg shadow-sm border p-6 lg:col-span-2">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Información de Auditoría</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Creado por</dt>
+                        <dd class="text-sm text-gray-900">{{ ponderador.created_by.get_full_name|default:ponderador.created_by.username }}</dd>
+                        <dd class="text-xs text-gray-500">{{ ponderador.created_at|date:"d/m/Y H:i" }}</dd>
+                    </div>
+                    
+                    {% if ponderador.activated_by %}
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Activado por</dt>
+                        <dd class="text-sm text-gray-900">{{ ponderador.activated_by.get_full_name|default:ponderador.activated_by.username }}</dd>
+                    </div>
+                    {% endif %}
+                    
+                    {% if ponderador.deactivated_by %}
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Desactivado por</dt>
+                        <dd class="text-sm text-gray-900">{{ ponderador.deactivated_by.get_full_name|default:ponderador.deactivated_by.username }}</dd>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Historial de Versiones -->
+            {% if ponderador.versiones_hijo.exists or ponderador.ponderador_padre %}
+            <div class="bg-white rounded-lg shadow-sm border p-6 lg:col-span-2">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Historial de Versiones</h2>
+                
+                <div class="space-y-3">
+                    {% if ponderador.ponderador_padre %}
+                        <div class="flex items-center text-sm text-gray-600">
+                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0L2.586 11l3.707-3.707a1 1 0 011.414 1.414L5.414 11l2.293 2.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+                            </svg>
+                            Versión anterior: 
+                            <a href="{% url 'projects:ponderador_detail' proyecto.pk ponderador.ponderador_padre.pk %}" 
+                               class="text-blue-600 hover:text-blue-800 ml-1">
+                                v{{ ponderador.ponderador_padre.version }} - {{ ponderador.ponderador_padre.nombre }}
+                            </a>
+                        </div>
+                    {% endif %}
+                    
+                    {% for version in ponderador.versiones_hijo.all %}
+                        <div class="flex items-center text-sm text-gray-600">
+                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l3.707 3.707-3.707 3.707a1 1 0 01-1.414-1.414L14.586 9l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                            Versión posterior: 
+                            <a href="{% url 'projects:ponderador_detail' proyecto.pk version.pk %}" 
+                               class="text-blue-600 hover:text-blue-800 ml-1">
+                                v{{ version.version }} - {{ version.nombre }}
+                            </a>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Actions -->
+        <div class="mt-6 flex justify-between">
+            <a href="{% url 'projects:ponderador_list' proyecto.pk %}" 
+               class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg transition-colors">
+                ← Volver a Ponderadores
+            </a>
+            
+            <div class="space-x-3">
+                <a href="{% url 'projects:detail' proyecto.pk %}" 
+                   class="text-blue-600 hover:text-blue-800">
+                    Ver Proyecto
+                </a>
+                {% if ponderador.fase %}
+                    <a href="{% url 'projects:fase_detail' proyecto.pk ponderador.fase.pk %}" 
+                       class="text-blue-600 hover:text-blue-800">
+                        Ver Fase
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

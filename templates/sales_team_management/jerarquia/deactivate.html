@@ -1,0 +1,173 @@
+<!-- templates/sales/jerarquia/deactivate.html -->
+{% extends 'base/base.html' %}
+
+{% block title %}{{ title }} - Django CRM{% endblock %}
+
+{% block header %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Breadcrumb -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            <li class="inline-flex items-center">
+                <a href="{% url 'sales:jerarquia_list' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    <i class="fas fa-sitemap mr-2"></i>
+                    Jerarquía de Equipos
+                </a>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <a href="{% url 'sales:jerarquia_member_detail' miembro.id rol %}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
+                        {{ miembro.usuario.get_full_name|default:miembro.usuario.username }}
+                    </a>
+                </div>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <span class="text-sm font-medium text-gray-500">Inactivar</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-900">
+                <i class="fas fa-user-slash mr-2 text-orange-600"></i>
+                {{ title }}
+            </h2>
+            <p class="text-sm text-gray-600 mt-1">
+                Confirma la inactivación del miembro del equipo de ventas
+            </p>
+        </div>
+
+        <!-- Información del miembro -->
+        <div class="px-6 py-4 bg-orange-50 border-b border-gray-200">
+            <div class="flex items-center">
+                <div class="h-12 w-12 rounded-full flex items-center justify-center
+                    {% if rol == 'gerente' %}bg-blue-100{% elif rol == 'jefe' %}bg-green-100{% elif rol == 'team_leader' %}bg-yellow-100{% else %}bg-purple-100{% endif %}">
+                    {% if rol == 'gerente' %}
+                        <i class="fas fa-user-tie text-blue-600"></i>
+                    {% elif rol == 'jefe' %}
+                        <i class="fas fa-user-cog text-green-600"></i>
+                    {% elif rol == 'team_leader' %}
+                        <i class="fas fa-users text-yellow-600"></i>
+                    {% else %}
+                        <i class="fas fa-user text-purple-600"></i>
+                    {% endif %}
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-lg font-medium text-gray-900">
+                        {{ miembro.usuario.get_full_name|default:miembro.usuario.username }}
+                    </h3>
+                    <p class="text-sm text-gray-600">{{ miembro.usuario.email }}</p>
+                    <p class="text-sm text-orange-600">
+                        {{ rol_display }} - {{ equipo_actual.nombre }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advertencia sobre subordinados -->
+        {% if has_subordinados %}
+        <div class="px-6 py-4 bg-red-50 border-b border-gray-200">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                </div>
+                <div class="ml-3">
+                    <h4 class="text-sm font-medium text-red-900">
+                        Este usuario tiene subordinados asignados
+                    </h4>
+                    <p class="text-sm text-red-700 mt-1">
+                        Antes de inactivar a {{ miembro.usuario.get_full_name|default:miembro.usuario.username }}, 
+                        debes seleccionar un reemplazo para supervisar a los siguientes miembros:
+                    </p>
+                    <ul class="mt-2 text-sm text-red-700 space-y-1">
+                        {% for subordinado in subordinados_info %}
+                        <li>• {{ subordinado.nombre }} ({{ subordinado.rol }})</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <form method="post" class="p-6">
+            {% csrf_token %}
+            
+            {% if has_subordinados %}
+            <!-- Selección de reemplazo -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Seleccionar Reemplazo <span class="text-red-500">*</span>
+                </label>
+                <select name="reemplazo" required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">Selecciona un usuario para reemplazar a {{ miembro.usuario.get_full_name|default:miembro.usuario.username }}</option>
+                    {% for replacement in replacements %}
+                    <option value="{{ replacement.id }}">
+                        {{ replacement.nombre }} ({{ replacement.email }}) - {{ replacement.tipo }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <p class="mt-2 text-sm text-gray-500">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Los subordinados de {{ miembro.usuario.get_full_name|default:miembro.usuario.username }} 
+                    serán transferidos al usuario seleccionado.
+                </p>
+            </div>
+            {% endif %}
+
+            <!-- Confirmación -->
+            <div class="mb-6">
+                <label class="flex items-center">
+                    <input type="checkbox" name="confirmar" required
+                           class="h-4 w-4 text-red-600 border-gray-300 rounded focus:ring-red-500">
+                    <span class="ml-2 text-sm text-gray-700">
+                        Confirmo que quiero inactivar a 
+                        <strong>{{ miembro.usuario.get_full_name|default:miembro.usuario.username }}</strong>
+                        {% if has_subordinados %}
+                        y transferir sus subordinados al usuario seleccionado
+                        {% endif %}
+                    </span>
+                </label>
+            </div>
+
+            <!-- Información adicional -->
+            <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h4 class="text-sm font-medium text-gray-900 mb-2">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Efectos de la inactivación
+                </h4>
+                <ul class="text-sm text-gray-700 space-y-1">
+                    <li>• El usuario no podrá acceder a funciones de ventas</li>
+                    <li>• No aparecerá en reportes de equipos activos</li>
+                    <li>• Sus permisos específicos de ventas serán suspendidos</li>
+                    {% if has_subordinados %}
+                    <li>• Los subordinados serán transferidos al reemplazo seleccionado</li>
+                    {% endif %}
+                    <li>• Podrá ser reactivado posteriormente si es necesario</li>
+                </ul>
+            </div>
+
+            <!-- Botones de acción -->
+            <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+                <a href="{% url 'sales:jerarquia_list' %}" 
+                   class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors">
+                    <i class="fas fa-times mr-2"></i>Cancelar
+                </a>
+                
+                <button type="submit" 
+                        class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                    <i class="fas fa-user-slash mr-2"></i>
+                    Inactivar {{ rol_display }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

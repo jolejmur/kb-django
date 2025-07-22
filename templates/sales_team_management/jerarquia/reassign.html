@@ -1,0 +1,307 @@
+<!-- templates/sales/jerarquia/reassign.html -->
+{% extends 'base/base.html' %}
+
+{% block title %}Reasignar {{ rol_display }} - Django CRM{% endblock %}
+
+{% block header %}Reasignar {{ rol_display }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Breadcrumb -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            <li class="inline-flex items-center">
+                <a href="{% url 'sales:jerarquia_list' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    <i class="fas fa-sitemap mr-2"></i>
+                    Jerarquía de Equipos
+                </a>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <a href="{% url 'sales:jerarquia_member_detail' miembro.id rol_actual %}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
+                        {{ usuario.get_full_name|default:usuario.username }}
+                    </a>
+                </div>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <span class="text-sm font-medium text-gray-500">Reasignar Rol</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-900">
+                <i class="fas fa-exchange-alt mr-2 text-indigo-600"></i>
+                Reasignar Rol del Usuario
+            </h2>
+            <p class="text-sm text-gray-600 mt-1">
+                Cambia el rol de este usuario (promoción, degradación o cambio lateral)
+            </p>
+        </div>
+
+        <!-- Información actual -->
+        <div class="px-6 py-4 bg-indigo-50 border-b border-gray-200">
+            <div class="flex items-center">
+                <div class="h-12 w-12 rounded-full flex items-center justify-center
+                    {% if rol_actual == 'gerente' %}bg-blue-100{% elif rol_actual == 'jefe' %}bg-green-100{% elif rol_actual == 'team_leader' %}bg-yellow-100{% else %}bg-purple-100{% endif %}">
+                    {% if rol_actual == 'gerente' %}
+                        <i class="fas fa-user-tie text-blue-600"></i>
+                    {% elif rol_actual == 'jefe' %}
+                        <i class="fas fa-user-cog text-green-600"></i>
+                    {% elif rol_actual == 'team_leader' %}
+                        <i class="fas fa-users text-yellow-600"></i>
+                    {% else %}
+                        <i class="fas fa-user text-purple-600"></i>
+                    {% endif %}
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-lg font-medium text-gray-900">
+                        {{ usuario.get_full_name|default:usuario.username }}
+                    </h3>
+                    <p class="text-sm text-gray-600">{{ usuario.email }}</p>
+                    <p class="text-sm text-indigo-600">
+                        Rol actual: {{ rol_display }} en {{ equipo_actual.nombre }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <form method="post" class="p-6" id="reassignForm">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Nuevo Rol -->
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Nuevo Rol <span class="text-red-500">*</span>
+                    </label>
+                    <select name="nuevo_rol" id="nuevo_rol" required onchange="updateRoleInfo(); showSupervisorField()"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="">Selecciona el nuevo rol</option>
+                        {% for value, display in roles_disponibles %}
+                            <option value="{{ value }}" {% if value == rol_actual %}disabled{% endif %}>
+                                {{ display }} {% if value == rol_actual %}(Rol Actual){% endif %}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <div id="roleChangeIndicator" class="mt-2" style="display: none;"></div>
+                </div>
+
+                <!-- Equipo -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Equipo <span class="text-red-500">*</span>
+                    </label>
+                    <select name="equipo" id="equipo" required onchange="loadSupervisors()"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        {% for equipo in equipos %}
+                            <option value="{{ equipo.id }}" {% if equipo.id == equipo_actual.id %}selected{% endif %}>
+                                {{ equipo.nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Jefe Directo (solo visible para roles que lo requieren) -->
+                <div id="supervisorField" style="display: none;">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Jefe Directo <span class="text-red-500">*</span>
+                    </label>
+                    <select name="supervisor" id="supervisor"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="">Primero selecciona rol y equipo</option>
+                    </select>
+                    <p class="mt-1 text-sm text-gray-500" id="supervisorHelp"></p>
+                </div>
+            </div>
+
+            <!-- Información sobre tipos de cambio -->
+            <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Promoción -->
+                <div class="p-4 bg-green-50 rounded-lg border border-green-200">
+                    <h4 class="text-sm font-medium text-green-900 mb-2">
+                        <i class="fas fa-arrow-up mr-1"></i>
+                        Promoción
+                    </h4>
+                    <p class="text-sm text-green-800">
+                        Subir de nivel en la jerarquía (ej: Team Leader → Jefe de Venta)
+                    </p>
+                </div>
+
+                <!-- Degradación -->
+                <div class="p-4 bg-red-50 rounded-lg border border-red-200">
+                    <h4 class="text-sm font-medium text-red-900 mb-2">
+                        <i class="fas fa-arrow-down mr-1"></i>
+                        Degradación
+                    </h4>
+                    <p class="text-sm text-red-800">
+                        Bajar de nivel en la jerarquía (ej: Gerente → Jefe de Venta)
+                    </p>
+                </div>
+
+                <!-- Cambio Lateral -->
+                <div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h4 class="text-sm font-medium text-blue-900 mb-2">
+                        <i class="fas fa-exchange-alt mr-1"></i>
+                        Cambio de Equipo
+                    </h4>
+                    <p class="text-sm text-blue-800">
+                        Mismo rol pero en diferente equipo o bajo diferente supervisor
+                    </p>
+                </div>
+            </div>
+
+            <!-- Advertencias importantes -->
+            <div class="mt-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                <h4 class="text-sm font-medium text-yellow-900 mb-2">
+                    <i class="fas fa-exclamation-triangle mr-1"></i>
+                    Importante: Consecuencias de la reasignación
+                </h4>
+                <ul class="text-sm text-yellow-800 space-y-1">
+                    <li>• La asignación actual será <strong>eliminada completamente</strong></li>
+                    <li>• Se creará una nueva asignación con el rol seleccionado</li>
+                    <li>• Si el usuario tenía subordinados, podrían quedar sin supervisor directo</li>
+                    <li>• Si se convierte en gerente y ya existe uno, se pedirá confirmación para reemplazo</li>
+                    <li>• Se mantendrá el historial del usuario en el sistema</li>
+                </ul>
+            </div>
+
+            <!-- Botones de acción -->
+            <div class="mt-8 flex items-center justify-between pt-6 border-t border-gray-200">
+                <a href="{% url 'sales:jerarquia_member_detail' miembro.id rol_actual %}" 
+                   class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors">
+                    <i class="fas fa-times mr-2"></i>Cancelar
+                </a>
+                
+                <button type="submit" 
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                    <i class="fas fa-exchange-alt mr-2"></i>
+                    Reasignar Usuario
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+const roleHierarchy = {
+    'vendedor': 1,
+    'team_leader': 2,
+    'jefe': 3,
+    'gerente': 4
+};
+
+const currentRole = '{{ rol_actual }}';
+const currentLevel = roleHierarchy[currentRole];
+
+function updateRoleInfo() {
+    const newRole = document.getElementById('nuevo_rol').value;
+    const indicator = document.getElementById('roleChangeIndicator');
+    
+    if (!newRole) {
+        indicator.style.display = 'none';
+        return;
+    }
+    
+    const newLevel = roleHierarchy[newRole];
+    indicator.style.display = 'block';
+    
+    if (newLevel > currentLevel) {
+        // Promoción
+        indicator.innerHTML = `
+            <div class="flex items-center p-3 bg-green-50 border border-green-200 rounded-lg">
+                <i class="fas fa-arrow-up text-green-600 mr-2"></i>
+                <span class="text-sm font-medium text-green-800">Promoción:</span>
+                <span class="text-sm text-green-700 ml-1">${currentRole.replace('_', ' ')} → ${newRole.replace('_', ' ')}</span>
+            </div>
+        `;
+    } else if (newLevel < currentLevel) {
+        // Degradación
+        indicator.innerHTML = `
+            <div class="flex items-center p-3 bg-red-50 border border-red-200 rounded-lg">
+                <i class="fas fa-arrow-down text-red-600 mr-2"></i>
+                <span class="text-sm font-medium text-red-800">Degradación:</span>
+                <span class="text-sm text-red-700 ml-1">${currentRole.replace('_', ' ')} → ${newRole.replace('_', ' ')}</span>
+            </div>
+        `;
+    } else {
+        // Cambio lateral
+        indicator.innerHTML = `
+            <div class="flex items-center p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <i class="fas fa-exchange-alt text-blue-600 mr-2"></i>
+                <span class="text-sm font-medium text-blue-800">Cambio lateral:</span>
+                <span class="text-sm text-blue-700 ml-1">Mismo nivel, posible cambio de equipo/supervisor</span>
+            </div>
+        `;
+    }
+}
+
+function showSupervisorField() {
+    const rol = document.getElementById('nuevo_rol').value;
+    const supervisorField = document.getElementById('supervisorField');
+    const supervisorSelect = document.getElementById('supervisor');
+    const supervisorHelp = document.getElementById('supervisorHelp');
+    
+    if (rol === 'gerente') {
+        supervisorField.style.display = 'none';
+        supervisorSelect.required = false;
+    } else if (rol) {
+        supervisorField.style.display = 'block';
+        supervisorSelect.required = true;
+        
+        if (rol === 'jefe') {
+            supervisorHelp.textContent = 'Selecciona el gerente de equipo que será el jefe directo';
+        } else if (rol === 'team_leader') {
+            supervisorHelp.textContent = 'Selecciona el jefe de venta que será el jefe directo';
+        } else if (rol === 'vendedor') {
+            supervisorHelp.textContent = 'Selecciona el team leader que será el jefe directo';
+        }
+        
+        loadSupervisors();
+    } else {
+        supervisorField.style.display = 'none';
+        supervisorSelect.required = false;
+    }
+}
+
+function loadSupervisors() {
+    const equipoId = document.getElementById('equipo').value;
+    const rol = document.getElementById('nuevo_rol').value;
+    const supervisorSelect = document.getElementById('supervisor');
+    
+    if (!equipoId || !rol || rol === 'gerente') {
+        return;
+    }
+    
+    supervisorSelect.innerHTML = '<option value="">Cargando...</option>';
+    
+    fetch(`/sales/ajax/supervisores/?equipo=${equipoId}&rol=${rol}`)
+        .then(response => response.json())
+        .then(data => {
+            supervisorSelect.innerHTML = '<option value="">Selecciona un jefe directo</option>';
+            
+            if (data.advertencia) {
+                supervisorSelect.innerHTML = `<option value="" disabled>${data.advertencia}</option>`;
+                supervisorSelect.disabled = true;
+            } else {
+                supervisorSelect.disabled = false;
+                data.supervisores.forEach(supervisor => {
+                    const option = document.createElement('option');
+                    option.value = supervisor.id;
+                    option.textContent = supervisor.nombre;
+                    supervisorSelect.appendChild(option);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            supervisorSelect.innerHTML = '<option value="">Error al cargar supervisores</option>';
+        });
+}
+</script>
+{% endblock %}

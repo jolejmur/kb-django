@@ -1,0 +1,147 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Edit Profile - Django CRM{% endblock %}
+
+{% block header %}Edit Profile{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Back Button -->
+    <div class="mb-6">
+        <a href="{% url 'dashboard:profile' %}" 
+           class="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Back to Profile
+        </a>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+                <i class="fas fa-user-edit mr-3 text-blue-600"></i>
+                Edit Your Profile
+            </h2>
+            <p class="text-gray-600 mt-2">Update your personal information below. Your username and email cannot be changed.</p>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" class="p-6">
+            {% csrf_token %}
+            
+            <!-- Current Profile Picture -->
+            <div class="mb-8 text-center">
+                <div class="mb-4">
+                    {% if user.profile_picture %}
+                        <img src="{{ user.profile_picture.url }}" alt="{{ user.username }}" 
+                             class="w-32 h-32 rounded-full mx-auto object-cover border-4 border-gray-200">
+                    {% else %}
+                        <div class="w-32 h-32 rounded-full mx-auto bg-gray-200 flex items-center justify-center border-4 border-gray-300">
+                            <i class="fas fa-user text-gray-400 text-4xl"></i>
+                        </div>
+                    {% endif %}
+                </div>
+                <h3 class="text-lg font-medium text-gray-900">{{ user.get_full_name|default:user.username }}</h3>
+                <p class="text-gray-500">{{ user.email }}</p>
+            </div>
+
+            <!-- Form Fields -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- First Name -->
+                <div>
+                    <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.first_name.label }}
+                    </label>
+                    {{ form.first_name }}
+                    {% if form.first_name.errors %}
+                        <div class="mt-2 text-sm text-red-600">
+                            {% for error in form.first_name.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Last Name -->
+                <div>
+                    <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.last_name.label }}
+                    </label>
+                    {{ form.last_name }}
+                    {% if form.last_name.errors %}
+                        <div class="mt-2 text-sm text-red-600">
+                            {% for error in form.last_name.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Email -->
+                <div>
+                    <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.email.label }}
+                    </label>
+                    {{ form.email }}
+                    {% if form.email.errors %}
+                        <div class="mt-2 text-sm text-red-600">
+                            {% for error in form.email.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Phone Number -->
+                <div>
+                    <label for="{{ form.telefono.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.telefono.label }}
+                    </label>
+                    {{ form.telefono }}
+                    {% if form.telefono.errors %}
+                        <div class="mt-2 text-sm text-red-600">
+                            {% for error in form.telefono.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Read-only fields for reference -->
+            <div class="mt-8 p-4 bg-gray-50 rounded-lg">
+                <h4 class="text-sm font-medium text-gray-700 mb-3">Read-only Information</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <span class="text-gray-500">Username:</span>
+                        <span class="ml-2 font-medium text-gray-900">{{ user.username }}</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500">Email:</span>
+                        <span class="ml-2 font-medium text-gray-900">{{ user.email|default:"Not provided" }}</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500">Role:</span>
+                        <span class="ml-2 font-medium text-gray-900">{{ user.role.name|default:"No role assigned" }}</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500">Member since:</span>
+                        <span class="ml-2 font-medium text-gray-900">{{ user.date_joined|date:"F j, Y" }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="mt-8 flex items-center justify-between pt-6 border-t border-gray-200">
+                <a href="{% url 'dashboard:profile' %}" 
+                   class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors">
+                    Cancel
+                </a>
+                <button type="submit" 
+                        class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center">
+                    <i class="fas fa-save mr-2"></i>
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

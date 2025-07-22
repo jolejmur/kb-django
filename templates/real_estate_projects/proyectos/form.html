@@ -1,0 +1,1946 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block extra_js %}
+    <!-- jQuery (requerido para Select2) -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+{% endblock %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold text-gray-900">{{ title }}</h1>
+            <p class="text-gray-600 mt-1">
+                {% if is_create %}
+                    Completa la información del proyecto
+                {% else %}
+                    Modifica la información del proyecto "{{ proyecto.nombre }}"
+                {% endif %}
+            </p>
+        </div>
+
+        <form method="post" class="space-y-6" id="proyecto-form">
+            {% csrf_token %}
+            
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Información Básica</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Nombre -->
+                    <div class="md:col-span-2">
+                        <label for="{{ form.nombre.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Nombre del Proyecto *
+                        </label>
+                        {{ form.nombre }}
+                        {% if form.nombre.errors %}
+                            <p class="text-red-500 text-sm mt-1">{{ form.nombre.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Tipo -->
+                    <div>
+                        <label for="{{ form.tipo.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Tipo de Proyecto *
+                        </label>
+                        {{ form.tipo }}
+                        {% if form.tipo.errors %}
+                            <p class="text-red-500 text-sm mt-1">{{ form.tipo.errors.0 }}</p>
+                        {% endif %}
+                        <p class="text-sm text-gray-500 mt-1">Selecciona si es de terrenos o departamentos</p>
+                    </div>
+
+                    <!-- Precio Base M2 -->
+                    <div>
+                        <label for="{{ form.precio_base_m2.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Precio Base por m² *
+                        </label>
+                        {{ form.precio_base_m2 }}
+                        {% if form.precio_base_m2.errors %}
+                            <p class="text-red-500 text-sm mt-1">{{ form.precio_base_m2.errors.0 }}</p>
+                        {% endif %}
+                        <p class="text-sm text-gray-500 mt-1">Precio base por metro cuadrado que se hereda a las fases</p>
+                    </div>
+
+                    <!-- Número de Fases -->
+                    {% if is_create %}
+                    <div>
+                        <label for="{{ form.numero_fases.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Número de Fases *
+                        </label>
+                        {{ form.numero_fases }}
+                        {% if form.numero_fases.errors %}
+                            <p class="text-red-500 text-sm mt-1">{{ form.numero_fases.errors.0 }}</p>
+                        {% endif %}
+                        <p class="text-sm text-gray-500 mt-1">Se crearán automáticamente las fases del proyecto</p>
+                    </div>
+                    {% else %}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Fases Actuales
+                        </label>
+                        <div class="bg-gray-50 p-3 rounded-lg">
+                            <p class="text-sm text-gray-900">Este proyecto tiene <strong>{{ proyecto.fases.count }}</strong> fase{% if proyecto.fases.count != 1 %}s{% endif %}</p>
+                            <p class="text-xs text-gray-600 mt-1">Las fases se gestionan desde el detalle del proyecto</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Descripción -->
+                    <div class="md:col-span-2">
+                        <label for="{{ form.descripcion.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Descripción *
+                        </label>
+                        {{ form.descripcion }}
+                        {% if form.descripcion.errors %}
+                            <p class="text-red-500 text-sm mt-1">{{ form.descripcion.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ponderadores -->
+            <div class="bg-white rounded-lg shadow-sm border p-6" id="ponderadores-section">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">
+                    {% if is_create %}Ponderadores Iniciales (Opcional){% else %}Ponderadores del Proyecto{% endif %}
+                </h2>
+                <p class="text-gray-600 text-sm mb-6">
+                    {% if is_create %}
+                        Configura ponderadores que se aplicarán automáticamente a todo el proyecto. 
+                        Puedes agregar más ponderadores específicos después de crear el proyecto.
+                    {% else %}
+                        Gestiona los ponderadores que se aplican a todo el proyecto. Los cambios afectarán todos los inmuebles del proyecto.
+                    {% endif %}
+                </p>
+                
+                <!-- Existing Ponderadores (Edit Mode) -->
+                {% if not is_create and ponderadores_proyecto %}
+                <div class="mb-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-medium text-gray-700 flex items-center">
+                            <i class="fas fa-chart-line text-purple-600 mr-2"></i>
+                            Ponderadores Existentes
+                        </h3>
+                        <div class="flex items-center space-x-2">
+                            <label class="text-xs text-gray-600">Filtrar:</label>
+                            <select id="ponderador-filter" class="text-xs px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500" onchange="filterPonderadores()">
+                                <option value="todos">Todos</option>
+                                <option value="activo">Activos</option>
+                                <option value="inactivo">Inactivos</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="space-y-3" id="ponderadores-list">
+                        {% for ponderador in ponderadores_proyecto %}
+                        <div class="bg-white rounded-lg border border-purple-200 overflow-hidden ponderador-item" 
+                             data-existing-ponderador="{{ ponderador.pk }}" 
+                             data-activo="{% if ponderador.activo %}activo{% else %}inactivo{% endif %}">
+                            <!-- Header colapsable -->
+                            <div class="p-3 cursor-pointer hover:bg-gray-50" onclick="toggleExistingPonderador({{ ponderador.pk }})">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3">
+                                        <i class="fas fa-chevron-right text-purple-400 transition-transform duration-200 transform" id="chevron-{{ ponderador.pk }}"></i>
+                                        <div>
+                                            <h4 class="text-sm font-medium text-purple-900">{{ ponderador.nombre }}</h4>
+                                            <div class="flex items-center space-x-2 mt-1">
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                                                    {% if ponderador.tipo == 'valorizacion' %}bg-green-100 text-green-800
+                                                    {% elif ponderador.tipo == 'descuento' %}bg-red-100 text-red-800
+                                                    {% elif ponderador.tipo == 'promocion' %}bg-orange-100 text-orange-800
+                                                    {% elif ponderador.tipo == 'ubicacion' %}bg-blue-100 text-blue-800
+                                                    {% elif ponderador.tipo == 'infraestructura' %}bg-indigo-100 text-indigo-800
+                                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                                    {{ ponderador.get_tipo_display }}
+                                                </span>
+                                                <span class="text-sm text-purple-700 font-semibold">
+                                                    {% if ponderador.porcentaje %}
+                                                        {{ ponderador.porcentaje|floatformat:1 }}%
+                                                    {% elif ponderador.monto_fijo %}
+                                                        ${{ ponderador.monto_fijo|floatformat:0 }}
+                                                    {% endif %}
+                                                </span>
+                                                <span class="text-xs {% if ponderador.activo %}text-green-600{% else %}text-red-600{% endif %}">
+                                                    ● {% if ponderador.activo %}Activo{% else %}Inactivo{% endif %}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="text-gray-400 hover:text-purple-600 transition-colors p-1" title="Expandir para editar" onclick="toggleExistingPonderador({{ ponderador.pk }})">
+                                        <i class="fas fa-edit text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Contenido expandible (formulario de edición) -->
+                            <div class="hidden border-t border-purple-200 bg-gray-50 p-4" id="edit-form-{{ ponderador.pk }}">
+                                <div class="bg-green-50 rounded-lg border border-green-200 p-4">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <h4 class="text-sm font-medium text-green-900">Editando: {{ ponderador.nombre }}</h4>
+                                        <button type="button" class="text-red-600 hover:text-red-800 p-1" onclick="toggleExistingPonderador({{ ponderador.pk }})">
+                                            <i class="fas fa-times text-sm"></i>
+                                        </button>
+                                    </div>
+                                    
+                                    <input type="hidden" name="existing_ponderador_{{ ponderador.pk }}_id" value="{{ ponderador.pk }}">
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <!-- Nombre -->
+                                        <div class="md:col-span-2">
+                                            <label class="block text-xs font-medium text-green-700 mb-2">Nombre del Ponderador</label>
+                                            <input type="text" name="existing_ponderador_{{ ponderador.pk }}_nombre" value="{{ ponderador.nombre }}"
+                                                   class="w-full px-3 py-2 text-sm border border-green-300 rounded focus:ring-2 focus:ring-green-500">
+                                        </div>
+                                        
+                                        <!-- Tipo de Ponderador -->
+                                        <div>
+                                            <label class="block text-xs font-medium text-green-700 mb-2">Categoría</label>
+                                            <select name="existing_ponderador_{{ ponderador.pk }}_tipo" class="w-full px-3 py-2 text-sm border border-green-300 rounded focus:ring-2 focus:ring-green-500">
+                                                <option value="valorizacion" {% if ponderador.tipo == 'valorizacion' %}selected{% endif %}>Valorización</option>
+                                                <option value="descuento" {% if ponderador.tipo == 'descuento' %}selected{% endif %}>Descuento</option>
+                                                <option value="promocion" {% if ponderador.tipo == 'promocion' %}selected{% endif %}>Promoción Temporal</option>
+                                                <option value="ubicacion" {% if ponderador.tipo == 'ubicacion' %}selected{% endif %}>Por Ubicación</option>
+                                                <option value="infraestructura" {% if ponderador.tipo == 'infraestructura' %}selected{% endif %}>Infraestructura</option>
+                                                <option value="comercial" {% if ponderador.tipo == 'comercial' %}selected{% endif %}>Estrategia Comercial</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <!-- Tipo de Valor -->
+                                        <div>
+                                            <label class="block text-xs font-medium text-green-700 mb-2">Tipo de Ajuste</label>
+                                            <div class="flex space-x-4">
+                                                <label class="flex items-center">
+                                                    <input type="radio" name="existing_ponderador_{{ ponderador.pk }}_tipo_valor" value="porcentaje" 
+                                                           {% if not ponderador.monto_fijo %}checked{% endif %}
+                                                           class="w-4 h-4 text-green-600 border-green-300 focus:ring-green-500 existing-ponderador-tipo-radio" 
+                                                           data-ponderador="{{ ponderador.pk }}">
+                                                    <span class="ml-2 text-xs text-green-700">Porcentaje</span>
+                                                </label>
+                                                <label class="flex items-center">
+                                                    <input type="radio" name="existing_ponderador_{{ ponderador.pk }}_tipo_valor" value="monto_fijo"
+                                                           {% if ponderador.monto_fijo %}checked{% endif %}
+                                                           class="w-4 h-4 text-green-600 border-green-300 focus:ring-green-500 existing-ponderador-tipo-radio"
+                                                           data-ponderador="{{ ponderador.pk }}">
+                                                    <span class="ml-2 text-xs text-green-700">Monto Fijo</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Porcentaje -->
+                                        <div class="existing-ponderador-porcentaje-field" data-ponderador="{{ ponderador.pk }}" {% if ponderador.monto_fijo %}style="display: none;"{% endif %}>
+                                            <label class="block text-xs font-medium text-green-700 mb-2">Porcentaje (%)</label>
+                                            <input type="number" name="existing_ponderador_{{ ponderador.pk }}_porcentaje" step="0.01" min="-100" max="500" 
+                                                   value="{% if ponderador.porcentaje %}{{ ponderador.porcentaje }}{% endif %}"
+                                                   class="w-full px-3 py-2 text-sm border border-green-300 rounded focus:ring-2 focus:ring-green-500">
+                                        </div>
+                                        
+                                        <!-- Monto Fijo -->
+                                        <div class="existing-ponderador-monto-field" data-ponderador="{{ ponderador.pk }}" {% if not ponderador.monto_fijo %}style="display: none;"{% endif %}>
+                                            <label class="block text-xs font-medium text-green-700 mb-2">Monto Fijo ($)</label>
+                                            <input type="number" name="existing_ponderador_{{ ponderador.pk }}_monto_fijo" step="0.01" min="0" 
+                                                   value="{% if ponderador.monto_fijo %}{{ ponderador.monto_fijo }}{% endif %}"
+                                                   class="w-full px-3 py-2 text-sm border border-green-300 rounded focus:ring-2 focus:ring-green-500">
+                                        </div>
+                                        
+                                        <!-- Descripción -->
+                                        <div class="md:col-span-2">
+                                            <label class="block text-xs font-medium text-green-700 mb-2">Descripción</label>
+                                            <textarea name="existing_ponderador_{{ ponderador.pk }}_descripcion" rows="2"
+                                                      class="w-full px-3 py-2 text-sm border border-green-300 rounded focus:ring-2 focus:ring-green-500">{{ ponderador.descripcion }}</textarea>
+                                        </div>
+                                        
+                                        <!-- Toggle Activo/Inactivo -->
+                                        <div class="md:col-span-2 border-t pt-4 mt-4">
+                                            <div class="flex items-center justify-between">
+                                                <label class="block text-xs font-medium text-green-700">Estado del Ponderador</label>
+                                                <div class="flex items-center space-x-3">
+                                                    <span class="text-xs {% if ponderador.activo %}text-green-600{% else %}text-red-600{% endif %}" id="status-text-{{ ponderador.pk }}">
+                                                        {% if ponderador.activo %}Activo{% else %}Inactivo{% endif %}
+                                                    </span>
+                                                    <label class="relative inline-flex items-center cursor-pointer">
+                                                        <input type="checkbox" name="existing_ponderador_{{ ponderador.pk }}_activo" 
+                                                               {% if ponderador.activo %}checked{% endif %}
+                                                               class="sr-only peer" onchange="togglePonderadorStatus({{ ponderador.pk }}, this.checked)">
+                                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Container for ponderadores -->
+                <div id="ponderadores-container" class="space-y-4">
+                    <!-- Initial ponderador will be added here -->
+                </div>
+                
+                <!-- Add ponderador button -->
+                <div class="mt-4">
+                    <button type="button" id="add-ponderador-btn" 
+                            class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500">
+                        <i class="fas fa-plus mr-2"></i>
+                        Agregar Ponderador
+                    </button>
+                </div>
+                
+                <!-- Info -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                        </svg>
+                        <div>
+                            <h3 class="text-sm font-medium text-blue-800">Información sobre Ponderadores</h3>
+                            <p class="text-sm text-blue-700 mt-1">
+                                Los ponderadores permiten ajustar precios automáticamente. Pueden ser porcentajes (ej: +15% por valorización) 
+                                o montos fijos (ej: +$50,000 por infraestructura). Se aplicarán a todos los inmuebles del proyecto.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Estructura del Proyecto -->
+            {% if is_create or can_edit_structure %}
+            <div class="bg-white rounded-lg shadow-sm border p-6" id="estructura-section">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Estructura del Proyecto</h2>
+                {% if is_create %}
+                    <p class="text-gray-600 text-sm mb-6">Define la estructura que se generará automáticamente para cada fase</p>
+                {% else %}
+                    <p class="text-gray-600 text-sm mb-6">
+                        <i class="fas fa-exclamation-triangle text-yellow-500 mr-1"></i>
+                        Nota: Solo puedes modificar la estructura cuando el proyecto no tiene fases creadas.
+                    </p>
+                {% endif %}
+                
+                <!-- Configuración por Fases -->
+                <div id="fases-container" class="space-y-6">
+                    <!-- Las fases se generarán dinámicamente aquí -->
+                </div>
+                
+                <!-- Botón para agregar fase -->
+                <div class="mt-4">
+                    <button type="button" id="add-fase-btn" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500">
+                        <i class="fas fa-plus mr-2"></i>
+                        Agregar Fase
+                    </button>
+                </div>
+                
+                <!-- Estimación Total -->
+                <div class="bg-gray-50 p-4 rounded-lg mt-6">
+                    <div class="flex items-center">
+                        <i class="fas fa-calculator text-gray-600 mr-2"></i>
+                        <span class="text-sm font-medium text-gray-900">Estimación Total:</span>
+                    </div>
+                    <p class="text-sm text-gray-700 mt-1" id="estimacion-total">
+                        Se crearán aproximadamente <span id="total-inmuebles" class="font-semibold">--</span> inmuebles en total
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Estado del Proyecto</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Estado -->
+                    <div>
+                        <label for="{{ form.estado.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Estado del Proyecto *
+                        </label>
+                        {{ form.estado }}
+                        {% if form.estado.errors %}
+                            <p class="text-red-500 text-sm mt-1">{{ form.estado.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Responsables</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Gerente Proyecto -->
+                    <div>
+                        <label for="{{ form.gerente_usuario.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Gerente de Proyecto *
+                        </label>
+                        {{ form.gerente_usuario }}
+                        {% if form.gerente_usuario.errors %}
+                            <p class="text-red-500 text-sm mt-1">{{ form.gerente_usuario.errors.0 }}</p>
+                        {% endif %}
+                        <p class="text-sm text-gray-500 mt-1">Campo requerido. Selecciona un usuario</p>
+                    </div>
+
+                    <!-- Jefe Proyecto -->
+                    <div>
+                        <label for="{{ form.jefe_usuario.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Jefe de Proyecto
+                        </label>
+                        {{ form.jefe_usuario }}
+                        {% if form.jefe_usuario.errors %}
+                            <p class="text-red-500 text-sm mt-1">{{ form.jefe_usuario.errors.0 }}</p>
+                        {% endif %}
+                        <p class="text-sm text-gray-500 mt-1">Campo opcional. Selecciona un usuario</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Errores no específicos de campo -->
+            {% if form.non_field_errors %}
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-circle text-red-400"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800">Errores en el formulario:</h3>
+                            <div class="mt-2 text-sm text-red-700">
+                                <ul class="list-disc list-inside space-y-1">
+                                    {% for error in form.non_field_errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Botones de acción -->
+            <div class="flex justify-end space-x-4">
+                <a href="{% url 'projects:list' %}" 
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50">
+                    <i class="fas fa-times mr-2"></i>
+                    Cancelar
+                </a>
+                <button type="submit" 
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700"
+                        onclick="debugFormSubmit(event)">
+                    <i class="fas fa-save mr-2"></i>
+                    {% if is_create %}Crear Proyecto{% else %}Guardar Cambios{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+
+<!-- Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+    // Datos existentes para pre-cargar en modo edición
+    {% if not is_create and existing_structure %}
+    const existingStructure = {{ existing_structure|safe }};
+    const isEditMode = true;
+    {% else %}
+    const existingStructure = null;
+    const isEditMode = false;
+    {% endif %}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const tipoSelect = document.getElementById('{{ form.tipo.id_for_label }}');
+    const numeroFasesInput = document.getElementById('{{ form.numero_fases.id_for_label }}');
+    
+    // Elementos de estructura
+    const estructuraSection = document.getElementById('estructura-section');
+    const fasesContainer = document.getElementById('fases-container');
+    const addFaseBtn = document.getElementById('add-fase-btn');
+    
+    // Elementos de ponderadores
+    const ponderadoresContainer = document.getElementById('ponderadores-container');
+    const addPonderadorBtn = document.getElementById('add-ponderador-btn');
+    
+    // Contadores globales
+    let faseCounter = 1;
+    let towerCounter = {};       // Por fase
+    let sectorCounter = {};
+    let pisoCounter = {};
+    let manzanaCounter = {};
+    let ponderadorCounter = 1;
+    
+    // En modo edición, ajustar contador de ponderadores basándose en existentes
+    if (isEditMode && existingStructure && existingStructure.ponderadores) {
+        // Obtener el número más alto de ponderadores existentes y sumar 1
+        const existingCount = existingStructure.ponderadores.length;
+        ponderadorCounter = existingCount + 1;
+        console.log(`Ajustando contador de ponderadores a: ${ponderadorCounter}`);
+    }
+    
+    // Función para generar campos de fase con estructura anidada
+    function generateFaseFields(faseNum, tipo, faseData = null) {
+        const faseId = `fase_${faseNum}`;
+        const nombreFase = faseData ? faseData.nombre : `Fase ${faseNum}`;
+        const comercializable = faseData ? faseData.comercializable : false;
+        
+        if (tipo === 'departamentos') {
+            return `
+                <div class="bg-blue-50 rounded-lg border border-blue-200" data-fase="${faseNum}">
+                    <div class="p-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <button type="button" class="fase-toggle-btn flex items-center text-blue-900 hover:text-blue-700" data-fase="${faseNum}">
+                                <i class="fas fa-chevron-down text-sm mr-2 transition-transform duration-200"></i>
+                                <i class="fas fa-building text-blue-600 mr-2"></i>
+                                <h4 class="text-sm font-medium">${nombreFase} - Departamentos</h4>
+                            </button>
+                            <button type="button" class="remove-fase-btn text-red-600 hover:text-red-800 p-1" data-fase="${faseNum}">
+                                <i class="fas fa-trash text-sm"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 gap-4 mb-4">
+                            <div>
+                                <label class="block text-xs font-medium text-blue-700 mb-2">Nombre de la Fase</label>
+                                <input type="text" name="${faseId}_nombre" value="${nombreFase}" 
+                                       class="w-full px-3 py-2 text-sm border border-blue-300 rounded focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" name="${faseId}_comercializable" id="${faseId}_comercializable" 
+                                       class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500" ${comercializable ? 'checked' : ''}>
+                                <label for="${faseId}_comercializable" class="ml-2 text-xs font-medium text-blue-700">
+                                    Marcar todos los inmuebles de esta fase como comercializables
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Ponderaciones por Fase -->
+                        <div class="mt-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <h5 class="text-xs font-medium text-blue-800">Ponderaciones por Fase</h5>
+                                <button type="button" class="add-fase-ponderador-btn text-blue-600 hover:text-blue-800 text-xs bg-blue-100 px-2 py-1 rounded" data-fase="${faseNum}">
+                                    <i class="fas fa-plus mr-1"></i>
+                                    Agregar Ponderación
+                                </button>
+                            </div>
+                            <div class="fase-ponderadores-container space-y-2" data-fase="${faseNum}">
+                                <!-- Ponderadores de fase se agregarán aquí -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Contenido Colapsable -->
+                    <div class="fase-content" data-fase="${faseNum}">
+                        <div class="px-4 pb-4">
+                            <!-- Torres Container -->
+                            <div class="torres-container" data-fase="${faseNum}" id="torres-container-${faseNum}">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h5 class="text-xs font-medium text-blue-800">Torres</h5>
+                                    <button type="button" class="add-torre-btn text-blue-600 hover:text-blue-800 text-xs bg-blue-100 px-2 py-1 rounded" data-fase="${faseNum}">
+                                        <i class="fas fa-plus mr-1"></i>
+                                        Agregar Torre
+                                    </button>
+                                </div>
+                                <div class="torres-list space-y-3" data-fase="${faseNum}">
+                                    <!-- Torres se agregarán aquí -->
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4 text-xs text-blue-600 bg-blue-100 p-2 rounded">
+                                Estimación Fase ${faseNum}: <span class="fase-estimacion font-semibold" data-fase="${faseNum}">0</span> departamentos
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else if (tipo === 'terrenos') {
+            return `
+                <div class="bg-green-50 rounded-lg border border-green-200" data-fase="${faseNum}">
+                    <div class="p-4">
+                        <div class="flex items-center justify-between mb-4">
+                            <button type="button" class="fase-toggle-btn flex items-center text-green-900 hover:text-green-700" data-fase="${faseNum}">
+                                <i class="fas fa-chevron-down text-sm mr-2 transition-transform duration-200"></i>
+                                <i class="fas fa-map text-green-600 mr-2"></i>
+                                <h4 class="text-sm font-medium">${nombreFase} - Terrenos</h4>
+                            </button>
+                            <button type="button" class="remove-fase-btn text-red-600 hover:text-red-800 p-1" data-fase="${faseNum}">
+                                <i class="fas fa-trash text-sm"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 gap-4 mb-4">
+                            <div>
+                                <label class="block text-xs font-medium text-green-700 mb-2">Nombre de la Fase</label>
+                                <input type="text" name="${faseId}_nombre" value="${nombreFase}" 
+                                       class="w-full px-3 py-2 text-sm border border-green-300 rounded focus:ring-2 focus:ring-green-500">
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" name="${faseId}_comercializable" id="${faseId}_comercializable" 
+                                       class="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500" ${comercializable ? 'checked' : ''}>
+                                <label for="${faseId}_comercializable" class="ml-2 text-xs font-medium text-green-700">
+                                    Marcar todos los inmuebles de esta fase como comercializables
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Ponderaciones por Fase -->
+                        <div class="mt-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <h5 class="text-xs font-medium text-green-800">Ponderaciones por Fase</h5>
+                                <button type="button" class="add-fase-ponderador-btn text-green-600 hover:text-green-800 text-xs bg-green-100 px-2 py-1 rounded" data-fase="${faseNum}">
+                                    <i class="fas fa-plus mr-1"></i>
+                                    Agregar Ponderación
+                                </button>
+                            </div>
+                            <div class="fase-ponderadores-container space-y-2" data-fase="${faseNum}">
+                                <!-- Ponderadores de fase se agregarán aquí -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Contenido Colapsable -->
+                    <div class="fase-content" data-fase="${faseNum}">
+                        <div class="px-4 pb-4">
+                            <!-- Sectores Container -->
+                            <div class="sectores-container" data-fase="${faseNum}" id="sectores-container-${faseNum}">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h5 class="text-xs font-medium text-green-800">Sectores</h5>
+                                    <button type="button" class="add-sector-btn text-green-600 hover:text-green-800 text-xs bg-green-100 px-2 py-1 rounded" data-fase="${faseNum}">
+                                        <i class="fas fa-plus mr-1"></i>
+                                        Agregar Sector
+                                    </button>
+                                </div>
+                                <div class="sectores-list space-y-3" data-fase="${faseNum}">
+                                    <!-- Sectores se agregarán aquí -->
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4 text-xs text-green-600 bg-green-100 p-2 rounded">
+                                Estimación Fase ${faseNum}: <span class="fase-estimacion font-semibold" data-fase="${faseNum}">0</span> terrenos
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        return '';
+    }
+    
+    // Función para generar campos de torre
+    function generateTorreFields(faseNum, torreNum, torreData = null) {
+        const torreId = `fase_${faseNum}_torre_${torreNum}`;
+        const nombreTorre = torreData ? torreData.nombre : `Torre ${torreNum}`;
+        const comercializable = torreData ? torreData.comercializable : false;
+        
+        return `
+            <div class="bg-blue-100 p-3 rounded border border-blue-300" data-torre="${torreNum}" data-fase="${faseNum}">
+                <div class="flex items-center justify-between mb-3">
+                    <h6 class="text-xs font-medium text-blue-800">${nombreTorre}</h6>
+                    <button type="button" class="remove-torre-btn text-red-600 hover:text-red-800 p-1" data-torre="${torreNum}" data-fase="${faseNum}">
+                        <i class="fas fa-trash text-xs"></i>
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 gap-2 mb-3">
+                    <div>
+                        <label class="block text-xs font-medium text-blue-700 mb-1">Nombre de la Torre *</label>
+                        <input type="text" name="${torreId}_nombre" value="${nombreTorre}" placeholder="Ej: Torre A, Torre Principal, etc." required
+                               class="w-full px-2 py-1 text-xs border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 torre-input">
+                        <p class="text-xs text-blue-600 mt-1">Campo obligatorio</p>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" name="${torreId}_comercializable" id="${torreId}_comercializable" 
+                               class="w-3 h-3 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500" ${comercializable ? 'checked' : ''}>
+                        <label for="${torreId}_comercializable" class="ml-2 text-xs font-medium text-blue-700">
+                            Marcar inmuebles de esta torre como comercializables
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Pisos Container -->
+                <div class="pisos-container" data-torre="${torreNum}" data-fase="${faseNum}" id="pisos-container-${faseNum}-${torreNum}">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-medium text-blue-700">Pisos</span>
+                        <button type="button" class="add-piso-btn text-blue-600 hover:text-blue-800 text-xs bg-blue-50 px-2 py-1 rounded" data-torre="${torreNum}" data-fase="${faseNum}">
+                            <i class="fas fa-plus mr-1"></i>
+                            Agregar Piso
+                        </button>
+                    </div>
+                    <div class="pisos-list space-y-2" data-torre="${torreNum}" data-fase="${faseNum}">
+                        <!-- Pisos se agregarán aquí -->
+                    </div>
+                </div>
+                
+                <div class="mt-3 text-xs text-blue-600 bg-blue-50 p-2 rounded">
+                    <span class="torre-titulo">Estimación Torre ${torreNum}:</span> <span class="torre-estimacion font-semibold" data-torre="${torreNum}" data-fase="${faseNum}">0</span> departamentos
+                </div>
+            </div>
+        `;
+    }
+    
+    // Función para generar campos de sector
+    function generateSectorFields(faseNum, sectorNum, sectorData = null) {
+        const sectorId = `fase_${faseNum}_sector_${sectorNum}`;
+        const nombreSector = sectorData ? sectorData.nombre : `Sector ${sectorNum}`;
+        const comercializable = sectorData ? sectorData.comercializable : false;
+        
+        return `
+            <div class="bg-green-100 p-3 rounded border border-green-300" data-sector="${sectorNum}" data-fase="${faseNum}">
+                <div class="flex items-center justify-between mb-3">
+                    <h6 class="text-xs font-medium text-green-800">${nombreSector}</h6>
+                    <button type="button" class="remove-sector-btn text-red-600 hover:text-red-800 p-1" data-sector="${sectorNum}" data-fase="${faseNum}">
+                        <i class="fas fa-trash text-xs"></i>
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 gap-2 mb-3">
+                    <div>
+                        <label class="block text-xs font-medium text-green-700 mb-1">Nombre del Sector</label>
+                        <input type="text" name="${sectorId}_nombre" value="${nombreSector}" 
+                               class="w-full px-2 py-1 text-xs border border-green-300 rounded focus:ring-1 focus:ring-green-500">
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" name="${sectorId}_comercializable" id="${sectorId}_comercializable" 
+                               class="w-3 h-3 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500" ${comercializable ? 'checked' : ''}>
+                        <label for="${sectorId}_comercializable" class="ml-2 text-xs font-medium text-green-700">
+                            Marcar inmuebles de este sector como comercializables
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Manzanas Container -->
+                <div class="manzanas-container" data-sector="${sectorNum}" data-fase="${faseNum}">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-medium text-green-700">Manzanas</span>
+                        <button type="button" class="add-manzana-btn text-green-600 hover:text-green-800 text-xs bg-green-50 px-2 py-1 rounded" data-sector="${sectorNum}" data-fase="${faseNum}">
+                            <i class="fas fa-plus mr-1"></i>
+                            Agregar Manzana
+                        </button>
+                    </div>
+                    <div class="manzanas-list space-y-2" data-sector="${sectorNum}" data-fase="${faseNum}">
+                        <!-- Manzanas se agregarán aquí -->
+                    </div>
+                </div>
+                
+                <div class="mt-3 text-xs text-green-600 bg-green-50 p-2 rounded">
+                    Estimación Sector ${sectorNum}: <span class="sector-estimacion font-semibold" data-sector="${sectorNum}" data-fase="${faseNum}">0</span> terrenos
+                </div>
+            </div>
+        `;
+    }
+    
+    // Función para generar campos de piso
+    function generatePisoFields(faseNum, torreNum, pisoNum) {
+        const pisoId = `fase_${faseNum}_torre_${torreNum}_piso_${pisoNum}`;
+        return `
+            <div class="bg-blue-50 p-2 rounded border border-blue-200" data-piso="${pisoNum}" data-torre="${torreNum}" data-fase="${faseNum}">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-medium text-blue-700">Piso ${pisoNum}</span>
+                    <button type="button" class="remove-piso-btn text-red-600 hover:text-red-800 p-1" data-piso="${pisoNum}" data-torre="${torreNum}" data-fase="${faseNum}">
+                        <i class="fas fa-trash text-xs"></i>
+                    </button>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-medium text-blue-600 mb-1">Piso ${pisoNum} (Automático)</label>
+                        <input type="number" name="${pisoId}_numero" min="1" max="50" value="${pisoNum}" readonly
+                               class="w-full px-2 py-1 text-xs border border-blue-200 rounded focus:ring-1 focus:ring-blue-400 piso-input bg-gray-100 text-gray-600">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-blue-600 mb-1">Departamentos</label>
+                        <input type="number" name="${pisoId}_departamentos" min="1" max="20" value="4" 
+                               class="w-full px-2 py-1 text-xs border border-blue-200 rounded focus:ring-1 focus:ring-blue-400 piso-input">
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Función para generar campos de manzana
+    function generateManzanaFields(faseNum, sectorNum, manzanaNum) {
+        const manzanaId = `fase_${faseNum}_sector_${sectorNum}_manzana_${manzanaNum}`;
+        return `
+            <div class="bg-green-50 p-2 rounded border border-green-200" data-manzana="${manzanaNum}" data-sector="${sectorNum}" data-fase="${faseNum}">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-medium text-green-700">Manzana ${manzanaNum}</span>
+                    <button type="button" class="remove-manzana-btn text-red-600 hover:text-red-800 p-1" data-manzana="${manzanaNum}" data-sector="${sectorNum}" data-fase="${faseNum}">
+                        <i class="fas fa-trash text-xs"></i>
+                    </button>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-medium text-green-600 mb-1">Número Manzana</label>
+                        <input type="number" name="${manzanaId}_numero" min="1" max="100" value="${manzanaNum}" 
+                               class="w-full px-2 py-1 text-xs border border-green-200 rounded focus:ring-1 focus:ring-green-400 manzana-input">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-green-600 mb-1">Terrenos</label>
+                        <input type="number" name="${manzanaId}_terrenos" min="1" max="50" value="8" 
+                               class="w-full px-2 py-1 text-xs border border-green-200 rounded focus:ring-1 focus:ring-green-400 manzana-input">
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Función para mostrar/ocultar secciones de estructura
+    function toggleEstructura() {
+        if (!tipoSelect || !estructuraSection) return;
+        
+        const tipo = tipoSelect.value;
+        
+        if (tipo && (tipo === 'departamentos' || tipo === 'terrenos')) {
+            estructuraSection.style.display = 'block';
+            // Inicializar con una fase por defecto si no hay ninguna
+            if (fasesContainer.children.length === 0) {
+                addFase();
+            }
+        } else {
+            estructuraSection.style.display = 'none';
+        }
+    }
+    
+    // Función para agregar una nueva fase
+    function addFase() {
+        const tipo = tipoSelect.value;
+        if (!tipo) return;
+        
+        const faseHTML = generateFaseFields(faseCounter, tipo);
+        if (faseHTML) {
+            fasesContainer.insertAdjacentHTML('beforeend', faseHTML);
+            
+            // Inicializar contadores para esta fase
+            if (tipo === 'departamentos') {
+                towerCounter[faseCounter] = 1;
+                pisoCounter[faseCounter] = {};
+                // Agregar una torre por defecto
+                addTorre(faseCounter);
+            } else if (tipo === 'terrenos') {
+                sectorCounter[faseCounter] = 1;
+                manzanaCounter[faseCounter] = {};
+                // Agregar un sector por defecto
+                addSector(faseCounter);
+            }
+            
+            attachEventListeners();
+            updateEstimacionTotal();
+            faseCounter++;
+        }
+    }
+    
+    // Función para agregar torre
+    function addTorre(faseNum) {
+        const torresList = document.querySelector(`.torres-list[data-fase="${faseNum}"]`);
+        if (!torresList) return;
+        
+        if (!towerCounter[faseNum]) towerCounter[faseNum] = 1;
+        if (!pisoCounter[faseNum]) pisoCounter[faseNum] = {};
+        
+        // Usar contador por fase (sin numeración global automática)
+        const torreNum = towerCounter[faseNum];
+        const torreHTML = generateTorreFields(faseNum, torreNum);
+        torresList.insertAdjacentHTML('beforeend', torreHTML);
+        
+        // Inicializar contador de pisos para esta torre
+        pisoCounter[faseNum][torreNum] = 1;
+        // Agregar un piso por defecto
+        addPiso(faseNum, torreNum);
+        
+        // Incrementar contador por fase
+        towerCounter[faseNum]++;
+        attachEventListeners();
+        updateFaseEstimacion(faseNum);
+    }
+    
+    // Función para agregar sector
+    function addSector(faseNum) {
+        const sectoresList = document.querySelector(`.sectores-list[data-fase="${faseNum}"]`);
+        if (!sectoresList) return;
+        
+        if (!sectorCounter[faseNum]) sectorCounter[faseNum] = 1;
+        if (!manzanaCounter[faseNum]) manzanaCounter[faseNum] = {};
+        
+        const sectorNum = sectorCounter[faseNum];
+        const sectorHTML = generateSectorFields(faseNum, sectorNum);
+        sectoresList.insertAdjacentHTML('beforeend', sectorHTML);
+        
+        // Inicializar contador de manzanas para este sector
+        manzanaCounter[faseNum][sectorNum] = 1;
+        // Agregar una manzana por defecto
+        addManzana(faseNum, sectorNum);
+        
+        sectorCounter[faseNum]++;
+        attachEventListeners();
+        updateFaseEstimacion(faseNum);
+    }
+    
+    // Función para agregar piso
+    function addPiso(faseNum, torreNum) {
+        const pisosList = document.querySelector(`.pisos-list[data-torre="${torreNum}"][data-fase="${faseNum}"]`);
+        if (!pisosList) return;
+        
+        if (!pisoCounter[faseNum] || !pisoCounter[faseNum][torreNum]) {
+            if (!pisoCounter[faseNum]) pisoCounter[faseNum] = {};
+            pisoCounter[faseNum][torreNum] = 1;
+        }
+        
+        // Usar contador por torre (cada torre empieza en piso 1)
+        const pisoNum = pisoCounter[faseNum][torreNum];
+        const pisoHTML = generatePisoFields(faseNum, torreNum, pisoNum);
+        pisosList.insertAdjacentHTML('beforeend', pisoHTML);
+        
+        // Incrementar contador por torre
+        pisoCounter[faseNum][torreNum]++;
+        attachEventListeners();
+        updateTorreEstimacion(faseNum, torreNum);
+    }
+    
+    // Función para agregar manzana
+    function addManzana(faseNum, sectorNum) {
+        const manzanasList = document.querySelector(`.manzanas-list[data-sector="${sectorNum}"][data-fase="${faseNum}"]`);
+        if (!manzanasList) return;
+        
+        if (!manzanaCounter[faseNum] || !manzanaCounter[faseNum][sectorNum]) {
+            if (!manzanaCounter[faseNum]) manzanaCounter[faseNum] = {};
+            manzanaCounter[faseNum][sectorNum] = 1;
+        }
+        
+        const manzanaNum = manzanaCounter[faseNum][sectorNum];
+        const manzanaHTML = generateManzanaFields(faseNum, sectorNum, manzanaNum);
+        manzanasList.insertAdjacentHTML('beforeend', manzanaHTML);
+        
+        manzanaCounter[faseNum][sectorNum]++;
+        attachEventListeners();
+        updateSectorEstimacion(faseNum, sectorNum);
+    }
+    
+    // Función para generar campos de ponderador
+    function generatePonderadorFields(ponderadorNum, ponderadorData = null) {
+        const ponderadorId = `ponderador_${ponderadorNum}`;
+        const nombre = ponderadorData ? ponderadorData.nombre : '';
+        const tipo = ponderadorData ? ponderadorData.tipo : 'valorizacion';
+        const porcentaje = ponderadorData ? ponderadorData.porcentaje : '';
+        const montoFijo = ponderadorData ? ponderadorData.monto_fijo : '';
+        const descripcion = ponderadorData ? ponderadorData.descripcion : '';
+        const tieneMontoFijo = ponderadorData && ponderadorData.monto_fijo;
+        const titulo = ponderadorData ? `${ponderadorData.nombre} (Editando)` : `Ponderador ${ponderadorNum}`;
+        
+        return `
+            <div class="bg-green-50 rounded-lg border border-green-200 p-4" data-ponderador="${ponderadorNum}">
+                <div class="flex items-center justify-between mb-4">
+                    <h4 class="text-sm font-medium text-green-900">${titulo}</h4>
+                    <button type="button" class="remove-ponderador-btn text-red-600 hover:text-red-800 p-1" data-ponderador="${ponderadorNum}">
+                        <i class="fas fa-trash text-sm"></i>
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Nombre -->
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-medium text-green-700 mb-2">Nombre del Ponderador</label>
+                        <input type="text" name="${ponderadorId}_nombre" value="${nombre}" placeholder="ej: Valorización por nuevo puente" 
+                               class="w-full px-3 py-2 text-sm border border-green-300 rounded focus:ring-2 focus:ring-green-500">
+                    </div>
+
+                    <!-- Tipo de Valor -->
+                    <div>
+                        <label class="block text-xs font-medium text-green-700 mb-2">Tipo de Ajuste</label>
+                        <div class="flex space-x-4">
+                            <label class="flex items-center">
+                                <input type="radio" name="${ponderadorId}_tipo_valor" value="porcentaje" ${!tieneMontoFijo ? 'checked' : ''}
+                                       class="w-4 h-4 text-green-600 border-green-300 focus:ring-green-500 ponderador-tipo-radio" 
+                                       data-ponderador="${ponderadorNum}">
+                                <span class="ml-2 text-xs text-green-700">Porcentaje</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="${ponderadorId}_tipo_valor" value="monto_fijo" ${tieneMontoFijo ? 'checked' : ''}
+                                       class="w-4 h-4 text-green-600 border-green-300 focus:ring-green-500 ponderador-tipo-radio"
+                                       data-ponderador="${ponderadorNum}">
+                                <span class="ml-2 text-xs text-green-700">Monto Fijo</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Tipo de Ponderador -->
+                    <div>
+                        <label class="block text-xs font-medium text-green-700 mb-2">Categoría</label>
+                        <select name="${ponderadorId}_tipo" class="w-full px-3 py-2 text-sm border border-green-300 rounded focus:ring-2 focus:ring-green-500">
+                            <option value="valorizacion" ${tipo === 'valorizacion' ? 'selected' : ''}>Valorización</option>
+                            <option value="descuento" ${tipo === 'descuento' ? 'selected' : ''}>Descuento</option>
+                            <option value="promocion" ${tipo === 'promocion' ? 'selected' : ''}>Promoción Temporal</option>
+                            <option value="ubicacion" ${tipo === 'ubicacion' ? 'selected' : ''}>Por Ubicación</option>
+                            <option value="infraestructura" ${tipo === 'infraestructura' ? 'selected' : ''}>Infraestructura</option>
+                            <option value="comercial" ${tipo === 'comercial' ? 'selected' : ''}>Estrategia Comercial</option>
+                        </select>
+                    </div>
+
+                    <!-- Porcentaje -->
+                    <div class="ponderador-porcentaje-field" data-ponderador="${ponderadorNum}" ${tieneMontoFijo ? 'style="display: none;"' : ''}>
+                        <label class="block text-xs font-medium text-green-700 mb-2">Porcentaje (%)</label>
+                        <input type="number" name="${ponderadorId}_porcentaje" step="0.01" min="-100" max="500" value="${porcentaje}" placeholder="15.00"
+                               class="w-full px-3 py-2 text-sm border border-green-300 rounded focus:ring-2 focus:ring-green-500">
+                        <p class="text-xs text-green-600 mt-1">Ej: 15.00 = +15%, -5.00 = -5%</p>
+                    </div>
+
+                    <!-- Monto Fijo -->
+                    <div class="ponderador-monto-field" data-ponderador="${ponderadorNum}" ${!tieneMontoFijo ? 'style="display: none;"' : ''}>
+                        <label class="block text-xs font-medium text-green-700 mb-2">Monto Fijo ($)</label>
+                        <input type="number" name="${ponderadorId}_monto_fijo" step="0.01" min="0" value="${montoFijo}" placeholder="50000.00"
+                               class="w-full px-3 py-2 text-sm border border-green-300 rounded focus:ring-2 focus:ring-green-500">
+                        <p class="text-xs text-green-600 mt-1">Monto a agregar al precio base</p>
+                    </div>
+
+                    <!-- Descripción -->
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-medium text-green-700 mb-2">Descripción (Opcional)</label>
+                        <textarea name="${ponderadorId}_descripcion" rows="2" placeholder="Describe la justificación de este ponderador..."
+                                  class="w-full px-3 py-2 text-sm border border-green-300 rounded focus:ring-2 focus:ring-green-500">${descripcion}</textarea>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Función para agregar un nuevo ponderador
+    function addPonderador() {
+        if (!ponderadoresContainer) return;
+        
+        const ponderadorHTML = generatePonderadorFields(ponderadorCounter);
+        ponderadoresContainer.insertAdjacentHTML('beforeend', ponderadorHTML);
+        
+        ponderadorCounter++;
+        attachPonderadorListeners();
+    }
+
+    // Función para agregar event listeners específicos de ponderadores
+    function attachPonderadorListeners() {
+        // Event listener para agregar ponderador
+        if (addPonderadorBtn) {
+            addPonderadorBtn.onclick = function() {
+                addPonderador();
+            };
+        }
+
+        // Event listeners para remover ponderadores
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.remove-ponderador-btn')) {
+                const btn = e.target.closest('.remove-ponderador-btn');
+                const ponderadorNum = parseInt(btn.dataset.ponderador);
+                // Eliminar directamente sin confirmación (es un nuevo ponderador, no está en DB)
+                const ponderadorElement = document.querySelector(`[data-ponderador="${ponderadorNum}"]`);
+                if (ponderadorElement) {
+                    ponderadorElement.remove();
+                }
+                
+                // Verificar si no hay ponderadores y mostrar el botón de agregar si está oculto
+                const remainingPonderadores = document.querySelectorAll('#ponderadores-container [data-ponderador]');
+                const addPonderadorBtn = document.getElementById('add-ponderador-btn');
+                if (remainingPonderadores.length === 0 && addPonderadorBtn) {
+                    addPonderadorBtn.style.display = 'block';
+                }
+            }
+        });
+
+        // Event listeners para cambio de tipo de valor
+        document.querySelectorAll('.ponderador-tipo-radio').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const ponderadorNum = parseInt(this.dataset.ponderador);
+                const porcentajeField = document.querySelector(`.ponderador-porcentaje-field[data-ponderador="${ponderadorNum}"]`);
+                const montoField = document.querySelector(`.ponderador-monto-field[data-ponderador="${ponderadorNum}"]`);
+                
+                if (this.value === 'porcentaje') {
+                    porcentajeField.style.display = 'block';
+                    montoField.style.display = 'none';
+                    // Clear monto field
+                    const montoInput = montoField.querySelector('input');
+                    if (montoInput) montoInput.value = '';
+                } else if (this.value === 'monto_fijo') {
+                    porcentajeField.style.display = 'none';
+                    montoField.style.display = 'block';
+                    // Clear porcentaje field
+                    const porcentajeInput = porcentajeField.querySelector('input');
+                    if (porcentajeInput) porcentajeInput.value = '';
+                }
+            });
+        });
+        
+        // Event listeners para ponderadores por fase
+        document.querySelectorAll('.add-fase-ponderador-btn').forEach(btn => {
+            btn.onclick = function() {
+                const faseNum = parseInt(this.dataset.fase);
+                addFasePonderador(faseNum);
+            };
+        });
+    }
+    
+    // Contadores para ponderadores por fase
+    let fasePonderadorCounter = {};
+
+    // Función para generar campos de ponderador por fase
+    function generateFasePonderadorFields(faseNum, ponderadorNum) {
+        const ponderadorId = `fase_${faseNum}_ponderador_${ponderadorNum}`;
+        return `
+            <div class="bg-yellow-50 rounded border border-yellow-200 p-3" data-fase-ponderador="${ponderadorNum}" data-fase="${faseNum}">
+                <div class="flex items-center justify-between mb-3">
+                    <h6 class="text-xs font-medium text-yellow-800">Ponderador de Fase ${ponderadorNum}</h6>
+                    <button type="button" class="remove-fase-ponderador-btn text-red-600 hover:text-red-800 p-1" data-fase-ponderador="${ponderadorNum}" data-fase="${faseNum}">
+                        <i class="fas fa-trash text-xs"></i>
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-1 gap-3">
+                    <!-- Nombre -->
+                    <div>
+                        <label class="block text-xs font-medium text-yellow-700 mb-1">Nombre</label>
+                        <input type="text" name="${ponderadorId}_nombre" placeholder="ej: Descuento lanzamiento fase" 
+                               class="w-full px-2 py-1 text-xs border border-yellow-300 rounded focus:ring-1 focus:ring-yellow-500">
+                    </div>
+
+                    <!-- Tipo y Categoría -->
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs font-medium text-yellow-700 mb-1">Tipo</label>
+                            <div class="flex space-x-2">
+                                <label class="flex items-center">
+                                    <input type="radio" name="${ponderadorId}_tipo_valor" value="porcentaje" checked
+                                           class="w-3 h-3 text-yellow-600 border-yellow-300 focus:ring-yellow-500 fase-ponderador-tipo-radio" 
+                                           data-fase-ponderador="${ponderadorNum}" data-fase="${faseNum}">
+                                    <span class="ml-1 text-xs text-yellow-700">%</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="${ponderadorId}_tipo_valor" value="monto_fijo"
+                                           class="w-3 h-3 text-yellow-600 border-yellow-300 focus:ring-yellow-500 fase-ponderador-tipo-radio"
+                                           data-fase-ponderador="${ponderadorNum}" data-fase="${faseNum}">
+                                    <span class="ml-1 text-xs text-yellow-700">$</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-medium text-yellow-700 mb-1">Categoría</label>
+                            <select name="${ponderadorId}_tipo" class="w-full px-2 py-1 text-xs border border-yellow-300 rounded focus:ring-1 focus:ring-yellow-500">
+                                <option value="descuento">Descuento</option>
+                                <option value="valorizacion">Valorización</option>
+                                <option value="promocion">Promoción Temporal</option>
+                                <option value="ubicacion">Por Ubicación</option>
+                                <option value="infraestructura">Infraestructura</option>
+                                <option value="comercial">Estrategia Comercial</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Valor -->
+                    <div class="grid grid-cols-2 gap-2">
+                        <!-- Porcentaje -->
+                        <div class="fase-ponderador-porcentaje-field" data-fase-ponderador="${ponderadorNum}" data-fase="${faseNum}">
+                            <label class="block text-xs font-medium text-yellow-700 mb-1">Porcentaje (%)</label>
+                            <input type="number" name="${ponderadorId}_porcentaje" step="0.01" min="-100" max="500" placeholder="-5.00"
+                                   class="w-full px-2 py-1 text-xs border border-yellow-300 rounded focus:ring-1 focus:ring-yellow-500">
+                        </div>
+
+                        <!-- Monto Fijo -->
+                        <div class="fase-ponderador-monto-field" data-fase-ponderador="${ponderadorNum}" data-fase="${faseNum}" style="display: none;">
+                            <label class="block text-xs font-medium text-yellow-700 mb-1">Monto ($)</label>
+                            <input type="number" name="${ponderadorId}_monto_fijo" step="0.01" min="0" placeholder="10000"
+                                   class="w-full px-2 py-1 text-xs border border-yellow-300 rounded focus:ring-1 focus:ring-yellow-500">
+                        </div>
+                        
+                        <!-- Descripción -->
+                        <div>
+                            <label class="block text-xs font-medium text-yellow-700 mb-1">Descripción</label>
+                            <input type="text" name="${ponderadorId}_descripcion" placeholder="Justificación..." 
+                                   class="w-full px-2 py-1 text-xs border border-yellow-300 rounded focus:ring-1 focus:ring-yellow-500">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Función para agregar ponderador por fase
+    function addFasePonderador(faseNum) {
+        const container = document.querySelector(`.fase-ponderadores-container[data-fase="${faseNum}"]`);
+        if (!container) return;
+        
+        if (!fasePonderadorCounter[faseNum]) fasePonderadorCounter[faseNum] = 1;
+        
+        const ponderadorNum = fasePonderadorCounter[faseNum];
+        const ponderadorHTML = generateFasePonderadorFields(faseNum, ponderadorNum);
+        container.insertAdjacentHTML('beforeend', ponderadorHTML);
+        
+        fasePonderadorCounter[faseNum]++;
+        attachFasePonderadorListeners();
+    }
+
+    // Función para agregar event listeners de ponderadores por fase
+    function attachFasePonderadorListeners() {
+        // Event listeners para remover ponderadores por fase
+        document.querySelectorAll('.remove-fase-ponderador-btn').forEach(btn => {
+            btn.onclick = function() {
+                const ponderadorNum = parseInt(this.dataset.fasePonderador);
+                const faseNum = parseInt(this.dataset.fase);
+                if (confirm('¿Estás seguro de eliminar esta ponderación de fase?')) {
+                    const ponderadorElement = document.querySelector(`[data-fase-ponderador="${ponderadorNum}"][data-fase="${faseNum}"]`);
+                    if (ponderadorElement) {
+                        ponderadorElement.remove();
+                    }
+                }
+            };
+        });
+
+        // Event listeners para cambio de tipo de valor en ponderadores por fase
+        document.querySelectorAll('.fase-ponderador-tipo-radio').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const ponderadorNum = parseInt(this.dataset.fasePonderador);
+                const faseNum = parseInt(this.dataset.fase);
+                const porcentajeField = document.querySelector(`.fase-ponderador-porcentaje-field[data-fase-ponderador="${ponderadorNum}"][data-fase="${faseNum}"]`);
+                const montoField = document.querySelector(`.fase-ponderador-monto-field[data-fase-ponderador="${ponderadorNum}"][data-fase="${faseNum}"]`);
+                
+                if (this.value === 'porcentaje') {
+                    porcentajeField.style.display = 'block';
+                    montoField.style.display = 'none';
+                    // Clear monto field
+                    const montoInput = montoField.querySelector('input');
+                    if (montoInput) montoInput.value = '';
+                } else if (this.value === 'monto_fijo') {
+                    porcentajeField.style.display = 'none';
+                    montoField.style.display = 'block';
+                    // Clear porcentaje field
+                    const porcentajeInput = porcentajeField.querySelector('input');
+                    if (porcentajeInput) porcentajeInput.value = '';
+                }
+            });
+        });
+    }
+
+    // Función para agregar event listeners
+    function attachEventListeners() {
+        // Event listeners para agregar fase
+        if (addFaseBtn) {
+            addFaseBtn.onclick = function() {
+                addFase();
+            };
+        }
+        
+        // Event listeners para agregar torres
+        document.querySelectorAll('.add-torre-btn').forEach(btn => {
+            btn.onclick = function() {
+                const faseNum = parseInt(this.dataset.fase);
+                addTorre(faseNum);
+                // Actualizar estimaciones después de agregar torre
+                setTimeout(() => updateFaseEstimacion(faseNum), 100);
+            };
+        });
+        
+        // Event listeners para agregar sectores
+        document.querySelectorAll('.add-sector-btn').forEach(btn => {
+            btn.onclick = function() {
+                const faseNum = parseInt(this.dataset.fase);
+                addSector(faseNum);
+            };
+        });
+        
+        // Event listeners para remover fases
+        document.querySelectorAll('.remove-fase-btn').forEach(btn => {
+            btn.onclick = function() {
+                const faseNum = parseInt(this.dataset.fase);
+                if (confirm('¿Estás seguro de eliminar esta fase?')) {
+                    const faseElement = document.querySelector(`[data-fase="${faseNum}"]`);
+                    if (faseElement) {
+                        faseElement.remove();
+                        updateEstimacionTotal();
+                    }
+                }
+            };
+        });
+        
+        // Event listeners para remover torres
+        document.querySelectorAll('.remove-torre-btn').forEach(btn => {
+            btn.onclick = function() {
+                const torreNum = parseInt(this.dataset.torre);
+                const faseNum = parseInt(this.dataset.fase);
+                if (confirm('¿Estás seguro de eliminar esta torre?')) {
+                    const torreElement = document.querySelector(`[data-torre="${torreNum}"][data-fase="${faseNum}"]`);
+                    if (torreElement) {
+                        torreElement.remove();
+                        updateFaseEstimacion(faseNum);
+                    }
+                }
+            };
+        });
+        
+        // Event listeners para remover sectores
+        document.querySelectorAll('.remove-sector-btn').forEach(btn => {
+            btn.onclick = function() {
+                const sectorNum = parseInt(this.dataset.sector);
+                const faseNum = parseInt(this.dataset.fase);
+                if (confirm('¿Estás seguro de eliminar este sector?')) {
+                    const sectorElement = document.querySelector(`[data-sector="${sectorNum}"][data-fase="${faseNum}"]`);
+                    if (sectorElement) {
+                        sectorElement.remove();
+                        updateFaseEstimacion(faseNum);
+                    }
+                }
+            };
+        });
+        
+        // Event listeners para colapsar/expandir fases
+        document.querySelectorAll('.fase-toggle-btn').forEach(btn => {
+            btn.onclick = function() {
+                const faseNum = parseInt(this.dataset.fase);
+                const content = document.querySelector(`.fase-content[data-fase="${faseNum}"]`);
+                const chevron = this.querySelector('.fas.fa-chevron-down');
+                
+                if (content) {
+                    if (content.style.display === 'none') {
+                        content.style.display = 'block';
+                        chevron.style.transform = 'rotate(0deg)';
+                    } else {
+                        content.style.display = 'none';
+                        chevron.style.transform = 'rotate(-90deg)';
+                    }
+                }
+            };
+        });
+        
+        // Event listeners para agregar pisos
+        document.querySelectorAll('.add-piso-btn').forEach(btn => {
+            btn.onclick = function() {
+                const faseNum = parseInt(this.dataset.fase);
+                const torreNum = parseInt(this.dataset.torre);
+                addPiso(faseNum, torreNum);
+            };
+        });
+        
+        // Event listeners para agregar manzanas
+        document.querySelectorAll('.add-manzana-btn').forEach(btn => {
+            btn.onclick = function() {
+                const faseNum = parseInt(this.dataset.fase);
+                const sectorNum = parseInt(this.dataset.sector);
+                addManzana(faseNum, sectorNum);
+            };
+        });
+        
+        // Event listeners para remover pisos
+        document.querySelectorAll('.remove-piso-btn').forEach(btn => {
+            btn.onclick = function() {
+                const pisoNum = parseInt(this.dataset.piso);
+                const torreNum = parseInt(this.dataset.torre);
+                const faseNum = parseInt(this.dataset.fase);
+                if (confirm('¿Estás seguro de eliminar este piso?')) {
+                    const pisoElement = document.querySelector(`[data-piso="${pisoNum}"][data-torre="${torreNum}"][data-fase="${faseNum}"]`);
+                    if (pisoElement) {
+                        pisoElement.remove();
+                        updateTorreEstimacion(faseNum, torreNum);
+                    }
+                }
+            };
+        });
+        
+        // Event listeners para remover manzanas
+        document.querySelectorAll('.remove-manzana-btn').forEach(btn => {
+            btn.onclick = function() {
+                const manzanaNum = parseInt(this.dataset.manzana);
+                const sectorNum = parseInt(this.dataset.sector);
+                const faseNum = parseInt(this.dataset.fase);
+                if (confirm('¿Estás seguro de eliminar esta manzana?')) {
+                    const manzanaElement = document.querySelector(`[data-manzana="${manzanaNum}"][data-sector="${sectorNum}"][data-fase="${faseNum}"]`);
+                    if (manzanaElement) {
+                        manzanaElement.remove();
+                        updateSectorEstimacion(faseNum, sectorNum);
+                    }
+                }
+            };
+        });
+        
+        // Event listeners para inputs de cálculo usando event delegation
+        document.addEventListener('input', function(e) {
+            if (e.target.classList.contains('torre-input') || 
+                e.target.classList.contains('sector-input') || 
+                e.target.classList.contains('piso-input') || 
+                e.target.classList.contains('manzana-input')) {
+                
+                const faseElement = e.target.closest('[data-fase]');
+                if (faseElement) {
+                    const faseNum = parseInt(faseElement.dataset.fase);
+                    
+                    if (e.target.classList.contains('piso-input')) {
+                        const torreElement = e.target.closest('[data-torre]');
+                        if (torreElement) {
+                            const torreNum = parseInt(torreElement.dataset.torre);
+                            updateTorreEstimacion(faseNum, torreNum);
+                        }
+                    } else if (e.target.classList.contains('manzana-input')) {
+                        const sectorElement = e.target.closest('[data-sector]');
+                        if (sectorElement) {
+                            const sectorNum = parseInt(sectorElement.dataset.sector);
+                            updateSectorEstimacion(faseNum, sectorNum);
+                        }
+                    } else {
+                        updateFaseEstimacion(faseNum);
+                    }
+                }
+            }
+        });
+    }
+    
+    // Función para calcular estimación de una torre específica
+    function updateTorreEstimacion(faseNum, torreNum) {
+        let totalTorre = 0;
+        
+        // Calcular por cada piso en la torre - usar selector más específico
+        const pisos = document.querySelectorAll(`[data-torre="${torreNum}"][data-fase="${faseNum}"] .pisos-list [data-piso]`);
+        console.log(`DEBUG: Torre ${torreNum}, Fase ${faseNum} - Pisos encontrados:`, pisos.length);
+        
+        pisos.forEach((piso, index) => {
+            const departamentosInput = piso.querySelector(`input[name*="_departamentos"]`);
+            if (departamentosInput) {
+                const departamentos = parseInt(departamentosInput.value || 4);
+                console.log(`DEBUG: Piso ${index + 1} - Input encontrado:`, departamentosInput, `Valor: ${departamentos}`);
+                totalTorre += departamentos;
+            } else {
+                console.log(`DEBUG: Piso ${index + 1} - No se encontró input, saltando`);
+            }
+        });
+        
+        console.log(`DEBUG: Torre ${torreNum} - Total calculado: ${totalTorre}`);
+        
+        // Actualizar estimación de la torre
+        const torreEstimacion = document.querySelector(`.torre-estimacion[data-torre="${torreNum}"][data-fase="${faseNum}"]`);
+        console.log(`DEBUG: Selector torre estimacion: .torre-estimacion[data-torre="${torreNum}"][data-fase="${faseNum}"]`);
+        console.log(`DEBUG: Elemento torre estimacion encontrado:`, torreEstimacion);
+        if (torreEstimacion) {
+            console.log(`DEBUG: Actualizando torre estimacion de "${torreEstimacion.textContent}" a "${totalTorre.toLocaleString()}"`);
+            torreEstimacion.textContent = totalTorre.toLocaleString();
+        } else {
+            console.log(`DEBUG: NO se encontró elemento torre estimacion`);
+        }
+        
+        updateFaseEstimacion(faseNum);
+    }
+    
+    // Función para calcular estimación de un sector específico
+    function updateSectorEstimacion(faseNum, sectorNum) {
+        let totalSector = 0;
+        
+        // Calcular por cada manzana en el sector
+        const manzanas = document.querySelectorAll(`[data-sector="${sectorNum}"][data-fase="${faseNum}"] [data-manzana]`);
+        manzanas.forEach(manzana => {
+            const terrenos = parseInt(manzana.querySelector(`input[name*="_terrenos"]`)?.value || 8);
+            totalSector += terrenos;
+        });
+        
+        // Actualizar estimación del sector
+        const sectorEstimacion = document.querySelector(`.sector-estimacion[data-sector="${sectorNum}"][data-fase="${faseNum}"]`);
+        if (sectorEstimacion) {
+            sectorEstimacion.textContent = totalSector.toLocaleString();
+        }
+        
+        updateFaseEstimacion(faseNum);
+    }
+    
+    // Función para calcular estimación de una fase específica
+    function updateFaseEstimacion(faseNum) {
+        const tipo = tipoSelect.value;
+        let totalFase = 0;
+        
+        console.log(`DEBUG: Calculando fase ${faseNum}, tipo: ${tipo}`);
+        
+        if (tipo === 'departamentos') {
+            // Solo sumar las estimaciones de torres ya calculadas
+            const torreEstimaciones = document.querySelectorAll(`.torre-estimacion[data-fase="${faseNum}"]`);
+            console.log(`DEBUG: Torres encontradas en fase ${faseNum}:`, torreEstimaciones.length);
+            
+            torreEstimaciones.forEach((torreEst, index) => {
+                const valor = parseInt(torreEst.textContent.replace(/,/g, '')) || 0;
+                console.log(`DEBUG: Torre ${index + 1} valor: ${valor}`);
+                totalFase += valor;
+            });
+        } else if (tipo === 'terrenos') {
+            // Solo sumar las estimaciones de sectores ya calculadas
+            const sectorEstimaciones = document.querySelectorAll(`.sector-estimacion[data-fase="${faseNum}"]`);
+            console.log(`DEBUG: Sectores encontrados en fase ${faseNum}:`, sectorEstimaciones.length);
+            
+            sectorEstimaciones.forEach((sectorEst, index) => {
+                const valor = parseInt(sectorEst.textContent.replace(/,/g, '')) || 0;
+                console.log(`DEBUG: Sector ${index + 1} valor: ${valor}`);
+                totalFase += valor;
+            });
+        }
+        
+        console.log(`DEBUG: Total fase ${faseNum}: ${totalFase}`);
+        
+        // Actualizar estimación de la fase
+        const faseEstimacion = document.querySelector(`.fase-estimacion[data-fase="${faseNum}"]`);
+        console.log(`DEBUG: Elemento fase estimacion:`, faseEstimacion);
+        if (faseEstimacion) {
+            console.log(`DEBUG: Actualizando fase estimacion de "${faseEstimacion.textContent}" a "${totalFase.toLocaleString()}"`);
+            faseEstimacion.textContent = totalFase.toLocaleString();
+        }
+        
+        updateEstimacionTotal();
+    }
+    
+    // Función para calcular estimación total
+    function updateEstimacionTotal() {
+        let totalGeneral = 0;
+        
+        // Sumar todas las fases
+        document.querySelectorAll('.fase-estimacion').forEach(faseEstimacion => {
+            const total = parseInt(faseEstimacion.textContent.replace(/,/g, '')) || 0;
+            totalGeneral += total;
+        });
+        
+        const totalElement = document.getElementById('total-inmuebles');
+        if (totalElement) {
+            totalElement.textContent = totalGeneral.toLocaleString();
+        }
+    }
+    
+    // Función para inicializar todas las estimaciones al cargar la página
+    function inicializarEstimaciones() {
+        // Buscar todas las fases existentes
+        document.querySelectorAll('[data-fase]').forEach(faseElement => {
+            const faseNum = parseInt(faseElement.dataset.fase);
+            updateFaseEstimacion(faseNum);
+        });
+        
+        // Buscar todas las torres existentes
+        document.querySelectorAll('[data-torre]').forEach(torreElement => {
+            const faseNum = parseInt(torreElement.dataset.fase);
+            const torreNum = parseInt(torreElement.dataset.torre);
+            updateTorreEstimacion(faseNum, torreNum);
+        });
+        
+        // Buscar todos los sectores existentes
+        document.querySelectorAll('[data-sector]').forEach(sectorElement => {
+            const faseNum = parseInt(sectorElement.dataset.fase);
+            const sectorNum = parseInt(sectorElement.dataset.sector);
+            updateSectorEstimacion(faseNum, sectorNum);
+        });
+    }
+    
+    // Actualizar ayuda contextual basada en el tipo seleccionado
+    if (tipoSelect) {
+        tipoSelect.addEventListener('change', function() {
+            const helpText = tipoSelect.parentElement.querySelector('.text-gray-500');
+            if (this.value === 'terrenos') {
+                helpText.textContent = 'Proyecto de terrenos: Fases → Sectores → Manzanas → Terrenos';
+            } else if (this.value === 'departamentos') {
+                helpText.textContent = 'Proyecto de departamentos: Fases → Torres → Pisos → Departamentos';
+            }
+            
+            // Limpiar estructura existente y reinicializar
+            fasesContainer.innerHTML = '';
+            faseCounter = 1;
+            towerCounter = {};
+            sectorCounter = {};
+            pisoCounter = {};
+            manzanaCounter = {};
+            
+            toggleEstructura();
+        });
+        
+        // Trigger inicial
+        tipoSelect.dispatchEvent(new Event('change'));
+    }
+    
+    // Remover campo número de fases ya que ahora es dinámico
+    if (numeroFasesInput) {
+        numeroFasesInput.style.display = 'none';
+        numeroFasesInput.parentElement.style.display = 'none';
+    }
+    
+    // Simple Select2 initialization for better UX (optional)
+    if (typeof $ !== 'undefined' && $.fn.select2) {
+        $('#{{ form.gerente_usuario.id_for_label }}, #{{ form.jefe_usuario.id_for_label }}').select2({
+            theme: 'bootstrap-5',
+            allowClear: true,
+            width: '100%'
+        });
+    }
+    
+    // En modo edición, NO pre-cargar fases automáticamente
+    // Solo pre-cargar ponderadores si es necesario (ya están en el HTML)
+    if (isEditMode && existingStructure) {
+        console.log('Modo edición detectado. Estructura disponible para cargar:', existingStructure);
+        // NO llamamos a preloadExistingStructure automáticamente
+        // Las fases se cargarán solo cuando el usuario haga clic en "Agregar Fase"
+    }
+    
+    // Inicializar event listeners
+    attachEventListeners();
+    attachPonderadorListeners();
+    attachFasePonderadorListeners();
+    
+    // Inicializar estimaciones al cargar la página
+    inicializarEstimaciones();
+    
+    
+    // ================================
+    // FUNCIONES DE PRE-CARGA PARA EDICIÓN
+    // ================================
+    
+    function preloadExistingStructure(structure) {
+        console.log('Iniciando pre-carga de estructura existente...');
+        
+        // 1. Pre-cargar ponderadores
+        if (structure.ponderadores && structure.ponderadores.length > 0) {
+            console.log('Pre-cargando', structure.ponderadores.length, 'ponderadores');
+            preloadPonderadores(structure.ponderadores);
+        }
+        
+        // 2. Pre-cargar fases
+        if (structure.fases && Object.keys(structure.fases).length > 0) {
+            console.log('Pre-cargando', Object.keys(structure.fases).length, 'fases');
+            preloadFases(structure.fases);
+        }
+        
+        // 3. Actualizar contador de fases
+        const faseNumbers = Object.keys(structure.fases).map(Number);
+        if (faseNumbers.length > 0) {
+            faseCounter = Math.max(...faseNumbers) + 1;
+        }
+        
+        // 4. Actualizar estimaciones
+        setTimeout(() => {
+            updateEstimacionTotal();
+        }, 100);
+    }
+    
+    function preloadPonderadores(ponderadores) {
+        ponderadores.forEach(ponderador => {
+            // Agregar ponderador existente (con datos pre-cargados)
+            const ponderadorHtml = generatePonderadorFields(ponderadorCounter, ponderador);
+            const ponderadoresContainer = document.getElementById('ponderadores-container');
+            ponderadoresContainer.insertAdjacentHTML('beforeend', ponderadorHtml);
+            
+            // Los valores ya se llenan en generatePonderadorFields cuando se pasa ponderador
+            // Pero por seguridad, verificamos que se llenaron correctamente
+            setTimeout(() => {
+                const nombreInput = document.getElementById(`ponderador_${ponderadorCounter}_nombre`);
+                const tipoSelect = document.getElementById(`ponderador_${ponderadorCounter}_tipo`);
+                const porcentajeInput = document.getElementById(`ponderador_${ponderadorCounter}_porcentaje`);
+                const montoInput = document.getElementById(`ponderador_${ponderadorCounter}_monto_fijo`);
+                const descripcionInput = document.getElementById(`ponderador_${ponderadorCounter}_descripcion`);
+                
+                if (nombreInput && !nombreInput.value) nombreInput.value = ponderador.nombre;
+                if (tipoSelect && !tipoSelect.value) tipoSelect.value = ponderador.tipo;
+                if (porcentajeInput && !porcentajeInput.value) porcentajeInput.value = ponderador.porcentaje;
+                if (montoInput && ponderador.monto_fijo && !montoInput.value) montoInput.value = ponderador.monto_fijo;
+                if (descripcionInput && !descripcionInput.value) descripcionInput.value = ponderador.descripcion;
+                
+                // Marcar como existente para permitir edición
+                const container = document.querySelector(`[data-ponderador="${ponderadorCounter}"]`);
+                if (container) {
+                    container.setAttribute('data-existing-id', ponderador.id);
+                    container.classList.add('existing-ponderador');
+                }
+            }, 50);
+            
+            ponderadorCounter++;
+        });
+    }
+    
+    function preloadFases(fases) {
+        Object.keys(fases).forEach(faseNum => {
+            const faseData = fases[faseNum];
+            const tipoProyecto = tipoSelect.value;
+            
+            console.log(`Pre-cargando Fase ${faseNum}:`, faseData);
+            
+            // Crear HTML de la fase
+            const faseHtml = generateFaseFields(faseNum, tipoProyecto, faseData);
+            fasesContainer.insertAdjacentHTML('beforeend', faseHtml);
+            
+            // Marcar como comercializable si corresponde
+            if (faseData.comercializable) {
+                const comercializableCheckbox = document.getElementById(`fase_${faseNum}_comercializable`);
+                if (comercializableCheckbox) {
+                    comercializableCheckbox.checked = true;
+                }
+            }
+            
+            // Pre-cargar torres (para departamentos)
+            if (tipoProyecto === 'departamentos' && faseData.torres) {
+                preloadTorres(faseNum, faseData.torres);
+            }
+            
+            // Pre-cargar sectores (para terrenos)
+            if (tipoProyecto === 'terrenos' && faseData.sectores) {
+                preloadSectores(faseNum, faseData.sectores);
+            }
+        });
+    }
+    
+    function preloadTorres(faseNum, torres) {
+        Object.keys(torres).forEach(torreNum => {
+            const torreData = torres[torreNum];
+            
+            console.log(`Pre-cargando Torre ${torreNum}:`, torreData);
+            
+            // Crear HTML de la torre
+            const torreHtml = generateTorreFields(faseNum, torreNum, torreData);
+            const torresList = document.querySelector(`.torres-list[data-fase="${faseNum}"]`);
+            if (torresList) {
+                torresList.insertAdjacentHTML('beforeend', torreHtml);
+            }
+            
+            // Pre-cargar pisos
+            if (torreData.pisos) {
+                preloadPisos(faseNum, torreNum, torreData.pisos);
+            }
+            
+            // Actualizar contador
+            if (!towerCounter[faseNum]) towerCounter[faseNum] = 1;
+            towerCounter[faseNum] = Math.max(towerCounter[faseNum], parseInt(torreNum) + 1);
+        });
+    }
+    
+    function preloadSectores(faseNum, sectores) {
+        Object.keys(sectores).forEach(sectorNum => {
+            const sectorData = sectores[sectorNum];
+            
+            console.log(`Pre-cargando Sector ${sectorNum}:`, sectorData);
+            
+            // Crear HTML del sector
+            const sectorHtml = generateSectorFields(faseNum, sectorNum, sectorData);
+            const sectoresList = document.querySelector(`.sectores-list[data-fase="${faseNum}"]`);
+            if (sectoresList) {
+                sectoresList.insertAdjacentHTML('beforeend', sectorHtml);
+            }
+            
+            // Pre-cargar manzanas
+            if (sectorData.manzanas) {
+                preloadManzanas(faseNum, sectorNum, sectorData.manzanas);
+            }
+            
+            // Actualizar contador
+            if (!sectorCounter[faseNum]) sectorCounter[faseNum] = 1;
+            sectorCounter[faseNum] = Math.max(sectorCounter[faseNum], parseInt(sectorNum) + 1);
+        });
+    }
+    
+    function preloadPisos(faseNum, torreNum, pisos) {
+        Object.keys(pisos).forEach(pisoNum => {
+            const departamentosCount = pisos[pisoNum];
+            
+            // Crear HTML del piso
+            const pisoHtml = generatePisoFields(faseNum, torreNum, pisoNum, departamentosCount);
+            const pisosContainer = document.getElementById(`pisos-container-${faseNum}-${torreNum}`);
+            pisosContainer.insertAdjacentHTML('beforeend', pisoHtml);
+            
+            // Llenar valor
+            const input = document.getElementById(`fase_${faseNum}_torre_${torreNum}_piso_${pisoNum}_departamentos`);
+            if (input) {
+                input.value = departamentosCount;
+            }
+        });
+        
+        // Actualizar contador
+        if (!pisoCounter[faseNum]) pisoCounter[faseNum] = {};
+        if (!pisoCounter[faseNum][torreNum]) pisoCounter[faseNum][torreNum] = 1;
+        
+        const pisoNumbers = Object.keys(pisos).map(Number);
+        if (pisoNumbers.length > 0) {
+            pisoCounter[faseNum][torreNum] = Math.max(...pisoNumbers) + 1;
+        }
+    }
+    
+    function preloadManzanas(faseNum, sectorNum, manzanas) {
+        Object.keys(manzanas).forEach(manzanaNum => {
+            const terrenosCount = manzanas[manzanaNum];
+            
+            // Crear HTML de la manzana
+            const manzanaHtml = generateManzanaFields(faseNum, sectorNum, manzanaNum, terrenosCount);
+            const manzanasContainer = document.getElementById(`manzanas-container-${faseNum}-${sectorNum}`);
+            manzanasContainer.insertAdjacentHTML('beforeend', manzanaHtml);
+            
+            // Llenar valor
+            const input = document.getElementById(`fase_${faseNum}_sector_${sectorNum}_manzana_${manzanaNum}_terrenos`);
+            if (input) {
+                input.value = terrenosCount;
+            }
+        });
+        
+        // Actualizar contador
+        if (!manzanaCounter[faseNum]) manzanaCounter[faseNum] = {};
+        if (!manzanaCounter[faseNum][sectorNum]) manzanaCounter[faseNum][sectorNum] = 1;
+        
+        const manzanaNumbers = Object.keys(manzanas).map(Number);
+        if (manzanaNumbers.length > 0) {
+            manzanaCounter[faseNum][sectorNum] = Math.max(...manzanaNumbers) + 1;
+        }
+    }
+    
+    // ================================
+    // FUNCIONES PARA PONDERADORES EXISTENTES (DEFINIDAS GLOBALMENTE)
+    // ================================
+    
+    window.toggleExistingPonderador = function(ponderadorId) {
+        const editForm = document.getElementById(`edit-form-${ponderadorId}`);
+        const chevron = document.getElementById(`chevron-${ponderadorId}`);
+        
+        if (editForm && chevron) {
+            if (editForm.classList.contains('hidden')) {
+                // Expandir
+                editForm.classList.remove('hidden');
+                chevron.style.transform = 'rotate(90deg)';
+            } else {
+                // Colapsar
+                editForm.classList.add('hidden');
+                chevron.style.transform = 'rotate(0deg)';
+            }
+        }
+    }
+    
+    window.togglePonderadorStatus = function(ponderadorId, isActive) {
+        const statusText = document.getElementById(`status-text-${ponderadorId}`);
+        if (statusText) {
+            if (isActive) {
+                statusText.textContent = 'Activo';
+                statusText.className = 'text-xs text-green-600';
+            } else {
+                statusText.textContent = 'Inactivo';
+                statusText.className = 'text-xs text-red-600';
+            }
+        }
+        
+        // También actualizar el estado en la vista resumida
+        const container = document.querySelector(`[data-existing-ponderador="${ponderadorId}"]`);
+        if (container) {
+            const headerStatus = container.querySelector('.text-xs.text-green-600, .text-xs.text-red-600');
+            if (headerStatus) {
+                if (isActive) {
+                    headerStatus.textContent = '● Activo';
+                    headerStatus.className = 'text-xs text-green-600';
+                } else {
+                    headerStatus.textContent = '● Inactivo';
+                    headerStatus.className = 'text-xs text-red-600';
+                }
+            }
+        }
+    }
+    
+    // Event listeners para radio buttons de ponderadores existentes
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('existing-ponderador-tipo-radio')) {
+            const ponderadorId = e.target.getAttribute('data-ponderador');
+            const porcentajeField = document.querySelector(`.existing-ponderador-porcentaje-field[data-ponderador="${ponderadorId}"]`);
+            const montoField = document.querySelector(`.existing-ponderador-monto-field[data-ponderador="${ponderadorId}"]`);
+            
+            if (e.target.value === 'porcentaje') {
+                if (porcentajeField) porcentajeField.style.display = 'block';
+                if (montoField) montoField.style.display = 'none';
+            } else if (e.target.value === 'monto_fijo') {
+                if (porcentajeField) porcentajeField.style.display = 'none';
+                if (montoField) montoField.style.display = 'block';
+            }
+        }
+    });
+    
+    // ================================
+    // MODIFICAR BOTÓN AGREGAR FASE PARA CARGAR EXISTENTES SI ES NECESARIO
+    // ================================
+    
+    // Sobrescribir la función addFase para cargar estructura existente si es la primera vez
+    const originalAddFase = window.addFase;
+    window.addFase = function() {
+        // Si estamos en modo edición y no hay fases cargadas, cargar las existentes primero
+        if (isEditMode && existingStructure && fasesContainer.children.length === 0) {
+            console.log('Primera vez agregando fase en modo edición, cargando estructura existente...');
+            preloadExistingStructure(existingStructure);
+        }
+        
+        // Luego ejecutar la función original para agregar una nueva fase
+        if (originalAddFase) {
+            originalAddFase();
+        } else {
+            // Función addFase original inline
+            const tipoProyecto = tipoSelect.value;
+            const faseHtml = generateFaseFields(faseCounter, tipoProyecto);
+            fasesContainer.insertAdjacentHTML('beforeend', faseHtml);
+            
+            // Inicializar contadores para esta fase
+            if (!towerCounter[faseCounter]) towerCounter[faseCounter] = 1;
+            if (!sectorCounter[faseCounter]) sectorCounter[faseCounter] = 1;
+            if (!pisoCounter[faseCounter]) pisoCounter[faseCounter] = {};
+            if (!manzanaCounter[faseCounter]) manzanaCounter[faseCounter] = {};
+            
+            faseCounter++;
+            updateEstimacionTotal();
+        }
+    };
+    
+    // Función para debug del envío del formulario
+    window.debugFormSubmit = function(event) {
+        console.log("=== DEBUG FORM SUBMIT ===");
+        
+        const form = document.getElementById('proyecto-form');
+        const formData = new FormData(form);
+        
+        console.log("Campos del formulario:");
+        for (let [key, value] of formData.entries()) {
+            if (key.toLowerCase().includes('ponderador')) {
+                console.log(`  ${key} = ${value}`);
+            }
+        }
+        
+        // Verificar específicamente los ponderadores nuevos
+        const ponderadorFields = [];
+        for (let [key, value] of formData.entries()) {
+            if (key.startsWith('ponderador_') && key.endsWith('_nombre') && value.trim()) {
+                ponderadorFields.push(key);
+            }
+        }
+        
+        console.log(`Ponderadores nuevos encontrados: ${ponderadorFields.length}`);
+        ponderadorFields.forEach(field => {
+            console.log(`  - ${field}`);
+        });
+        
+        // Verificar ponderadores existentes
+        const existingPonderadorFields = [];
+        for (let [key, value] of formData.entries()) {
+            if (key.startsWith('existing_ponderador_') && key.endsWith('_id')) {
+                existingPonderadorFields.push(key);
+            }
+        }
+        
+        console.log(`Ponderadores existentes encontrados: ${existingPonderadorFields.length}`);
+        existingPonderadorFields.forEach(field => {
+            console.log(`  - ${field}`);
+        });
+        
+        console.log("Permitiendo envío del formulario...");
+        // No prevenir el envío, solo hacer debug
+    };
+    
+    // Función para filtrar ponderadores por estado
+    window.filterPonderadores = function() {
+        const filterValue = document.getElementById('ponderador-filter').value;
+        const ponderadores = document.querySelectorAll('.ponderador-item');
+        
+        ponderadores.forEach(ponderador => {
+            const estado = ponderador.getAttribute('data-activo');
+            
+            if (filterValue === 'todos') {
+                ponderador.style.display = '';
+            } else if (filterValue === estado) {
+                ponderador.style.display = '';
+            } else {
+                ponderador.style.display = 'none';
+            }
+        });
+    };
+    
+});
+</script>
+{% endblock %}

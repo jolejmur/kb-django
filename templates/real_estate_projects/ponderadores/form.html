@@ -1,0 +1,254 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+    <!-- DateTimePicker CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+{% endblock %}
+
+{% block extra_js %}
+    <!-- DateTimePicker JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+{% endblock %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <div class="max-w-2xl mx-auto">
+        <!-- Header -->
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold text-gray-900">{{ title }}</h1>
+            <p class="text-gray-600 mt-1">
+                {% if is_create %}
+                    Crear un nuevo ponderador para {{ proyecto.nombre }}
+                {% else %}
+                    Modificar ponderador "{{ ponderador.nombre }}"
+                {% endif %}
+            </p>
+        </div>
+
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Información Básica</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Nombre -->
+                    <div class="md:col-span-2">
+                        <label for="{{ form.nombre.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Nombre del Ponderador *
+                        </label>
+                        {{ form.nombre }}
+                        {% if form.nombre.errors %}
+                            <p class="text-red-500 text-sm mt-1">{{ form.nombre.errors.0 }}</p>
+                        {% endif %}
+                        <p class="text-sm text-gray-500 mt-1">Nombre descriptivo (ej: "Nuevo puente", "Descuento lanzamiento")</p>
+                    </div>
+
+                    <!-- Tipo -->
+                    <div>
+                        <label for="{{ form.tipo.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Tipo de Ponderador
+                        </label>
+                        {{ form.tipo }}
+                        {% if form.tipo.errors %}
+                            <p class="text-red-500 text-sm mt-1">{{ form.tipo.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Nivel de Aplicación -->
+                    <div>
+                        <label for="{{ form.nivel_aplicacion.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Nivel de Aplicación *
+                        </label>
+                        {{ form.nivel_aplicacion }}
+                        {% if form.nivel_aplicacion.errors %}
+                            <p class="text-red-500 text-sm mt-1">{{ form.nivel_aplicacion.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Fase (solo si nivel es 'fase') -->
+                    <div id="fase-field" class="md:col-span-2" style="display: none;">
+                        <label for="{{ form.fase.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Fase Específica
+                        </label>
+                        {{ form.fase }}
+                        {% if form.fase.errors %}
+                            <p class="text-red-500 text-sm mt-1">{{ form.fase.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Valor del Ponderador</h2>
+                
+                <!-- Tipo de Valor -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-3">Tipo de Ajuste *</label>
+                    {{ form.tipo_valor }}
+                    {% if form.tipo_valor.errors %}
+                        <p class="text-red-500 text-sm mt-1">{{ form.tipo_valor.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Porcentaje -->
+                    <div id="porcentaje-field">
+                        <label for="{{ form.porcentaje.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Porcentaje (%)
+                        </label>
+                        {{ form.porcentaje }}
+                        {% if form.porcentaje.errors %}
+                            <p class="text-red-500 text-sm mt-1">{{ form.porcentaje.errors.0 }}</p>
+                        {% endif %}
+                        <p class="text-sm text-gray-500 mt-1">Ej: 15.00 = +15%, -5.00 = -5%</p>
+                    </div>
+
+                    <!-- Monto Fijo -->
+                    <div id="monto-field" style="display: none;">
+                        <label for="{{ form.monto_fijo.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Monto Fijo ($)
+                        </label>
+                        {{ form.monto_fijo }}
+                        {% if form.monto_fijo.errors %}
+                            <p class="text-red-500 text-sm mt-1">{{ form.monto_fijo.errors.0 }}</p>
+                        {% endif %}
+                        <p class="text-sm text-gray-500 mt-1">Monto a agregar al precio base</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Vigencia</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Fecha Activación -->
+                    <div>
+                        <label for="{{ form.fecha_activacion.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Fecha de Activación *
+                        </label>
+                        {{ form.fecha_activacion }}
+                        {% if form.fecha_activacion.errors %}
+                            <p class="text-red-500 text-sm mt-1">{{ form.fecha_activacion.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Fecha Desactivación -->
+                    <div>
+                        <label for="{{ form.fecha_desactivacion.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Fecha de Desactivación
+                        </label>
+                        {{ form.fecha_desactivacion }}
+                        {% if form.fecha_desactivacion.errors %}
+                            <p class="text-red-500 text-sm mt-1">{{ form.fecha_desactivacion.errors.0 }}</p>
+                        {% endif %}
+                        <p class="text-sm text-gray-500 mt-1">Opcional para ponderadores permanentes</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Descripción</h2>
+                
+                <div class="space-y-4">
+                    <!-- Descripción -->
+                    <div>
+                        <label for="{{ form.descripcion.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Descripción Detallada
+                        </label>
+                        {{ form.descripcion }}
+                        {% if form.descripcion.errors %}
+                            <p class="text-red-500 text-sm mt-1">{{ form.descripcion.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Justificación -->
+                    <div>
+                        <label for="{{ form.justificacion.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Justificación
+                        </label>
+                        {{ form.justificacion }}
+                        {% if form.justificacion.errors %}
+                            <p class="text-red-500 text-sm mt-1">{{ form.justificacion.errors.0 }}</p>
+                        {% endif %}
+                        <p class="text-sm text-gray-500 mt-1">Razón o justificación para este ponderador</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex justify-end space-x-3">
+                <a href="{% url 'projects:ponderador_list' proyecto.pk %}" 
+                   class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg transition-colors">
+                    Cancelar
+                </a>
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    {% if is_create %}Crear Ponderador{% else %}Guardar Cambios{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize datetime pickers
+    flatpickr("#id_fecha_activacion", {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i",
+        time_24hr: true,
+        locale: "es"
+    });
+    
+    flatpickr("#id_fecha_desactivacion", {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i",
+        time_24hr: true,
+        locale: "es"
+    });
+
+    // Show/hide fase field based on nivel_aplicacion
+    const nivelSelect = document.getElementById('id_nivel_aplicacion');
+    const faseField = document.getElementById('fase-field');
+    
+    function toggleFaseField() {
+        if (nivelSelect.value === 'fase') {
+            faseField.style.display = 'block';
+        } else {
+            faseField.style.display = 'none';
+        }
+    }
+    
+    nivelSelect.addEventListener('change', toggleFaseField);
+    toggleFaseField(); // Initial state
+
+    // Show/hide value fields based on tipo_valor
+    const tipoValorRadios = document.querySelectorAll('input[name="tipo_valor"]');
+    const porcentajeField = document.getElementById('porcentaje-field');
+    const montoField = document.getElementById('monto-field');
+    
+    function toggleValueFields() {
+        const selectedValue = document.querySelector('input[name="tipo_valor"]:checked')?.value;
+        
+        if (selectedValue === 'porcentaje') {
+            porcentajeField.style.display = 'block';
+            montoField.style.display = 'none';
+            document.getElementById('id_monto_fijo').value = '';
+        } else if (selectedValue === 'monto_fijo') {
+            porcentajeField.style.display = 'none';
+            montoField.style.display = 'block';
+            document.getElementById('id_porcentaje').value = '';
+        }
+    }
+    
+    tipoValorRadios.forEach(radio => {
+        radio.addEventListener('change', toggleValueFields);
+    });
+    toggleValueFields(); // Initial state
+});
+</script>
+{% endblock %}

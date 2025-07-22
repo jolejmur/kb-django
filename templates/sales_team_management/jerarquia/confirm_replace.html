@@ -1,0 +1,180 @@
+<!-- templates/sales/jerarquia/confirm_replace.html -->
+{% extends 'base/base.html' %}
+
+{% block title %}Confirmar Reemplazo de Gerente - Django CRM{% endblock %}
+
+{% block header %}Confirmar Reemplazo de Gerente{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Breadcrumb -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            <li class="inline-flex items-center">
+                <a href="{% url 'sales:jerarquia_list' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    <i class="fas fa-sitemap mr-2"></i>
+                    Jerarquía de Equipos
+                </a>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <a href="{% url 'sales:jerarquia_create_member' %}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
+                        Asignar Usuario
+                    </a>
+                </div>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <span class="text-sm font-medium text-gray-500">Confirmar Reemplazo</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-900">
+                <i class="fas fa-exclamation-triangle mr-2 text-amber-600"></i>
+                Confirmar Reemplazo de Gerente
+            </h2>
+            <p class="text-sm text-gray-600 mt-1">
+                El equipo ya tiene un gerente activo. ¿Deseas reemplazarlo?
+            </p>
+        </div>
+
+        <!-- Advertencia principal -->
+        <div class="px-6 py-4 bg-amber-50 border-b border-gray-200">
+            <div class="flex items-start">
+                <i class="fas fa-exclamation-triangle text-amber-600 text-xl mr-3 mt-1"></i>
+                <div>
+                    <h3 class="text-lg font-medium text-amber-900">¡Atención! Solo puede haber un gerente activo por equipo</h3>
+                    <p class="text-sm text-amber-800 mt-1">
+                        El equipo <strong>{{ equipo.nombre }}</strong> ya tiene un gerente activo. 
+                        Si continúas, el gerente actual será <strong>desactivado automáticamente</strong>.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6">
+            <!-- Comparación de gerentes -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <!-- Gerente Actual -->
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <h4 class="text-sm font-medium text-red-900 mb-3 flex items-center">
+                        <i class="fas fa-user-times mr-2"></i>
+                        Gerente Actual (será desactivado)
+                    </h4>
+                    <div class="flex items-center">
+                        <div class="h-12 w-12 bg-red-100 rounded-full flex items-center justify-center mr-3">
+                            <i class="fas fa-user-tie text-red-600"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium text-red-900">
+                                {{ gerente_actual.usuario.get_full_name|default:gerente_actual.usuario.username }}
+                            </p>
+                            <p class="text-sm text-red-700">{{ gerente_actual.usuario.email }}</p>
+                            <p class="text-xs text-red-600">Asignado desde: {{ gerente_actual.created_at|date:"d/m/Y" }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Nuevo Gerente -->
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h4 class="text-sm font-medium text-green-900 mb-3 flex items-center">
+                        <i class="fas fa-user-plus mr-2"></i>
+                        Nuevo Gerente (será activado)
+                    </h4>
+                    <div class="flex items-center">
+                        <div class="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                            <i class="fas fa-user-tie text-green-600"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium text-green-900">
+                                {{ usuario_nuevo.get_full_name|default:usuario_nuevo.username }}
+                            </p>
+                            <p class="text-sm text-green-700">{{ usuario_nuevo.email }}</p>
+                            <p class="text-xs text-green-600">Será asignado hoy</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Jefes de venta que serán transferidos -->
+            {% if gerente_actual.jefeventas.exists %}
+            <div class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h4 class="text-sm font-medium text-blue-900 mb-2">
+                    <i class="fas fa-exchange-alt mr-1"></i>
+                    Jefes de Venta que serán transferidos
+                </h4>
+                <p class="text-sm text-blue-800 mb-3">
+                    Los siguientes jefes de venta serán automáticamente reasignados al nuevo gerente:
+                </p>
+                <ul class="text-sm text-blue-800 space-y-1">
+                    {% for jefe in gerente_actual.jefeventas.all %}
+                        {% if jefe.activo %}
+                            <li>• <strong>{{ jefe.usuario.get_full_name|default:jefe.usuario.username }}</strong> ({{ jefe.usuario.email }})</li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Consecuencias del cambio -->
+            <div class="mb-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                <h4 class="text-sm font-medium text-yellow-900 mb-2">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Consecuencias de este cambio
+                </h4>
+                <ul class="text-sm text-yellow-800 space-y-1">
+                    <li>• El gerente actual <strong>{{ gerente_actual.usuario.get_full_name|default:gerente_actual.usuario.username }}</strong> será desactivado</li>
+                    <li>• Perderá acceso a las funciones de gerente del equipo {{ equipo.nombre }}</li>
+                    <li>• {{ usuario_nuevo.get_full_name|default:usuario_nuevo.username }} se convertirá en el nuevo gerente activo</li>
+                    {% if gerente_actual.jefeventas.exists %}
+                        <li>• Todos los jefes de venta serán <strong>automáticamente transferidos</strong> al nuevo gerente</li>
+                    {% endif %}
+                    <li>• Se mantendrá el historial del gerente anterior</li>
+                    <li>• La jerarquía de team leaders y vendedores permanecerá intacta</li>
+                </ul>
+            </div>
+
+            <!-- Formulario de confirmación -->
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="usuario" value="{{ usuario_nuevo.id }}">
+                <input type="hidden" name="equipo" value="{{ equipo.id }}">
+                <input type="hidden" name="rol" value="{{ rol }}">
+                <input type="hidden" name="confirmar_reemplazo" value="true">
+
+                <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+                    <a href="{% url 'sales:jerarquia_create_member' %}" 
+                       class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors">
+                        <i class="fas fa-times mr-2"></i>Cancelar
+                    </a>
+                    
+                    <button type="submit" 
+                            class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                        <i class="fas fa-exchange-alt mr-2"></i>
+                        Sí, Reemplazar Gerente
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Información adicional -->
+    <div class="mt-6 bg-blue-50 rounded-xl border border-blue-200 p-4">
+        <h3 class="text-sm font-medium text-blue-900 mb-2">
+            <i class="fas fa-lightbulb mr-1"></i>
+            Alternativas a considerar
+        </h3>
+        <ul class="text-sm text-blue-800 space-y-1">
+            <li>• Puedes asignar al usuario como <strong>Jefe de Venta</strong> bajo el gerente actual</li>
+            <li>• Considera si realmente necesitas cambiar al gerente principal</li>
+            <li>• El gerente desactivado puede ser reactivado posteriormente si es necesario</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

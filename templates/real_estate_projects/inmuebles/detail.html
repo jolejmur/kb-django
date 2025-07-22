@@ -1,0 +1,317 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <div class="mb-6 flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">{{ title }}</h1>
+                <p class="text-gray-600 mt-1">{{ proyecto.nombre }} - {{ fase.nombre }}</p>
+            </div>
+            <div class="flex space-x-3">
+                <a href="{% url 'projects:inmueble_edit' inmueble.pk %}" 
+                   class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium inline-flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                    </svg>
+                    Editar
+                </a>
+                <a href="{% url 'projects:inmuebles_list' %}" 
+                   class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium inline-flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Volver a Lista
+                </a>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Información Principal -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Datos Básicos -->
+                <div class="bg-white rounded-lg shadow-sm border p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        Información Básica
+                    </h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Código</label>
+                            <p class="text-lg font-semibold text-gray-900">{{ inmueble.codigo }}</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Tipo</label>
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                                {{ inmueble.get_tipo_display }}
+                            </span>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Área Total</label>
+                            <p class="text-lg font-semibold text-gray-900">{{ inmueble.m2 }} m²</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Estado</label>
+                            {% if inmueble.estado == 'disponible' %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                    {{ inmueble.get_estado_display }}
+                                </span>
+                            {% elif inmueble.estado == 'reservado' %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                                    {{ inmueble.get_estado_display }}
+                                </span>
+                            {% elif inmueble.estado == 'vendido' %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                                    {{ inmueble.get_estado_display }}
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+                                    {{ inmueble.get_estado_display }}
+                                </span>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Comercializable</label>
+                            {% if inmueble.disponible_comercializacion %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    Sí
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                    No
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Factor de Precio</label>
+                            <p class="text-lg font-semibold text-gray-900">{{ inmueble.factor_precio }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ubicación -->
+                <div class="bg-white rounded-lg shadow-sm border p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        Ubicación
+                    </h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Proyecto</label>
+                            <p class="text-lg font-semibold text-gray-900">{{ proyecto.nombre }}</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Fase</label>
+                            <p class="text-lg font-semibold text-gray-900">{{ fase.nombre }}</p>
+                        </div>
+                        
+                        {% if torre %}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Torre</label>
+                            <p class="text-lg font-semibold text-gray-900">{{ torre.nombre }}</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Piso</label>
+                            <p class="text-lg font-semibold text-gray-900">Piso {{ piso.numero_piso }}</p>
+                        </div>
+                        {% elif sector %}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Sector</label>
+                            <p class="text-lg font-semibold text-gray-900">{{ sector.nombre }}</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Manzana</label>
+                            <p class="text-lg font-semibold text-gray-900">Manzana {{ manzana.numero_manzana }}</p>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Ubicación Completa</label>
+                            <p class="text-lg font-semibold text-blue-600">{{ inmueble.ubicacion_completa }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Características -->
+                {% if inmueble.caracteristicas %}
+                <div class="bg-white rounded-lg shadow-sm border p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                        </svg>
+                        Características
+                    </h2>
+                    <p class="text-gray-700 leading-relaxed">{{ inmueble.caracteristicas }}</p>
+                </div>
+                {% endif %}
+
+                <!-- Ponderadores Aplicados -->
+                {% if inmueble.ponderadores.exists %}
+                <div class="bg-white rounded-lg shadow-sm border p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                        </svg>
+                        Ponderadores Aplicados
+                    </h2>
+                    
+                    <div class="space-y-3">
+                        {% for ponderador in inmueble.ponderadores.all %}
+                        <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-medium text-orange-900">{{ ponderador.nombre }}</h4>
+                                    <p class="text-sm text-orange-700">{{ ponderador.get_tipo_display }} - {{ ponderador.get_nivel_aplicacion_display }}</p>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-lg font-bold text-orange-600">{{ ponderador.valor_display }}</span>
+                                    <div class="text-xs text-orange-600">
+                                        {% if ponderador.activo %}
+                                            <span class="text-green-600">● Activo</span>
+                                        {% else %}
+                                            <span class="text-red-600">● Inactivo</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% if ponderador.descripcion %}
+                            <p class="text-sm text-orange-600 mt-2">{{ ponderador.descripcion }}</p>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Panel Lateral -->
+            <div class="space-y-6">
+                <!-- Precio -->
+                <div class="bg-white rounded-lg shadow-sm border p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                        </svg>
+                        Información de Precio
+                    </h2>
+                    
+                    <div class="space-y-4">
+                        <div class="text-center bg-green-50 rounded-lg p-4">
+                            <label class="block text-sm font-medium text-green-600 mb-1">Precio Total</label>
+                            <p class="text-3xl font-bold text-green-700">${{ inmueble.precio_calculado|floatformat:0 }}</p>
+                        </div>
+                        
+                        <div class="text-center bg-blue-50 rounded-lg p-4">
+                            <label class="block text-sm font-medium text-blue-600 mb-1">Precio por m²</label>
+                            <p class="text-xl font-semibold text-blue-700">${{ inmueble.precio_por_m2|floatformat:0 }}</p>
+                        </div>
+                        
+                        {% if inmueble.precio_manual %}
+                        <div class="text-center bg-yellow-50 rounded-lg p-4">
+                            <label class="block text-sm font-medium text-yellow-600 mb-1">Precio Manual</label>
+                            <p class="text-xl font-semibold text-yellow-700">${{ inmueble.precio_manual|floatformat:0 }}</p>
+                            <p class="text-xs text-yellow-600 mt-1">Sobrescribe cálculo automático</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Información del Proyecto -->
+                <div class="bg-white rounded-lg shadow-sm border p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
+                        Proyecto
+                    </h2>
+                    
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500">Nombre</label>
+                            <p class="font-medium text-gray-900">{{ proyecto.nombre }}</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500">Tipo</label>
+                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                {{ proyecto.get_tipo_display }}
+                            </span>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500">Estado</label>
+                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                {{ proyecto.get_estado_display }}
+                            </span>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500">Precio Base/m²</label>
+                            <p class="font-medium text-gray-900">${{ fase.precio_m2|floatformat:0 }}</p>
+                        </div>
+                        
+                        <div class="pt-3">
+                            <a href="{% url 'projects:detail' proyecto.pk %}" 
+                               class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                Ver proyecto completo →
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Metadatos -->
+                <div class="bg-white rounded-lg shadow-sm border p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Información del Sistema
+                    </h2>
+                    
+                    <div class="space-y-3 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Creado:</span>
+                            <span class="text-gray-900">{{ inmueble.created_at|date:"d/m/Y H:i" }}</span>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Actualizado:</span>
+                            <span class="text-gray-900">{{ inmueble.updated_at|date:"d/m/Y H:i" }}</span>
+                        </div>
+                        
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">ID:</span>
+                            <span class="text-gray-900 font-mono">{{ inmueble.pk }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

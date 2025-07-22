@@ -1,0 +1,244 @@
+<div class="fixed inset-y-0 left-0 w-72 bg-gradient-to-b from-slate-800 to-slate-900 text-slate-200 overflow-y-auto z-50">
+    <!-- Logo -->
+    {% include 'components/navigation/logo.html' %}
+
+    <!-- User Profile -->
+    {% if user.is_authenticated %}
+        {% include 'components/user/profile_card.html' %}
+    {% endif %}
+
+    <!-- Navigation Sections -->
+    <nav class="mt-6">
+        <!-- DASHBOARDS Section (FIJO PARA TODOS LOS USUARIOS AUTENTICADOS) -->
+        {% if user.is_authenticated %}
+            <div class="px-6 mb-6">
+                <h3 class="text-xs font-semibold text-pink-400 uppercase tracking-wider mb-3">
+                    <i class="fas fa-tachometer-alt mr-1"></i>
+                    DASHBOARDS
+                </h3>
+                <p class="text-xs text-slate-500 mb-4">
+                    Panel principal de usuario
+                </p>
+
+                <ul class="space-y-1">
+                    <li>
+                        <a href="{% url 'dashboard:profile' %}"
+                           class="flex items-center px-4 py-3 rounded-lg text-slate-300 hover:text-slate-100 hover:bg-blue-600/10 transition-colors group {% if request.resolver_match.url_name == 'profile' %}bg-blue-600/15 text-blue-400{% endif %}">
+                            <i class="fas fa-user w-5 text-center mr-3 group-hover:text-blue-400"></i>
+                            <span class="font-medium">Mi Perfil</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        {% endif %}
+
+        <!-- SECCIONES DINÁMICAS BASADAS EN ROL DEL USUARIO -->
+        {% if user.is_authenticated and user.role %}
+            <!-- Mostrar navegación basada en el rol del usuario -->
+            {% for category_name, category_data in user.get_navigation_by_categories.items %}
+                <div class="px-6 mb-6">
+                    <h3 class="text-xs font-semibold text-{{ category_data.category.color|default:'gray' }}-400 uppercase tracking-wider mb-3 flex items-center justify-between cursor-pointer category-header" data-category="{{ category_name|slugify }}">
+                        <span>
+                            {% if category_data.category.icon %}
+                                <i class="{{ category_data.category.icon }} mr-1"></i>
+                            {% endif %}
+                            {{ category_name }}
+                        </span>
+                        <i class="fas fa-chevron-down text-xs transition-transform duration-200 category-chevron rotated"></i>
+                    </h3>
+                    <div class="category-content collapsed" data-category="{{ category_name|slugify }}">
+                        {% if category_data.category.description %}
+                            <p class="text-xs text-slate-500 mb-4">
+                                {{ category_data.category.description }}
+                            </p>
+                        {% endif %}
+
+                        <ul class="space-y-1">
+                            {% for item in category_data.items %}
+                                <li>
+                                    <a href="{{ item.url }}"
+                                       class="flex items-center px-4 py-3 rounded-lg text-slate-300 hover:text-slate-100 hover:bg-{{ category_data.category.color|default:'gray' }}-600/10 transition-colors group
+                                       {% comment %} Detectar si está activo basado en la URL {% endcomment %}
+                                       {% if request.get_full_path == item.url %}bg-{{ category_data.category.color|default:'gray' }}-600/15 text-{{ category_data.category.color|default:'gray' }}-400{% endif %}">
+                                        {% if item.icon %}
+                                            <i class="{{ item.icon }} w-5 text-center mr-3 group-hover:text-{{ category_data.category.color|default:'gray' }}-400"></i>
+                                        {% else %}
+                                            <i class="fas fa-circle w-5 text-center mr-3 group-hover:text-{{ category_data.category.color|default:'gray' }}-400"></i>
+                                        {% endif %}
+                                        <span class="font-medium">{{ item.name }}</span>
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- ADMINISTRACIÓN DJANGO (SOLO PARA SUPERUSUARIOS - FIJO) -->
+        {% if user.is_superuser %}
+        <div class="px-6 mb-6">
+            <h3 class="text-xs font-semibold text-yellow-400 uppercase tracking-wider mb-3">
+                <i class="fas fa-database mr-1"></i>
+                ADMINISTRACIÓN DJANGO
+            </h3>
+            <p class="text-xs text-slate-500 mb-4">
+                Panel de administración avanzado
+            </p>
+
+            <ul class="space-y-1">
+                <li>
+                    <a href="/admin/" target="_blank"
+                       class="flex items-center px-4 py-3 rounded-lg text-slate-300 hover:text-slate-100 hover:bg-yellow-600/10 transition-colors group">
+                        <i class="fas fa-database w-5 text-center mr-3 group-hover:text-yellow-400"></i>
+                        <span class="font-medium">Admin Django</span>
+                        <i class="fas fa-external-link-alt ml-auto text-xs"></i>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- MENSAJE PARA USUARIOS SIN ROL -->
+        {% if user.is_authenticated and not user.role %}
+            <div class="px-6 mb-6">
+                <div class="bg-yellow-600/20 border border-yellow-600/30 rounded-lg p-4">
+                    <div class="flex items-center">
+                        <i class="fas fa-exclamation-triangle text-yellow-400 mr-3"></i>
+                        <div>
+                            <h4 class="text-sm font-medium text-yellow-200">Sin rol asignado</h4>
+                            <p class="text-xs text-yellow-300 mt-1">
+                                Contacta al administrador para asignarte un rol y acceder a las funciones del sistema.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </nav>
+</div>
+
+<style>
+.category-content {
+    transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+    max-height: 1000px;
+    opacity: 1;
+    overflow: hidden;
+    visibility: hidden; /* Ocultar hasta que JS termine */
+}
+
+.category-content.collapsed {
+    max-height: 0;
+    opacity: 0;
+}
+
+.category-content.js-ready {
+    visibility: visible; /* Mostrar cuando JS esté listo */
+}
+
+.category-chevron.rotated {
+    transform: rotate(-90deg);
+}
+
+.category-chevron {
+    visibility: hidden; /* Ocultar chevron inicialmente */
+}
+
+.category-chevron.js-ready {
+    visibility: visible; /* Mostrar chevron cuando JS esté listo */
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Función para detectar la categoría activa basándose en la URL
+    function getActiveCategoryFromUrl() {
+        const currentPath = window.location.pathname;
+        
+        // Buscar qué enlace está activo
+        const activeLink = document.querySelector('.category-content a[href="' + currentPath + '"]');
+        if (activeLink) {
+            const categoryContent = activeLink.closest('.category-content');
+            if (categoryContent) {
+                return categoryContent.dataset.category;
+            }
+        }
+        
+        // Si no encuentra un enlace exacto, buscar por prefijo de URL
+        const categoryContents = document.querySelectorAll('.category-content');
+        for (let content of categoryContents) {
+            const links = content.querySelectorAll('a[href]');
+            for (let link of links) {
+                const linkPath = link.getAttribute('href');
+                if (currentPath.startsWith(linkPath) && linkPath !== '/') {
+                    return content.dataset.category;
+                }
+            }
+        }
+        
+        return null;
+    }
+    
+    // Obtener estados guardados del localStorage
+    const savedStates = JSON.parse(localStorage.getItem('sidebarCategoriesState') || '{}');
+    
+    // Detectar categoría activa
+    const activeCategory = getActiveCategoryFromUrl();
+    
+    // Aplicar estados: expandir la categoría activa, colapsar las demás
+    document.querySelectorAll('.category-content').forEach(content => {
+        const categorySlug = content.dataset.category;
+        const header = document.querySelector(`.category-header[data-category="${categorySlug}"]`);
+        const chevron = header ? header.querySelector('.category-chevron') : null;
+        
+        if (categorySlug === activeCategory) {
+            // Expandir la categoría activa
+            content.classList.remove('collapsed');
+            if (chevron) chevron.classList.remove('rotated');
+            
+            // Actualizar localStorage para que se mantenga expandida
+            savedStates[categorySlug] = 'expanded';
+        } else {
+            // Aplicar estado guardado o colapsar por defecto
+            if (savedStates[categorySlug] === 'expanded') {
+                content.classList.remove('collapsed');
+                if (chevron) chevron.classList.remove('rotated');
+            } else {
+                content.classList.add('collapsed');
+                if (chevron) chevron.classList.add('rotated');
+            }
+        }
+    });
+    
+    // Guardar estados actualizados
+    localStorage.setItem('sidebarCategoriesState', JSON.stringify(savedStates));
+    
+    // Mostrar todos los elementos ahora que están configurados
+    document.querySelectorAll('.category-content').forEach(content => {
+        content.classList.add('js-ready');
+    });
+    
+    document.querySelectorAll('.category-chevron').forEach(chevron => {
+        chevron.classList.add('js-ready');
+    });
+    
+    // Agregar event listeners a los headers
+    document.querySelectorAll('.category-header').forEach(header => {
+        header.addEventListener('click', function() {
+            const categorySlug = this.dataset.category;
+            const content = document.querySelector(`.category-content[data-category="${categorySlug}"]`);
+            const chevron = this.querySelector('.category-chevron');
+            
+            if (content && chevron) {
+                content.classList.toggle('collapsed');
+                chevron.classList.toggle('rotated');
+                
+                // Guardar estado en localStorage
+                const currentStates = JSON.parse(localStorage.getItem('sidebarCategoriesState') || '{}');
+                currentStates[categorySlug] = content.classList.contains('collapsed') ? 'collapsed' : 'expanded';
+                localStorage.setItem('sidebarCategoriesState', JSON.stringify(currentStates));
+            }
+        });
+    });
+});
+</script>

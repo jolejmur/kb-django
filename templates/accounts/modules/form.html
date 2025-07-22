@@ -1,0 +1,228 @@
+{% extends 'base/base.html' %}
+
+{% block title %}{{ title }} - Django CRM{% endblock %}
+
+{% block header %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Back Button -->
+    <div class="mb-6">
+        <a href="{% url 'accounts:modules_list' %}"
+           class="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Volver a Módulos
+        </a>
+    </div>
+
+    <!-- Help Text -->
+    {% if help_text %}
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div class="flex">
+                <i class="fas fa-info-circle text-blue-400 mt-0.5 mr-3"></i>
+                <div>
+                    <h4 class="text-sm font-medium text-blue-800 mb-1">¿Qué es un Módulo?</h4>
+                    <p class="text-sm text-blue-700">{{ help_text }}</p>
+                    <p class="text-sm text-blue-700 mt-1">Ejemplo: "Ventas" podría incluir permisos para crear, editar y ver ventas.</p>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <form method="post" class="space-y-8">
+        {% csrf_token %}
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Información Básica -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+                        <i class="fas fa-info-circle mr-3 text-blue-600"></i>
+                        Información Básica
+                    </h2>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.name.label }}
+                            </label>
+                            {{ form.name }}
+                            {% if form.name.help_text %}
+                                <p class="text-xs text-gray-500 mt-1">{{ form.name.help_text }}</p>
+                            {% endif %}
+                            {% if form.name.errors %}
+                                <div class="mt-2 text-sm text-red-600">
+                                    {% for error in form.name.errors %}
+                                        <p>{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Configuración de Navegación -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+                        <i class="fas fa-bars mr-3 text-green-600"></i>
+                        Configuración de Menú
+                    </h2>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label for="{{ form.nav_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.nav_name.label }}
+                            </label>
+                            {{ form.nav_name }}
+                            <p class="text-xs text-gray-500 mt-1">{{ form.nav_name.help_text }}</p>
+                            {% if form.nav_name.errors %}
+                                <div class="mt-2 text-sm text-red-600">
+                                    {% for error in form.nav_name.errors %}
+                                        <p>{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <label for="{{ form.nav_url.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.nav_url.label }}
+                            </label>
+                            {{ form.nav_url }}
+                            <p class="text-xs text-gray-500 mt-1">{{ form.nav_url.help_text }}</p>
+                            {% if form.nav_url.errors %}
+                                <div class="mt-2 text-sm text-red-600">
+                                    {% for error in form.nav_url.errors %}
+                                        <p>{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <label for="{{ form.nav_icon.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.nav_icon.label }}
+                            </label>
+                            {{ form.nav_icon }}
+                            <p class="text-xs text-gray-500 mt-1">{{ form.nav_icon.help_text }}</p>
+                            {% if form.nav_icon.errors %}
+                                <div class="mt-2 text-sm text-red-600">
+                                    {% for error in form.nav_icon.errors %}
+                                        <p>{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <label for="{{ form.nav_order.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.nav_order.label }}
+                            </label>
+                            {{ form.nav_order }}
+                            <p class="text-xs text-gray-500 mt-1">{{ form.nav_order.help_text }}</p>
+                            {% if form.nav_order.errors %}
+                                <div class="mt-2 text-sm text-red-600">
+                                    {% for error in form.nav_order.errors %}
+                                        <p>{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Selección de Permisos -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+                        <i class="fas fa-shield-alt mr-3 text-purple-600"></i>
+                        Selección de Permisos
+                    </h2>
+
+                    {% if form.permissions_by_app %}
+                        <div class="space-y-6">
+                            {% for app_name, perms in form.permissions_by_app.items %}
+                                <div class="border border-gray-200 rounded-lg p-4">
+                                    <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                                        <i class="fas fa-folder-open mr-2 text-blue-500"></i>
+                                        {{ app_name }}
+                                        <button type="button" onclick="toggleApp('{{ app_name|slugify }}')"
+                                                class="ml-auto text-sm text-blue-600 hover:text-blue-800">
+                                            Seleccionar todos
+                                        </button>
+                                    </h3>
+
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="app-{{ app_name|slugify }}">
+                                        {% for perm in perms %}
+                                            <div class="flex items-start">
+                                                <input type="checkbox"
+                                                       name="permissions"
+                                                       value="{{ perm.id }}"
+                                                       id="permission_{{ perm.id }}"
+                                                       class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mt-1"
+                                                       {% if perm in form.permissions.value or perm in form.fields.permissions.initial %}checked{% endif %}>
+                                                <label for="permission_{{ perm.id }}" class="ml-2 text-sm text-gray-700">
+                                                    <span class="font-medium">{{ perm.name }}</span>
+                                                    <br>
+                                                    <span class="text-xs text-gray-500">{{ perm.codename }}</span>
+                                                </label>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-8">
+                            <i class="fas fa-shield-alt text-gray-300 text-4xl mb-4"></i>
+                            <p class="text-gray-500">No hay permisos disponibles</p>
+                        </div>
+                    {% endif %}
+
+                    {% if form.permissions.errors %}
+                        <div class="mt-4 text-sm text-red-600">
+                            {% for error in form.permissions.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    {% if form.non_field_errors %}
+                        <div class="mt-4 text-sm text-red-600">
+                            {% for error in form.non_field_errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+            <a href="{% url 'accounts:modules_list' %}"
+               class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors">
+                Cancelar
+            </a>
+            <button type="submit"
+                    class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center">
+                <i class="fas fa-save mr-2"></i>
+                {{ action }} Módulo
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+function toggleApp(appSlug) {
+    const container = document.getElementById('app-' + appSlug);
+    const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+
+    checkboxes.forEach(cb => {
+        cb.checked = !allChecked;
+    });
+}
+</script>
+{% endblock %}

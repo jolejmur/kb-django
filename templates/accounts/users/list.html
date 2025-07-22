@@ -1,0 +1,197 @@
+<!-- templates/accounts/users/list.html -->
+{% extends 'base/base.html' %}
+
+{% block title %}Usuarios - Django CRM{% endblock %}
+
+{% block header %}Usuarios{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header con botón de crear -->
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Usuarios del Sistema</h1>
+            <p class="text-gray-600 mt-1">Gestiona usuarios y asigna roles</p>
+        </div>
+        <a href="{% url 'accounts:user_create' %}"
+           class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium flex items-center transition-colors">
+            <i class="fas fa-plus mr-2"></i>
+            Crear Usuario
+        </a>
+    </div>
+
+    <!-- Lista de usuarios -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        {% if page_obj %}
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <tbody class="divide-y divide-gray-200">
+                        {% for user_obj in page_obj %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center">
+                                        <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                                            {% if user_obj.is_superuser %}
+                                                <i class="fas fa-crown text-yellow-600"></i>
+                                            {% else %}
+                                                <i class="fas fa-user text-green-600"></i>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">
+                                                {{ user_obj.get_full_name|default:user_obj.username }}
+                                                {% if user_obj.is_superuser %}
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 ml-2">
+                                                        <i class="fas fa-shield-alt mr-1"></i>
+                                                        SUPERADMIN
+                                                    </span>
+                                                {% endif %}
+                                            </p>
+                                            <p class="text-xs text-gray-500">@{{ user_obj.username }}</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <p class="text-sm text-gray-900">{{ user_obj.email|default:"Sin email" }}</p>
+                                </td>
+                                <td class="px-6 py-4">
+                                    {% if user_obj.role %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                            {{ user_obj.role.name }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-xs text-gray-400">Sin rol</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4">
+                                    {% if user_obj.is_active %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            <i class="fas fa-check-circle mr-1"></i>
+                                            Activo
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                            <i class="fas fa-times-circle mr-1"></i>
+                                            Inactivo
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4">
+                                    <p class="text-sm text-gray-900">
+                                        {% if user_obj.last_login %}
+                                            {{ user_obj.last_login|timesince }} ago
+                                        {% else %}
+                                            Nunca
+                                        {% endif %}
+                                    </p>
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <div class="flex items-center justify-end space-x-2">
+                                        <!-- Ver siempre está disponible -->
+                                        <a href="{% url 'accounts:user_detail' user_obj.pk %}"
+                                           class="text-gray-400 hover:text-gray-600 transition-colors"
+                                           title="Ver detalles">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+
+                                        <!-- ✅ PROTECCIÓN: Solo mostrar editar si se puede editar -->
+                                        {% if not user_obj.is_superuser %}
+                                            <a href="{% url 'accounts:user_edit' user_obj.pk %}"
+                                               class="text-green-400 hover:text-green-600 transition-colors"
+                                               title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        {% else %}
+                                            <span class="text-gray-300 cursor-not-allowed"
+                                                  title="Los superadministradores están protegidos">
+                                                <i class="fas fa-edit"></i>
+                                            </span>
+                                        {% endif %}
+
+                                        <!-- ✅ PROTECCIÓN: Solo mostrar eliminar si se puede eliminar -->
+                                        {% if not user_obj.is_superuser and user_obj != user %}
+                                            <a href="{% url 'accounts:user_delete' user_obj.pk %}"
+                                               class="text-red-400 hover:text-red-600 transition-colors"
+                                               title="Eliminar">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        {% else %}
+                                            <span class="text-gray-300 cursor-not-allowed"
+                                                  title="{% if user_obj.is_superuser %}Los superadministradores están protegidos{% elif user_obj == user %}No puedes eliminarte a ti mismo{% endif %}">
+                                                <i class="fas fa-trash"></i>
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginación -->
+            {% if page_obj.has_other_pages %}
+                <div class="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                    <div class="text-sm text-gray-700">
+                        Mostrando {{ page_obj.start_index }} - {{ page_obj.end_index }} de {{ page_obj.paginator.count }} usuarios
+                    </div>
+                    <div class="flex space-x-2">
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}"
+                               class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
+                                Anterior
+                            </a>
+                        {% endif %}
+
+                        <span class="px-3 py-1 bg-green-600 text-white rounded text-sm">
+                            {{ page_obj.number }}
+                        </span>
+
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}"
+                               class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
+                                Siguiente
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-12">
+                <i class="fas fa-users text-gray-300 text-6xl mb-4"></i>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No hay usuarios</h3>
+                <p class="text-gray-500 mb-6">Comienza creando tu primer usuario.</p>
+                <a href="{% url 'accounts:user_create' %}"
+                   class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium inline-flex items-center">
+                    <i class="fas fa-plus mr-2"></i>
+                    Crear Primer Usuario
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Información sobre protecciones -->
+<div class="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+    <div class="flex">
+        <i class="fas fa-shield-alt text-yellow-400 mt-0.5 mr-3"></i>
+        <div>
+            <h4 class="text-sm font-medium text-yellow-800 mb-1">Protecciones de Seguridad</h4>
+            <ul class="text-sm text-yellow-700 space-y-1">
+                <li>• Los <strong>superadministradores</strong> están protegidos y no pueden ser editados ni eliminados</li>
+                <li>• No puedes eliminar tu propia cuenta</li>
+                <li>• Solo los superadministradores pueden gestionar otros usuarios</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}<thead class="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th class="text-left px-6 py-4 text-sm font-medium text-gray-900">Usuario</th>
+                            <th class="text-left px-6 py-4 text-sm font-medium text-gray-900">Email</th>
+                            <th class="text-left px-6 py-4 text-sm font-medium text-gray-900">Rol</th>
+                            <th class="text-left px-6 py-4 text-sm font-medium text-gray-900">Estado</th>
+                            <th class="text-left px-6 py-4 text-sm font-medium text-gray-900">Último Login</th>
+                            <th class="text-right px-6 py-4 text-sm font-medium text-gray-900">Acciones</th>
+                        </tr>
+                    </thead>

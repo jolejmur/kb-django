@@ -1,0 +1,909 @@
+<!-- templates/sales/equipos/hierarchy.html -->
+{% extends 'base/base.html' %}
+
+{% block title %}Jerarquía - {{ equipo.nombre }}{% endblock %}
+
+{% block header %}Jerarquía del Equipo{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Breadcrumb -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            <li class="inline-flex items-center">
+                <a href="{% url 'sales:equipos_list' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    <i class="fas fa-users mr-2"></i>
+                    Equipos de Venta
+                </a>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <a href="{% url 'sales:equipos_detail' equipo.pk %}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
+                        {{ equipo.nombre }}
+                    </a>
+                </div>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <span class="text-sm font-medium text-gray-500">Jerarquía</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Jerarquía: {{ equipo.nombre }}</h1>
+            <p class="text-gray-600">Gestiona la estructura jerárquica del equipo de ventas</p>
+        </div>
+        <div class="flex space-x-3">
+            <a href="{% url 'sales:equipos_detail' equipo.pk %}" 
+               class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>Volver
+            </a>
+            {% if not tiene_gerente_activo %}
+                <a href="{% url 'sales:equipos_add_gerente' equipo.pk %}" 
+                   class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                    <i class="fas fa-user-tie mr-2"></i>Agregar Gerente
+                </a>
+            {% endif %}
+            <a href="{% url 'sales:equipos_add_member' equipo.pk %}" 
+               class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                <i class="fas fa-plus mr-2"></i>Agregar Miembro
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros y Búsqueda -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+        <div class="flex flex-wrap items-center gap-4 mb-4">
+            <div class="flex items-center">
+                <label class="text-sm font-medium text-gray-700 mr-2">Filtros:</label>
+            </div>
+            
+            <!-- Mostrar inactivos -->
+            <div class="flex items-center">
+                <input type="checkbox" id="mostrar_inactivos" 
+                       {% if mostrar_inactivos %}checked{% endif %}
+                       onchange="updateFilters()"
+                       class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                <label for="mostrar_inactivos" class="ml-2 text-sm text-gray-700">
+                    Mostrar solo miembros inactivos
+                </label>
+            </div>
+
+            <!-- Filtro por rol -->
+            <div class="flex items-center">
+                <label for="filtro_rol" class="text-sm text-gray-700 mr-2">Rol:</label>
+                <select id="filtro_rol" onchange="updateFilters()" 
+                        class="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500">
+                    <option value="todos" {% if filtro_rol == 'todos' %}selected{% endif %}>Todos</option>
+                    <option value="gerente" {% if filtro_rol == 'gerente' %}selected{% endif %}>Gerentes</option>
+                    <option value="jefe" {% if filtro_rol == 'jefe' %}selected{% endif %}>Jefes de Venta</option>
+                    <option value="leader" {% if filtro_rol == 'leader' %}selected{% endif %}>Team Leaders</option>
+                    <option value="vendedor" {% if filtro_rol == 'vendedor' %}selected{% endif %}>Vendedores</option>
+                </select>
+            </div>
+
+            <!-- Controles de colapso -->
+            <div class="flex items-center space-x-2">
+                <button onclick="toggleAllSections(true)" 
+                        class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded transition-colors"
+                        title="Expandir todo">
+                    <i class="fas fa-expand-alt mr-1"></i>Expandir Todo
+                </button>
+                <button onclick="toggleAllSections(false)" 
+                        class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded transition-colors"
+                        title="Colapsar todo">
+                    <i class="fas fa-compress-alt mr-1"></i>Colapsar Todo
+                </button>
+            </div>
+
+            <!-- Resumen rápido -->
+            <div class="ml-auto text-sm text-gray-600">
+                Total: <span class="font-semibold">{{ stats.total_miembros }}</span> miembros
+            </div>
+        </div>
+        
+        <!-- Buscador -->
+        <div class="border-t border-gray-200 pt-4">
+            <div class="flex items-center gap-4">
+                <div class="flex items-center">
+                    <label class="text-sm font-medium text-gray-700 mr-2">Buscar:</label>
+                </div>
+                <div class="flex-1 max-w-md">
+                    <div class="relative">
+                        <input type="text" 
+                               id="search_member" 
+                               placeholder="Buscar por nombre, email o rol..." 
+                               class="w-full px-4 py-2 pl-10 pr-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                               oninput="searchMembers(this.value)">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-search text-gray-400"></i>
+                        </div>
+                        <button onclick="clearSearch()" 
+                                id="clear_search" 
+                                class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 hidden"
+                                title="Limpiar búsqueda">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="text-xs text-gray-500">
+                    <span id="search_results_count"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Información del equipo -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
+            <div>
+                <p class="text-3xl font-bold text-blue-600">{{ stats.total_gerentes }}</p>
+                <p class="text-sm text-gray-500">Gerentes</p>
+            </div>
+            <div>
+                <p class="text-3xl font-bold text-green-600">{{ stats.total_jefes }}</p>
+                <p class="text-sm text-gray-500">Jefes de Venta</p>
+            </div>
+            <div>
+                <p class="text-3xl font-bold text-purple-600">{{ stats.total_leaders }}</p>
+                <p class="text-sm text-gray-500">Team Leaders</p>
+            </div>
+            <div>
+                <p class="text-3xl font-bold text-orange-600">{{ stats.total_vendedores }}</p>
+                <p class="text-sm text-gray-500">Vendedores</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estructura jerárquica -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h2 class="text-lg font-semibold text-gray-900">Estructura del Equipo</h2>
+        </div>
+        <div class="p-6">
+            {% if hierarchy_data %}
+                <!-- Jerarquía visual -->
+                <div class="space-y-6">
+                    {% for gerente_data in hierarchy_data %}
+                        {% with gerente=gerente_data.gerente %}
+                        <div class="border-l-4 border-blue-500 pl-6">
+                            <!-- Gerente -->
+                            <div class="flex items-center justify-between p-4 bg-blue-50 rounded-lg mb-4 member-card" 
+                                 data-name="{{ gerente.usuario.get_full_name|default:gerente.usuario.username|lower }}"
+                                 data-email="{{ gerente.usuario.email|lower }}"
+                                 data-role="gerente"
+                                 data-username="{{ gerente.usuario.username|lower }}">
+                                <div class="flex items-center">
+                                    <!-- Botón de colapso para el gerente -->
+                                    {% if gerente_data.jefes_venta %}
+                                        <button onclick="toggleCollapse('gerente-{{ gerente.id }}')" 
+                                                class="mr-3 p-1 rounded hover:bg-blue-200 transition-colors"
+                                                title="Expandir/Colapsar">
+                                            <i id="icon-gerente-{{ gerente.id }}" class="fas fa-chevron-down text-blue-600 transition-transform"></i>
+                                        </button>
+                                    {% else %}
+                                        <div class="mr-3 p-1 w-6"></div>
+                                    {% endif %}
+                                    <div class="h-12 w-12 bg-blue-500 rounded-full flex items-center justify-center text-white">
+                                        <i class="fas fa-user-tie"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <h3 class="text-lg font-semibold text-gray-900">
+                                            {{ gerente.usuario.get_full_name|default:gerente.usuario.username }}
+                                            {% if gerente_data.jefes_venta %}
+                                                <span class="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                                    {{ gerente_data.jefes_venta|length }} jefe{{ gerente_data.jefes_venta|length|pluralize:"s" }}
+                                                </span>
+                                            {% endif %}
+                                        </h3>
+                                        <p class="text-sm text-gray-600">Gerente de Equipo</p>
+                                        <p class="text-xs text-gray-500">{{ gerente.usuario.email }}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    {% if gerente.activo %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            Activo
+                                        </span>
+                                        <button onclick="cambiarEstadoMiembro('gerente', {{ gerente.id }}, false)" 
+                                                class="text-orange-400 hover:text-orange-600 px-2 py-1 rounded" 
+                                                title="Desactivar">
+                                            <i class="fas fa-pause"></i>
+                                        </button>
+                                    {% else %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                            Inactivo
+                                        </span>
+                                        <button onclick="cambiarEstadoMiembro('gerente', {{ gerente.id }}, true)" 
+                                                class="text-green-400 hover:text-green-600 px-2 py-1 rounded" 
+                                                title="Activar">
+                                            <i class="fas fa-play"></i>
+                                        </button>
+                                    {% endif %}
+                                    <div class="relative">
+                                        <button onclick="toggleMigrationMenu('gerente-{{ gerente.id }}')" 
+                                                class="text-blue-400 hover:text-blue-600 px-2 py-1 rounded" 
+                                                title="Migrar a otro equipo">
+                                            <i class="fas fa-exchange-alt"></i>
+                                        </button>
+                                        <div id="migration-gerente-{{ gerente.id }}" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
+                                            <div class="py-1">
+                                                <p class="px-3 py-2 text-xs font-medium text-gray-500 border-b">Migrar a:</p>
+                                                {% for equipo_dest in equipos_disponibles %}
+                                                    <button onclick="migrarMiembro('gerente', {{ gerente.id }}, {{ equipo_dest.id }}, '{{ equipo_dest.nombre|escapejs }}')" 
+                                                            class="block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100">
+                                                        {{ equipo_dest.nombre }}
+                                                    </button>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Jefes de Venta bajo este gerente -->
+                            {% if gerente_data.jefes_venta %}
+                                <div id="content-gerente-{{ gerente.id }}" class="ml-8 space-y-4 collapsible-content">
+                                    {% for jefe_data in gerente_data.jefes_venta %}
+                                        {% with jefe=jefe_data.jefe %}
+                                        <div class="border-l-4 border-green-500 pl-6">
+                                            <!-- Jefe de Venta -->
+                                            <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg mb-3 member-card"
+                                                 data-name="{{ jefe.usuario.get_full_name|default:jefe.usuario.username|lower }}"
+                                                 data-email="{{ jefe.usuario.email|lower }}"
+                                                 data-role="jefe de venta"
+                                                 data-username="{{ jefe.usuario.username|lower }}">
+                                                <div class="flex items-center">
+                                                    <!-- Botón de colapso para el jefe -->
+                                                    {% if jefe_data.team_leaders %}
+                                                        <button onclick="toggleCollapse('jefe-{{ jefe.id }}')" 
+                                                                class="mr-2 p-1 rounded hover:bg-green-200 transition-colors"
+                                                                title="Expandir/Colapsar">
+                                                            <i id="icon-jefe-{{ jefe.id }}" class="fas fa-chevron-down text-green-600 transition-transform text-sm"></i>
+                                                        </button>
+                                                    {% else %}
+                                                        <div class="mr-2 p-1 w-5"></div>
+                                                    {% endif %}
+                                                    <div class="h-10 w-10 bg-green-500 rounded-full flex items-center justify-center text-white">
+                                                        <i class="fas fa-user-cog"></i>
+                                                    </div>
+                                                    <div class="ml-3">
+                                                        <h4 class="font-medium text-gray-900">
+                                                            {{ jefe.usuario.get_full_name|default:jefe.usuario.username }}
+                                                            {% if jefe_data.team_leaders %}
+                                                                <span class="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                                                                    {{ jefe_data.team_leaders|length }} leader{{ jefe_data.team_leaders|length|pluralize:"s" }}
+                                                                </span>
+                                                            {% endif %}
+                                                        </h4>
+                                                        <p class="text-sm text-gray-600">Jefe de Venta</p>
+                                                    </div>
+                                                </div>
+                                                <div class="flex items-center space-x-2">
+                                                    {% if jefe.activo %}
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                            Activo
+                                                        </span>
+                                                        <button onclick="cambiarEstadoMiembro('jefe_venta', {{ jefe.id }}, false)" 
+                                                                class="text-orange-400 hover:text-orange-600 px-1 py-1 rounded text-xs" 
+                                                                title="Desactivar">
+                                                            <i class="fas fa-pause"></i>
+                                                        </button>
+                                                    {% else %}
+                                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                            Inactivo
+                                                        </span>
+                                                        <button onclick="cambiarEstadoMiembro('jefe_venta', {{ jefe.id }}, true)" 
+                                                                class="text-green-400 hover:text-green-600 px-1 py-1 rounded text-xs" 
+                                                                title="Activar">
+                                                            <i class="fas fa-play"></i>
+                                                        </button>
+                                                    {% endif %}
+                                                    <div class="relative">
+                                                        <button onclick="toggleMigrationMenu('jefe-{{ jefe.id }}')" 
+                                                                class="text-blue-400 hover:text-blue-600 px-1 py-1 rounded text-xs" 
+                                                                title="Migrar a otro equipo">
+                                                            <i class="fas fa-exchange-alt"></i>
+                                                        </button>
+                                                        <div id="migration-jefe-{{ jefe.id }}" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
+                                                            <div class="py-1">
+                                                                <p class="px-3 py-2 text-xs font-medium text-gray-500 border-b">Migrar a:</p>
+                                                                {% for equipo_dest in equipos_disponibles %}
+                                                                    <button onclick="migrarMiembro('jefe_venta', {{ jefe.id }}, {{ equipo_dest.id }}, '{{ equipo_dest.nombre|escapejs }}')" 
+                                                                            class="block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100">
+                                                                        {{ equipo_dest.nombre }}
+                                                                    </button>
+                                                                {% endfor %}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Team Leaders bajo este jefe -->
+                                            {% if jefe_data.team_leaders %}
+                                                <div id="content-jefe-{{ jefe.id }}" class="ml-8 space-y-3 collapsible-content">
+                                                    {% for leader_data in jefe_data.team_leaders %}
+                                                        {% with leader=leader_data.team_leader %}
+                                                        <div class="border-l-4 border-purple-500 pl-6">
+                                                            <!-- Team Leader -->
+                                                            <div class="flex items-center justify-between p-3 bg-purple-50 rounded-lg mb-3 member-card"
+                                                                 data-name="{{ leader.usuario.get_full_name|default:leader.usuario.username|lower }}"
+                                                                 data-email="{{ leader.usuario.email|lower }}"
+                                                                 data-role="team leader"
+                                                                 data-username="{{ leader.usuario.username|lower }}">
+                                                                <div class="flex items-center">
+                                                                    <!-- Botón de colapso para el team leader -->
+                                                                    {% if leader_data.vendedores %}
+                                                                        <button onclick="toggleCollapse('leader-{{ leader.id }}')" 
+                                                                                class="mr-2 p-1 rounded hover:bg-purple-200 transition-colors"
+                                                                                title="Expandir/Colapsar">
+                                                                            <i id="icon-leader-{{ leader.id }}" class="fas fa-chevron-down text-purple-600 transition-transform text-xs"></i>
+                                                                        </button>
+                                                                    {% else %}
+                                                                        <div class="mr-2 p-1 w-4"></div>
+                                                                    {% endif %}
+                                                                    <div class="h-8 w-8 bg-purple-500 rounded-full flex items-center justify-center text-white">
+                                                                        <i class="fas fa-users"></i>
+                                                                    </div>
+                                                                    <div class="ml-3">
+                                                                        <h5 class="font-medium text-gray-900">
+                                                                            {{ leader.usuario.get_full_name|default:leader.usuario.username }}
+                                                                            {% if leader_data.vendedores %}
+                                                                                <span class="ml-2 text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
+                                                                                    {{ leader_data.vendedores|length }} vendedor{{ leader_data.vendedores|length|pluralize:"es" }}
+                                                                                </span>
+                                                                            {% endif %}
+                                                                        </h5>
+                                                                        <p class="text-sm text-gray-600">Team Leader</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="flex items-center space-x-2">
+                                                                    {% if leader.activo %}
+                                                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                                            Activo
+                                                                        </span>
+                                                                        <button onclick="cambiarEstadoMiembro('team_leader', {{ leader.id }}, false)" 
+                                                                                class="text-orange-400 hover:text-orange-600 px-1 py-1 rounded text-xs" 
+                                                                                title="Desactivar">
+                                                                            <i class="fas fa-pause"></i>
+                                                                        </button>
+                                                                    {% else %}
+                                                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                                            Inactivo
+                                                                        </span>
+                                                                        <button onclick="cambiarEstadoMiembro('team_leader', {{ leader.id }}, true)" 
+                                                                                class="text-green-400 hover:text-green-600 px-1 py-1 rounded text-xs" 
+                                                                                title="Activar">
+                                                                            <i class="fas fa-play"></i>
+                                                                        </button>
+                                                                    {% endif %}
+                                                                    <div class="relative">
+                                                                        <button onclick="toggleMigrationMenu('leader-{{ leader.id }}')" 
+                                                                                class="text-blue-400 hover:text-blue-600 px-1 py-1 rounded text-xs" 
+                                                                                title="Migrar a otro equipo">
+                                                                            <i class="fas fa-exchange-alt"></i>
+                                                                        </button>
+                                                                        <div id="migration-leader-{{ leader.id }}" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
+                                                                            <div class="py-1">
+                                                                                <p class="px-3 py-2 text-xs font-medium text-gray-500 border-b">Migrar a:</p>
+                                                                                {% for equipo_dest in equipos_disponibles %}
+                                                                                    <button onclick="migrarMiembro('team_leader', {{ leader.id }}, {{ equipo_dest.id }}, '{{ equipo_dest.nombre|escapejs }}')" 
+                                                                                            class="block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100">
+                                                                                        {{ equipo_dest.nombre }}
+                                                                                    </button>
+                                                                                {% endfor %}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <!-- Vendedores bajo este team leader -->
+                                                            {% if leader_data.vendedores %}
+                                                                <div id="content-leader-{{ leader.id }}" class="ml-8 space-y-2 collapsible-content">
+                                                                    {% for vendedor in leader_data.vendedores %}
+                                                                        <div class="flex items-center justify-between p-2 bg-orange-50 rounded-lg member-card"
+                                                                             data-name="{{ vendedor.usuario.get_full_name|default:vendedor.usuario.username|lower }}"
+                                                                             data-email="{{ vendedor.usuario.email|lower }}"
+                                                                             data-role="vendedor"
+                                                                             data-username="{{ vendedor.usuario.username|lower }}">
+                                                                            <div class="flex items-center">
+                                                                                <div class="h-6 w-6 bg-orange-500 rounded-full flex items-center justify-center text-white">
+                                                                                    <i class="fas fa-user"></i>
+                                                                                </div>
+                                                                                <div class="ml-3">
+                                                                                    <p class="font-medium text-gray-900">
+                                                                                        {{ vendedor.usuario.get_full_name|default:vendedor.usuario.username }}
+                                                                                    </p>
+                                                                                    <p class="text-xs text-gray-600">Vendedor</p>
+                                                                                </div>
+                                                                            </div>
+                                                                            <div class="flex items-center space-x-1">
+                                                                                {% if vendedor.activo %}
+                                                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                                                        Activo
+                                                                                    </span>
+                                                                                    <button onclick="cambiarEstadoMiembro('vendedor', {{ vendedor.id }}, false)" 
+                                                                                            class="text-orange-400 hover:text-orange-600 px-1 py-1 rounded text-xs" 
+                                                                                            title="Desactivar">
+                                                                                        <i class="fas fa-pause"></i>
+                                                                                    </button>
+                                                                                {% else %}
+                                                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                                                        Inactivo
+                                                                                    </span>
+                                                                                    <button onclick="cambiarEstadoMiembro('vendedor', {{ vendedor.id }}, true)" 
+                                                                                            class="text-green-400 hover:text-green-600 px-1 py-1 rounded text-xs" 
+                                                                                            title="Activar">
+                                                                                        <i class="fas fa-play"></i>
+                                                                                    </button>
+                                                                                {% endif %}
+                                                                                <div class="relative">
+                                                                                    <button onclick="toggleMigrationMenu('vendedor-{{ vendedor.id }}')" 
+                                                                                            class="text-blue-400 hover:text-blue-600 px-1 py-1 rounded text-xs" 
+                                                                                            title="Migrar a otro equipo">
+                                                                                        <i class="fas fa-exchange-alt"></i>
+                                                                                    </button>
+                                                                                    <div id="migration-vendedor-{{ vendedor.id }}" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
+                                                                                        <div class="py-1">
+                                                                                            <p class="px-3 py-2 text-xs font-medium text-gray-500 border-b">Migrar a:</p>
+                                                                                            {% for equipo_dest in equipos_disponibles %}
+                                                                                                <button onclick="migrarMiembro('vendedor', {{ vendedor.id }}, {{ equipo_dest.id }}, '{{ equipo_dest.nombre|escapejs }}')" 
+                                                                                                        class="block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100">
+                                                                                                    {{ equipo_dest.nombre }}
+                                                                                                </button>
+                                                                                            {% endfor %}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    {% endfor %}
+                                                                    <!-- Botón para agregar más vendedores -->
+                                                                    <div class="ml-8 text-center py-2 border-t border-orange-200 mt-2">
+                                                                        <a href="{% url 'sales:equipos_add_member' equipo.pk %}" class="text-orange-600 hover:text-orange-800 text-sm">
+                                                                            <i class="fas fa-plus mr-1"></i>Agregar Vendedor
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
+                                                            {% else %}
+                                                                <div class="ml-8 text-center py-4">
+                                                                    <p class="text-sm text-gray-500">No hay vendedores asignados</p>
+                                                                    <a href="{% url 'sales:equipos_add_member' equipo.pk %}" class="text-orange-600 hover:text-orange-800 text-sm mt-1">
+                                                                        <i class="fas fa-plus mr-1"></i>Agregar Primer Vendedor
+                                                                    </a>
+                                                                </div>
+                                                            {% endif %}
+                                                        </div>
+                                                        {% endwith %}
+                                                    {% endfor %}
+                                                    <!-- Botón para agregar más team leaders -->
+                                                    <div class="ml-8 text-center py-2 border-t border-purple-200 mt-2">
+                                                        <a href="{% url 'sales:equipos_add_member' equipo.pk %}" class="text-purple-600 hover:text-purple-800 text-sm">
+                                                            <i class="fas fa-plus mr-1"></i>Agregar Team Leader
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            {% else %}
+                                                <div class="ml-8 text-center py-4">
+                                                    <p class="text-sm text-gray-500">No hay team leaders asignados</p>
+                                                    <a href="{% url 'sales:equipos_add_member' equipo.pk %}" class="text-purple-600 hover:text-purple-800 text-sm mt-1">
+                                                        <i class="fas fa-plus mr-1"></i>Agregar Primer Team Leader
+                                                    </a>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        {% endwith %}
+                                    {% endfor %}
+                                    <!-- Botón para agregar más jefes de venta -->
+                                    <div class="ml-8 text-center py-2 border-t border-green-200 mt-2">
+                                        <a href="{% url 'sales:equipos_add_member' equipo.pk %}" class="text-green-600 hover:text-green-800 text-sm">
+                                            <i class="fas fa-plus mr-1"></i>Agregar Jefe de Venta
+                                        </a>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="ml-8 text-center py-6">
+                                    <p class="text-sm text-gray-500">No hay jefes de venta asignados a este gerente</p>
+                                    <a href="{% url 'sales:equipos_add_member' equipo.pk %}" class="text-green-600 hover:text-green-800 text-sm mt-2">
+                                        <i class="fas fa-plus mr-1"></i>Agregar Primer Jefe de Venta
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% endwith %}
+                    {% endfor %}
+                </div>
+            {% else %}
+                <!-- Estado vacío -->
+                <div class="text-center py-12">
+                    <i class="fas fa-sitemap text-gray-300 text-6xl mb-4"></i>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Jerarquía sin configurar</h3>
+                    <p class="text-gray-500 mb-6">Comienza agregando el primer gerente para este equipo.</p>
+                    <a href="{% url 'sales:equipos_add_gerente' equipo.pk %}" 
+                       class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium inline-flex items-center">
+                        <i class="fas fa-plus mr-2"></i>
+                        Agregar Primer Gerente
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+/* Estilos para elementos colapsables */
+.collapsible-content {
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+.collapsible-content.collapsed {
+    max-height: 0 !important;
+}
+
+/* Animación de iconos de colapso */
+.transition-transform {
+    transition: transform 0.3s ease;
+}
+
+.fas.collapsed {
+    transform: rotate(-90deg);
+}
+
+/* Estilos para botones de colapso */
+button[onclick^="toggleCollapse"]:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Estilos para búsqueda */
+.search-highlighted {
+    box-shadow: 0 0 0 2px #3B82F6, 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    transform: scale(1.02);
+    transition: all 0.2s ease;
+}
+
+.member-card {
+    transition: all 0.2s ease;
+}
+</style>
+
+<script>
+function updateFilters() {
+    const mostrarInactivos = document.getElementById('mostrar_inactivos').checked;
+    const filtroRol = document.getElementById('filtro_rol').value;
+    
+    const params = new URLSearchParams();
+    if (mostrarInactivos) {
+        params.set('mostrar_inactivos', 'true');
+    }
+    if (filtroRol !== 'todos') {
+        params.set('rol', filtroRol);
+    }
+    
+    const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+    window.location.href = newUrl;
+}
+
+// Función para confirmar eliminación de miembros
+function confirmarEliminacion(nombre, rol) {
+    return confirm(`¿Estás seguro de que quieres eliminar a ${nombre} del rol de ${rol}?`);
+}
+
+// Función para cambiar estado activo/inactivo
+function cambiarEstadoMiembro(tipo, miembroId, nuevoEstado) {
+    const accion = nuevoEstado ? 'activar' : 'desactivar';
+    if (confirm(`¿Estás seguro de que quieres ${accion} este miembro?`)) {
+        const formData = new FormData();
+        formData.append('tipo', tipo);
+        formData.append('miembro_id', miembroId);
+        formData.append('activo', nuevoEstado);
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        
+        fetch('{% url "sales:ajax_cambiar_estado_miembro" %}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Mostrar mensaje de éxito
+                showMessage(data.message, 'success');
+                // Recargar la página para reflejar los cambios
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                showMessage(data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('Error al cambiar el estado del miembro', 'error');
+        });
+    }
+}
+
+// Función para migrar miembro a otro equipo
+function migrarMiembro(tipo, miembroId, nuevoEquipoId, nombreEquipo) {
+    if (confirm(`¿Estás seguro de que quieres migrar este miembro al equipo "${nombreEquipo}"?`)) {
+        const formData = new FormData();
+        formData.append('tipo', tipo);
+        formData.append('miembro_id', miembroId);
+        formData.append('nuevo_equipo_id', nuevoEquipoId);
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        
+        fetch('{% url "sales:ajax_migrar_miembro" %}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage(data.message, 'success');
+                // Recargar la página para reflejar los cambios
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                showMessage(data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('Error al migrar el miembro', 'error');
+        });
+    }
+    
+    // Cerrar el menú de migración
+    document.querySelectorAll('[id^="migration-"]').forEach(menu => {
+        menu.classList.add('hidden');
+    });
+}
+
+// Función para mostrar/ocultar menús de migración
+function toggleMigrationMenu(menuId) {
+    // Cerrar todos los menús primero
+    document.querySelectorAll('[id^="migration-"]').forEach(menu => {
+        if (menu.id !== 'migration-' + menuId) {
+            menu.classList.add('hidden');
+        }
+    });
+    
+    // Toggle del menú seleccionado
+    const menu = document.getElementById('migration-' + menuId);
+    if (menu) {
+        menu.classList.toggle('hidden');
+    }
+}
+
+// Función para mostrar mensajes
+function showMessage(message, type) {
+    // Crear elemento de mensaje
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
+        type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+    }`;
+    messageDiv.textContent = message;
+    
+    // Agregar al DOM
+    document.body.appendChild(messageDiv);
+    
+    // Remover después de 3 segundos
+    setTimeout(() => {
+        if (messageDiv.parentNode) {
+            messageDiv.parentNode.removeChild(messageDiv);
+        }
+    }, 3000);
+}
+
+// Cerrar menús al hacer clic fuera
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('[onclick^="toggleMigrationMenu"]') && !event.target.closest('[id^="migration-"]')) {
+        document.querySelectorAll('[id^="migration-"]').forEach(menu => {
+            menu.classList.add('hidden');
+        });
+    }
+});
+
+// Función para colapsar/expandir secciones de jerarquía
+function toggleCollapse(elementId) {
+    const content = document.getElementById('content-' + elementId);
+    const icon = document.getElementById('icon-' + elementId);
+    
+    if (!content || !icon) return;
+    
+    const isExpanded = !content.classList.contains('collapsed');
+    
+    if (isExpanded) {
+        // Colapsar
+        content.style.maxHeight = content.scrollHeight + 'px';
+        content.offsetHeight; // Force reflow
+        content.style.maxHeight = '0px';
+        content.classList.add('collapsed');
+        icon.classList.add('collapsed');
+        
+        // Guardar estado en localStorage
+        saveCollapseState(elementId, true);
+    } else {
+        // Expandir
+        content.style.maxHeight = content.scrollHeight + 'px';
+        content.classList.remove('collapsed');
+        icon.classList.remove('collapsed');
+        
+        // Guardar estado en localStorage
+        saveCollapseState(elementId, false);
+        
+        // Limpiar la altura después de la transición
+        setTimeout(() => {
+            if (!content.classList.contains('collapsed')) {
+                content.style.maxHeight = 'none';
+            }
+        }, 300);
+    }
+}
+
+// Guardar estado de colapso en localStorage
+function saveCollapseState(elementId, isCollapsed) {
+    const key = 'hierarchy_collapse_state_{{ equipo.id }}';
+    let states = JSON.parse(localStorage.getItem(key) || '{}');
+    states[elementId] = isCollapsed;
+    localStorage.setItem(key, JSON.stringify(states));
+}
+
+// Restaurar estado de colapso desde localStorage
+function restoreCollapseStates() {
+    const key = 'hierarchy_collapse_state_{{ equipo.id }}';
+    const states = JSON.parse(localStorage.getItem(key) || '{}');
+    
+    Object.keys(states).forEach(elementId => {
+        if (states[elementId]) {
+            const content = document.getElementById('content-' + elementId);
+            const icon = document.getElementById('icon-' + elementId);
+            
+            if (content && icon) {
+                content.style.maxHeight = '0px';
+                content.classList.add('collapsed');
+                icon.classList.add('collapsed');
+            }
+        }
+    });
+}
+
+// Inicializar estados de colapso al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    restoreCollapseStates();
+});
+
+// Funciones de búsqueda
+function searchMembers(searchTerm) {
+    const searchInput = document.getElementById('search_member');
+    const clearButton = document.getElementById('clear_search');
+    const resultsCount = document.getElementById('search_results_count');
+    const memberCards = document.querySelectorAll('.member-card');
+    
+    // Mostrar/ocultar botón de limpiar
+    if (searchTerm.trim()) {
+        clearButton.classList.remove('hidden');
+    } else {
+        clearButton.classList.add('hidden');
+    }
+    
+    // Si no hay término de búsqueda, mostrar todos
+    if (!searchTerm.trim()) {
+        memberCards.forEach(card => {
+            card.style.display = '';
+            card.classList.remove('search-highlighted');
+        });
+        resultsCount.textContent = '';
+        return;
+    }
+    
+    const normalizedSearch = searchTerm.toLowerCase().trim();
+    let visibleCount = 0;
+    let matchedMembers = [];
+    
+    memberCards.forEach(card => {
+        const name = card.dataset.name || '';
+        const email = card.dataset.email || '';
+        const role = card.dataset.role || '';
+        const username = card.dataset.username || '';
+        
+        const isMatch = name.includes(normalizedSearch) || 
+                       email.includes(normalizedSearch) || 
+                       role.includes(normalizedSearch) ||
+                       username.includes(normalizedSearch);
+        
+        if (isMatch) {
+            card.style.display = '';
+            card.classList.add('search-highlighted');
+            visibleCount++;
+            matchedMembers.push(card);
+            
+            // Expandir automáticamente las secciones que contienen resultados
+            expandParentSections(card);
+        } else {
+            card.style.display = 'none';
+            card.classList.remove('search-highlighted');
+        }
+    });
+    
+    // Actualizar contador de resultados
+    if (visibleCount === 0) {
+        resultsCount.textContent = 'No se encontraron resultados';
+        resultsCount.className = 'text-xs text-red-500';
+    } else {
+        resultsCount.textContent = `${visibleCount} resultado${visibleCount !== 1 ? 's' : ''} encontrado${visibleCount !== 1 ? 's' : ''}`;
+        resultsCount.className = 'text-xs text-green-600';
+    }
+}
+
+function expandParentSections(memberCard) {
+    let currentElement = memberCard.parentElement;
+    
+    while (currentElement) {
+        // Buscar contenedores colapsables
+        if (currentElement.classList && currentElement.classList.contains('collapsible-content')) {
+            const contentId = currentElement.id;
+            if (contentId && currentElement.classList.contains('collapsed')) {
+                const elementId = contentId.replace('content-', '');
+                toggleCollapse(elementId);
+            }
+        }
+        currentElement = currentElement.parentElement;
+    }
+}
+
+function clearSearch() {
+    const searchInput = document.getElementById('search_member');
+    const clearButton = document.getElementById('clear_search');
+    const resultsCount = document.getElementById('search_results_count');
+    const memberCards = document.querySelectorAll('.member-card');
+    
+    searchInput.value = '';
+    clearButton.classList.add('hidden');
+    resultsCount.textContent = '';
+    
+    memberCards.forEach(card => {
+        card.style.display = '';
+        card.classList.remove('search-highlighted');
+    });
+}
+
+// Expandir/colapsar todo
+function toggleAllSections(expand = true) {
+    const allContents = document.querySelectorAll('.collapsible-content');
+    const allIcons = document.querySelectorAll('[id^="icon-"]');
+    
+    allContents.forEach(content => {
+        const icon = document.querySelector('#icon-' + content.id.replace('content-', ''));
+        
+        if (expand) {
+            content.style.maxHeight = 'none';
+            content.classList.remove('collapsed');
+            if (icon) icon.classList.remove('collapsed');
+        } else {
+            content.style.maxHeight = '0px';
+            content.classList.add('collapsed');
+            if (icon) icon.classList.add('collapsed');
+        }
+    });
+}
+
+// Agregar token CSRF oculto para las peticiones AJAX
+if (!document.querySelector('[name=csrfmiddlewaretoken]')) {
+    const csrfToken = document.createElement('input');
+    csrfToken.type = 'hidden';
+    csrfToken.name = 'csrfmiddlewaretoken';
+    csrfToken.value = '{{ csrf_token }}';
+    document.body.appendChild(csrfToken);
+}
+</script>
+{% endblock %}

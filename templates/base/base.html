@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% include 'components/common/head.html' %}
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="bg-gray-50 font-sans antialiased">
+    <div class="flex min-h-screen">
+        <!-- Sidebar Component -->
+        {% include 'components/navigation/sidebar.html' %}
+        
+        <!-- Main Content -->
+        <div class="flex-1 ml-72 flex flex-col min-h-screen">
+            <!-- Top Navigation Component -->
+            {% include 'components/navigation/topbar.html' %}
+            
+            <!-- Messages Component -->
+            {% include 'components/ui/alerts.html' %}
+            
+            <!-- Main Content Area -->
+            <main class="flex-1 p-6">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+    
+    <!-- Scripts Component -->
+    {% include 'components/common/scripts.html' %}
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,173 @@
+{% extends 'base/base.html' %}
+
+{% block title %}{{ title }} - Django CRM{% endblock %}
+
+{% block header %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <!-- Back Button -->
+    <div class="mb-6">
+        <a href="{% url 'accounts:modules_list' %}"
+           class="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Volver a Módulos de Permisos
+        </a>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-gray-200 bg-red-50">
+            <h2 class="text-xl font-semibold text-red-900 flex items-center">
+                <i class="fas fa-exclamation-triangle mr-3 text-red-600"></i>
+                Confirmar Eliminación
+            </h2>
+        </div>
+
+        <!-- Content -->
+        <div class="p-6">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-trash text-red-600 text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">
+                    ¿Estás seguro de que quieres eliminar este módulo?
+                </h3>
+                <p class="text-gray-600">Esta acción no se puede deshacer.</p>
+            </div>
+
+            <!-- Module Information -->
+            <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                        {% if module.navigation and module.navigation.icon %}
+                            <i class="{{ module.navigation.icon }} text-blue-600"></i>
+                        {% else %}
+                            <i class="fas fa-cube text-blue-600"></i>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-medium text-gray-900">{{ module.name }}</h4>
+                        <p class="text-sm text-gray-600">
+                            {{ module.permissions.count }} permisos asignados
+                        </p>
+                        {% if module.navigation %}
+                            <p class="text-sm text-blue-600">Menú: {{ module.navigation.name }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Warning Information -->
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                <div class="flex">
+                    <i class="fas fa-exclamation-triangle text-yellow-400 mt-0.5 mr-3"></i>
+                    <div>
+                        <h4 class="text-sm font-medium text-yellow-800 mb-1">
+                            ¿Qué sucederá al eliminar este módulo?
+                        </h4>
+                        <ul class="text-sm text-yellow-700 space-y-1">
+                            <li>• Se eliminarán todos los permisos asociados al módulo</li>
+                            <li>• Se eliminará el elemento de navegación si existe</li>
+                            <li>• Los roles que usan este módulo perderán estos permisos</li>
+                            <li>• Los usuarios con roles afectados perderán acceso a estas funciones</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Check for roles using this module -->
+            {% if module.roles.exists %}
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                    <div class="flex">
+                        <i class="fas fa-exclamation-circle text-red-400 mt-0.5 mr-3"></i>
+                        <div>
+                            <h4 class="text-sm font-medium text-red-800 mb-2">
+                                ⚠️ Este módulo está siendo usado por los siguientes roles:
+                            </h4>
+                            <ul class="text-sm text-red-700 space-y-1">
+                                {% for role in module.roles.all %}
+                                    <li class="flex items-center">
+                                        <i class="fas fa-user-tag text-red-600 mr-2"></i>
+                                        <span class="font-medium">{{ role.name }}</span>
+                                        {% if role.description %}
+                                            <span class="text-red-600 ml-2">- {{ role.description }}</span>
+                                        {% endif %}
+                                        {% if role.is_system %}
+                                            <span class="inline-flex items-center px-1 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 ml-2">
+                                                <i class="fas fa-shield-alt mr-1"></i>
+                                                Sistema
+                                            </span>
+                                        {% endif %}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                            <p class="text-sm text-red-700 mt-2 font-medium">
+                                No se puede eliminar este módulo mientras esté siendo usado por roles.
+                                {% if module.roles.filter(is_system=True).exists %}
+                                    <br><strong>Algunos de estos roles son del sistema y son críticos.</strong>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Users affected -->
+            {% if module.roles.exists %}
+                {% with affected_users=module.roles.all.0.users.all %}
+                    {% if affected_users %}
+                        <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
+                            <div class="flex">
+                                <i class="fas fa-users text-orange-400 mt-0.5 mr-3"></i>
+                                <div>
+                                    <h4 class="text-sm font-medium text-orange-800 mb-2">
+                                        Usuarios que se verán afectados:
+                                    </h4>
+                                    <div class="max-h-24 overflow-y-auto">
+                                        {% for role in module.roles.all %}
+                                            {% for user in role.users.all %}
+                                                <div class="flex items-center text-sm text-orange-700 mb-1">
+                                                    <i class="fas fa-user text-orange-600 mr-2"></i>
+                                                    <span>{{ user.get_full_name|default:user.username }}</span>
+                                                    <span class="text-orange-600 ml-2">({{ role.name }})</span>
+                                                </div>
+                                            {% endfor %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endwith %}
+            {% endif %}
+
+            <!-- Form -->
+            <form method="post">
+                {% csrf_token %}
+                <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+                    <a href="{% url 'accounts:modules_list' %}"
+                       class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors">
+                        Cancelar
+                    </a>
+
+                    {% if module.roles.exists %}
+                        <button type="button" disabled
+                                class="px-6 py-2 bg-gray-300 text-gray-500 rounded-lg font-medium cursor-not-allowed">
+                            <i class="fas fa-ban mr-2"></i>
+                            No se puede eliminar
+                        </button>
+                    {% else %}
+                        <button type="submit"
+                                class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center"
+                                onclick="return confirm('¿Estás absolutamente seguro? Esta acción no se puede deshacer.')">
+                            <i class="fas fa-trash mr-2"></i>
+                            Sí, Eliminar Módulo
+                        </button>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,205 @@
+<!-- templates/sales/equipos/add_gerente.html -->
+{% extends 'base/base.html' %}
+
+{% block title %}
+    Agregar Gerente - {{ equipo.nombre }} - Django CRM
+{% endblock %}
+
+{% block header %}
+    Agregar Gerente al Equipo
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Breadcrumb -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            <li class="inline-flex items-center">
+                <a href="{% url 'sales:equipos_list' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    <i class="fas fa-users mr-2"></i>
+                    Equipos de Venta
+                </a>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <a href="{% url 'sales:equipos_detail' equipo.pk %}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
+                        {{ equipo.nombre }}
+                    </a>
+                </div>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <span class="text-sm font-medium text-gray-500">Agregar Gerente</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+
+    <!-- Información del equipo -->
+    <div class="bg-blue-50 rounded-xl border border-blue-200 p-4 mb-6">
+        <div class="flex items-center">
+            <i class="fas fa-users text-blue-600 text-xl mr-3"></i>
+            <div>
+                <h3 class="text-lg font-semibold text-blue-900">{{ equipo.nombre }}</h3>
+                <p class="text-sm text-blue-700">{{ equipo.descripcion|default:"Sin descripción" }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Advertencia si ya hay un gerente -->
+    {% if tiene_gerente_activo %}
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <div class="flex">
+                <i class="fas fa-exclamation-triangle text-yellow-400 mt-0.5 mr-2"></i>
+                <div>
+                    <h3 class="text-sm font-medium text-yellow-800">Advertencia</h3>
+                    <p class="mt-1 text-sm text-yellow-700">
+                        Este equipo ya tiene un gerente activo. Solo puede haber un gerente por equipo.
+                        Si agregas un nuevo gerente, el anterior será desactivado automáticamente.
+                    </p>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-900">
+                <i class="fas fa-user-tie mr-2 text-blue-600"></i>
+                Asignar Gerente de Equipo
+            </h2>
+            <p class="text-sm text-gray-600 mt-1">
+                Selecciona el usuario que será el gerente de este equipo de venta
+            </p>
+        </div>
+
+        <form method="post" class="p-6">
+            {% csrf_token %}
+            
+            <!-- Mostrar errores generales -->
+            {% if form.non_field_errors %}
+                <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <div class="flex">
+                        <i class="fas fa-exclamation-circle text-red-400 mt-0.5 mr-2"></i>
+                        <div>
+                            <h3 class="text-sm font-medium text-red-800">Error en el formulario</h3>
+                            <ul class="mt-1 text-sm text-red-600">
+                                {% for error in form.non_field_errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <div class="grid grid-cols-1 gap-6">
+                <!-- Usuario -->
+                <div>
+                    <label for="{{ form.usuario.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.usuario.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.usuario }}
+                    {% if form.usuario.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.usuario.errors.0 }}</p>
+                    {% endif %}
+                    <p class="mt-1 text-sm text-gray-500">
+                        Selecciona el usuario que será responsable de liderar este equipo
+                    </p>
+                </div>
+
+                <!-- Campo oculto del equipo -->
+                {{ form.equipo_venta }}
+
+                <!-- Estado Activo -->
+                <div>
+                    <label class="flex items-center">
+                        {{ form.activo }}
+                        <span class="ml-2 text-sm font-medium text-gray-700">{{ form.activo.label }}</span>
+                    </label>
+                    {% if form.activo.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.activo.errors.0 }}</p>
+                    {% endif %}
+                    <p class="mt-1 text-sm text-gray-500">
+                        Los gerentes inactivos no aparecerán en reportes ni tendrán permisos de gestión
+                    </p>
+                </div>
+            </div>
+
+            <!-- Información adicional -->
+            <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+                <h4 class="text-sm font-medium text-gray-900 mb-2">
+                    <i class="fas fa-info-circle mr-1 text-blue-500"></i>
+                    Responsabilidades del Gerente de Equipo
+                </h4>
+                <ul class="text-sm text-gray-600 space-y-1">
+                    <li>• Supervisar y gestionar el equipo de ventas</li>
+                    <li>• Asignar y reasignar jefes de venta, team leaders y vendedores</li>
+                    <li>• Monitorear el rendimiento del equipo</li>
+                    <li>• Acceso a reportes detallados de ventas y comisiones</li>
+                    <li>• Gestionar la asignación de proyectos al equipo</li>
+                </ul>
+            </div>
+
+            <!-- Botones de acción -->
+            <div class="mt-8 flex items-center justify-between pt-6 border-t border-gray-200">
+                <a href="{% url 'sales:jerarquia_list' %}" 
+                   class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors">
+                    <i class="fas fa-times mr-2"></i>Cancelar
+                </a>
+                
+                <button type="submit" 
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                    <i class="fas fa-user-plus mr-2"></i>
+                    Asignar Gerente
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Gerente actual (si existe) -->
+    {% if tiene_gerente_activo %}
+        {% with gerentes_activos=equipo.gerenteequipo_set.all %}
+            {% for gerente in gerentes_activos %}
+                {% if gerente.activo %}
+                    <div class="mt-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Gerente Actual</h3>
+                        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                                        <i class="fas fa-user-tie text-blue-600"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-gray-900">
+                                            {{ gerente.usuario.get_full_name|default:gerente.usuario.username }}
+                                        </h4>
+                                        <p class="text-sm text-gray-500">Gerente de Equipo</p>
+                                        <p class="text-xs text-gray-400">Desde: {{ gerente.created_at|date:"d/m/Y" }}</p>
+                                    </div>
+                                </div>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    Activo
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        {% endwith %}
+    {% endif %}
+</div>
+
+<style>
+/* Estilos para los campos del formulario */
+select {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
+}
+
+input[type="checkbox"] {
+    @apply h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500;
+}
+</style>
+{% endblock %}

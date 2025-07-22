@@ -1,0 +1,318 @@
+<!-- templates/sales/jerarquia/create.html -->
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Asignar Usuario a Equipo - Django CRM{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/user-search-widget.css' %}">
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+      crossorigin="" />
+{% endblock %}
+
+{% block header %}Asignar Usuario a Equipo{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Breadcrumb -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            <li class="inline-flex items-center">
+                <a href="{% url 'sales:jerarquia_list' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    <i class="fas fa-sitemap mr-2"></i>
+                    Jerarquía de Equipos
+                </a>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <span class="text-sm font-medium text-gray-500">Asignar Usuario</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-900">
+                <i class="fas fa-user-plus mr-2 text-blue-600"></i>
+                Asignar Usuario a Equipo
+            </h2>
+            <p class="text-sm text-gray-600 mt-1">
+                Selecciona el usuario, equipo y rol para crear una nueva asignación
+            </p>
+        </div>
+
+        <form method="post" class="p-6" id="assignForm">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Usuario con buscador interactivo -->
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Usuario <span class="text-red-500">*</span>
+                    </label>
+                    <div id="userSearchWidget"></div>
+                    <p class="mt-1 text-sm text-gray-500">
+                        <i class="fas fa-search mr-1"></i>
+                        Escribe para buscar usuarios disponibles o crea uno nuevo
+                    </p>
+                </div>
+
+                <!-- Equipo -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Equipo <span class="text-red-500">*</span>
+                    </label>
+                    <select name="equipo" id="equipo" required onchange="loadSupervisors()"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Selecciona un equipo</option>
+                        {% for equipo in equipos %}
+                            <option value="{{ equipo.id }}">{{ equipo.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Rol -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Rol <span class="text-red-500">*</span>
+                    </label>
+                    <select name="rol" id="rol" required onchange="showSupervisorField()"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Selecciona un rol</option>
+                        <option value="gerente">Gerente de Equipo</option>
+                        <option value="jefe">Jefe de Venta</option>
+                        <option value="team_leader">Team Leader</option>
+                        <option value="vendedor">Vendedor</option>
+                    </select>
+                </div>
+
+                <!-- Jefe Directo (solo visible para roles que lo requieren) -->
+                <div class="md:col-span-2" id="supervisorField" style="display: none;">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Jefe Directo <span class="text-red-500">*</span>
+                    </label>
+                    <select name="supervisor" id="supervisor"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Primero selecciona equipo y rol</option>
+                    </select>
+                    <p class="mt-1 text-sm text-gray-500" id="supervisorHelp"></p>
+                </div>
+            </div>
+
+            <!-- Información sobre roles -->
+            <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+                <h4 class="text-sm font-medium text-blue-900 mb-2">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Jerarquía de Roles y Jefes Directos
+                </h4>
+                <ul class="text-sm text-blue-800 space-y-1">
+                    <li><strong>Gerente de Equipo:</strong> Máximo nivel jerárquico, no tiene jefe directo</li>
+                    <li><strong>Jefe de Venta:</strong> Su jefe directo es un Gerente de Equipo</li>
+                    <li><strong>Team Leader:</strong> Su jefe directo es un Jefe de Venta</li>
+                    <li><strong>Vendedor:</strong> Su jefe directo es un Team Leader</li>
+                </ul>
+            </div>
+            
+            <!-- Información adicional -->
+            <div class="mt-4 p-4 bg-green-50 rounded-lg">
+                <h4 class="text-sm font-medium text-green-900 mb-2">
+                    <i class="fas fa-user-check mr-1"></i>
+                    Búsqueda y Creación de Usuarios
+                </h4>
+                <p class="text-sm text-green-800">
+                    • Busca usuarios escribiendo su nombre, apellido, email o usuario<br>
+                    • Solo se muestran usuarios <strong>sin asignación activa</strong> en equipos<br>
+                    • Puedes crear un nuevo usuario si no encuentras el que necesitas
+                </p>
+            </div>
+            
+            <!-- Advertencia sobre gerentes -->
+            <div class="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200" id="gerenteWarning" style="display: none;">
+                <h4 class="text-sm font-medium text-amber-900 mb-2">
+                    <i class="fas fa-exclamation-triangle mr-1"></i>
+                    Importante: Solo un gerente por equipo
+                </h4>
+                <p class="text-sm text-amber-800">
+                    Si el equipo ya tiene un gerente activo, se te pedirá confirmación para reemplazarlo. 
+                    El gerente anterior será <strong>desactivado automáticamente</strong>.
+                </p>
+            </div>
+
+            <!-- Botones de acción -->
+            <div class="mt-8 flex items-center justify-between pt-6 border-t border-gray-200">
+                <a href="{% url 'sales:jerarquia_list' %}" 
+                   class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors">
+                    <i class="fas fa-times mr-2"></i>Cancelar
+                </a>
+                
+                <button type="submit" 
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                    <i class="fas fa-user-plus mr-2"></i>
+                    Asignar Usuario
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Scripts necesarios -->
+<!-- Leaflet JavaScript -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
+        crossorigin=""></script>
+<script src="{% static 'js/user-search-widget.js' %}"></script>
+
+<script>
+// Variables globales
+let userSearchWidget;
+
+// Inicializar cuando la página cargue
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar el widget de búsqueda de usuarios
+    userSearchWidget = new UserSearchWidget('userSearchWidget', {
+        placeholder: 'Buscar usuario por nombre, email o usuario...',
+        searchUrl: "{% url 'sales:ajax_search_users' %}",
+        createUserUrl: "{% url 'sales:ajax_create_user' %}",
+        noResultsText: 'No se encontraron usuarios disponibles',
+        createUserText: '+ Crear nuevo usuario',
+        minChars: 1,
+        delay: 300
+    });
+    
+    // Escuchar cuando se seleccione un usuario
+    document.getElementById('userSearchWidget').addEventListener('userSelected', function(event) {
+        const user = event.detail.user;
+        console.log('Usuario seleccionado:', user);
+        
+        // Validar que el formulario esté completo antes de enviar
+        validateForm();
+    });
+});
+
+// Función para validar el formulario
+function validateForm() {
+    const usuario = userSearchWidget.getValue();
+    const equipo = document.getElementById('equipo').value;
+    const rol = document.getElementById('rol').value;
+    const supervisor = document.getElementById('supervisor').value;
+    
+    const submitBtn = document.querySelector('button[type="submit"]');
+    
+    // Validaciones básicas
+    if (!usuario || !equipo || !rol) {
+        submitBtn.disabled = true;
+        return false;
+    }
+    
+    // Validar supervisor para roles que lo requieren
+    if (['jefe', 'team_leader', 'vendedor'].includes(rol) && !supervisor) {
+        submitBtn.disabled = true;
+        return false;
+    }
+    
+    submitBtn.disabled = false;
+    return true;
+}
+
+// Interceptar el envío del formulario para incluir el usuario seleccionado
+document.getElementById('assignForm').addEventListener('submit', function(e) {
+    const usuarioId = userSearchWidget.getValue();
+    
+    if (!usuarioId) {
+        e.preventDefault();
+        alert('Debes seleccionar un usuario');
+        return false;
+    }
+    
+    // El valor ya está en el input hidden del widget, el formulario puede enviarse normalmente
+    return true;
+});
+
+// Función original para mostrar/ocultar campo supervisor
+function showSupervisorField() {
+    const rol = document.getElementById('rol').value;
+    const supervisorField = document.getElementById('supervisorField');
+    const supervisorSelect = document.getElementById('supervisor');
+    const supervisorHelp = document.getElementById('supervisorHelp');
+    const gerenteWarning = document.getElementById('gerenteWarning');
+    
+    if (rol === 'gerente') {
+        supervisorField.style.display = 'none';
+        supervisorSelect.required = false;
+        gerenteWarning.style.display = 'block';
+    } else {
+        supervisorField.style.display = 'block';
+        supervisorSelect.required = true;
+        gerenteWarning.style.display = 'none';
+        
+        if (rol === 'jefe') {
+            supervisorHelp.textContent = 'Selecciona el gerente de equipo que será el jefe directo de este jefe de venta';
+        } else if (rol === 'team_leader') {
+            supervisorHelp.textContent = 'Selecciona el jefe de venta que será el jefe directo de este team leader';
+        } else if (rol === 'vendedor') {
+            supervisorHelp.textContent = 'Selecciona el team leader que será el jefe directo de este vendedor';
+        }
+        
+        loadSupervisors();
+    }
+    
+    // Validar formulario cuando cambie el rol
+    validateForm();
+}
+
+function loadSupervisors() {
+    const equipoId = document.getElementById('equipo').value;
+    const rol = document.getElementById('rol').value;
+    const supervisorSelect = document.getElementById('supervisor');
+    
+    if (!equipoId || !rol || rol === 'gerente') {
+        return;
+    }
+    
+    // Limpiar opciones
+    supervisorSelect.innerHTML = '<option value="">Cargando...</option>';
+    
+    // Hacer petición AJAX para obtener supervisores disponibles
+    fetch(`{% url 'sales:ajax_get_supervisores' %}?equipo=${equipoId}&rol=${rol}`)
+        .then(response => response.json())
+        .then(data => {
+            supervisorSelect.innerHTML = '<option value="">Selecciona un jefe directo</option>';
+            
+            if (data.advertencia) {
+                supervisorSelect.innerHTML = `<option value="" disabled>${data.advertencia}</option>`;
+                supervisorSelect.disabled = true;
+            } else {
+                supervisorSelect.disabled = false;
+                data.supervisores.forEach(supervisor => {
+                    const option = document.createElement('option');
+                    option.value = supervisor.id;
+                    option.textContent = supervisor.nombre;
+                    supervisorSelect.appendChild(option);
+                });
+            }
+            
+            // Validar formulario después de cargar supervisores
+            validateForm();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            supervisorSelect.innerHTML = '<option value="">Error al cargar jefes directos</option>';
+        });
+}
+
+// Agregar listeners adicionales después de la inicialización
+setTimeout(function() {
+    // Listeners para los campos del formulario
+    ['equipo', 'rol', 'supervisor'].forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.addEventListener('change', validateForm);
+        }
+    });
+}, 100);
+</script>
+{% endblock %}

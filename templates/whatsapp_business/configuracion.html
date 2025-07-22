@@ -1,0 +1,1950 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #1877f2;
+        --secondary-color: #42a5f5;
+        --success-color: #4caf50;
+        --warning-color: #ff9800;
+        --danger-color: #f44336;
+        --info-color: #2196f3;
+        --dark-color: #212529;
+        --light-color: #f8f9fa;
+        --border-color: #dee2e6;
+        --border-radius: 12px;
+        --box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+        --transition: all 0.3s ease;
+    }
+
+    .page-container {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 2rem 0;
+    }
+
+    .main-content {
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        margin: 0 auto;
+        max-width: 1200px;
+    }
+
+    .header-section {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: white;
+        padding: 2rem;
+        border-radius: var(--border-radius) var(--border-radius) 0 0;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .header-section::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="2" fill="white" opacity="0.1"/></svg>') repeat;
+        animation: float 20s linear infinite;
+    }
+
+    @keyframes float {
+        0% { transform: translateX(0) translateY(0); }
+        100% { transform: translateX(-100px) translateY(-100px); }
+    }
+
+    .header-content {
+        position: relative;
+        z-index: 1;
+    }
+
+    .page-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .page-subtitle {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        margin-bottom: 1rem;
+    }
+
+    .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 50px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: var(--transition);
+    }
+    
+    .status-badge.active {
+        background: var(--success-color);
+        color: white;
+        animation: pulse 2s infinite;
+    }
+    
+    .status-badge.inactive {
+        background: var(--danger-color);
+        color: white;
+    }
+
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+    }
+
+    .content-section {
+        padding: 2rem;
+    }
+
+    .form-card {
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        margin-bottom: 2rem;
+        overflow: hidden;
+        transition: var(--transition);
+    }
+
+    .form-card:hover {
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+
+    .form-card-header {
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .form-card-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0;
+        color: var(--dark-color);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .form-card-body {
+        padding: 2rem;
+    }
+
+    .form-section {
+        margin-bottom: 2.5rem;
+    }
+    
+    .form-section-title {
+        color: var(--dark-color);
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 3px solid var(--primary-color);
+        font-size: 1.1rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: var(--dark-color);
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .form-control {
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+        transition: var(--transition);
+        background: white;
+    }
+
+    .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(24, 119, 242, 0.25);
+        outline: none;
+    }
+
+    .form-control:hover {
+        border-color: var(--secondary-color);
+    }
+
+    .form-text {
+        color: #6c757d;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+
+    .sensitive-field {
+        position: relative;
+    }
+    
+    .sensitive-field .toggle-password {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        color: var(--secondary-color);
+        font-size: 1.1rem;
+        transition: var(--transition);
+    }
+
+    .sensitive-field .toggle-password:hover {
+        color: var(--primary-color);
+    }
+
+    .webhook-info {
+        background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+        border: 1px solid #bbdefb;
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        margin-top: 1rem;
+    }
+
+    .webhook-info h6 {
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+        font-weight: 600;
+    }
+
+    .webhook-info p {
+        margin-bottom: 0.5rem;
+        line-height: 1.6;
+    }
+
+    .webhook-info code {
+        background: rgba(24, 119, 242, 0.1);
+        color: var(--primary-color);
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-family: 'Monaco', 'Menlo', monospace;
+    }
+
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        transition: var(--transition);
+        border: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #1565c0, #1976d2);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(24, 119, 242, 0.4);
+    }
+
+    .btn-info {
+        background: linear-gradient(135deg, var(--info-color), #03a9f4);
+        color: white;
+    }
+
+    .btn-info:hover {
+        background: linear-gradient(135deg, #1976d2, #0288d1);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+    }
+
+    .btn-success {
+        background: linear-gradient(135deg, var(--success-color), #66bb6a);
+        color: white;
+    }
+
+    .btn-success:hover {
+        background: linear-gradient(135deg, #388e3c, #4caf50);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+    }
+
+    .btn-danger {
+        background: linear-gradient(135deg, var(--danger-color), #ef5350);
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background: linear-gradient(135deg, #d32f2f, #f44336);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
+    }
+
+    .btn-outline-secondary {
+        background: transparent;
+        border: 2px solid var(--border-color);
+        color: var(--dark-color);
+    }
+
+    .btn-outline-secondary:hover {
+        background: var(--light-color);
+        border-color: var(--secondary-color);
+        color: var(--secondary-color);
+    }
+
+    .config-card {
+        border: 2px solid var(--border-color);
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        background: white;
+        transition: var(--transition);
+    }
+    
+    .config-card:hover {
+        box-shadow: var(--box-shadow);
+        transform: translateY(-2px);
+    }
+    
+    .config-card.active {
+        border-color: var(--success-color);
+        background: linear-gradient(135deg, #f8fff9, #e8f5e8);
+    }
+    
+    .config-card.inactive {
+        border-color: var(--border-color);
+        background: var(--light-color);
+    }
+
+    .config-actions {
+        margin-top: 1rem;
+    }
+    
+    .config-actions .btn {
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .breadcrumb {
+        background: transparent;
+        padding: 0;
+        margin-bottom: 1rem;
+    }
+
+    .breadcrumb-item a {
+        color: rgba(255, 255, 255, 0.8);
+        text-decoration: none;
+        transition: var(--transition);
+    }
+
+    .breadcrumb-item a:hover {
+        color: white;
+    }
+
+    .breadcrumb-item.active {
+        color: white;
+    }
+
+    .alert {
+        border: none;
+        border-radius: var(--border-radius);
+        padding: 1rem 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .form-check-input {
+        width: 1.5rem;
+        height: 1.5rem;
+        margin-right: 0.5rem;
+        border: 2px solid var(--border-color);
+        border-radius: 4px;
+    }
+
+    .form-check-input:checked {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .form-check-label {
+        font-weight: 500;
+        color: var(--dark-color);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .page-container {
+            padding: 1rem;
+        }
+
+        .header-section {
+            padding: 1.5rem;
+        }
+
+        .page-title {
+            font-size: 2rem;
+        }
+
+        .content-section {
+            padding: 1rem;
+        }
+
+        .form-card-body {
+            padding: 1.5rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        .config-actions .btn {
+            margin-bottom: 0.5rem;
+            width: 100%;
+        }
+
+        .d-flex.justify-content-between {
+            flex-direction: column;
+            gap: 1rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .header-section {
+            padding: 1rem;
+        }
+
+        .page-title {
+            font-size: 1.5rem;
+        }
+
+        .page-subtitle {
+            font-size: 1rem;
+        }
+
+        .form-card-body {
+            padding: 1rem;
+        }
+
+        .col-md-6 {
+            margin-bottom: 1rem;
+        }
+    }
+
+    /* Loading Animation */
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 2px solid #f3f3f3;
+        border-top: 2px solid var(--primary-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* Debug Messages */
+    .debug-message-item {
+        background: #f8f9fa;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        transition: var(--transition);
+    }
+
+    .debug-message-item:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Mensajes entrantes - Verde (con mayor especificidad) */
+    .message-list .message-item.incoming {
+        background: linear-gradient(135deg, #e8f5e9, #f1f8e9) !important;
+        border-left: 4px solid #4caf50 !important;
+        box-shadow: 0 2px 4px rgba(76, 175, 80, 0.1) !important;
+        border: 1px solid #c8e6c9 !important;
+    }
+
+    .message-list .message-item.incoming:hover {
+        box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2) !important;
+    }
+
+    /* Mensajes salientes - Azul (con mayor especificidad) */
+    .message-list .message-item.outgoing {
+        background: linear-gradient(135deg, #e3f2fd, #f0f7ff) !important;
+        border-left: 4px solid #2196f3 !important;
+        box-shadow: 0 2px 4px rgba(33, 150, 243, 0.1) !important;
+        border: 1px solid #bbdefb !important;
+    }
+
+    .message-list .message-item.outgoing:hover {
+        box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2) !important;
+    }
+
+    /* Mensajes del sistema - Gris (con mayor especificidad) */
+    .message-list .message-item.system {
+        background: linear-gradient(135deg, #fafafa, #f5f5f5) !important;
+        border-left: 4px solid #9e9e9e !important;
+        box-shadow: 0 2px 4px rgba(158, 158, 158, 0.1) !important;
+        border: 1px solid #e0e0e0 !important;
+    }
+
+    .message-list .message-item.system:hover {
+        box-shadow: 0 4px 12px rgba(158, 158, 158, 0.2) !important;
+    }
+
+    .debug-message-type {
+        font-size: 0.75rem;
+        margin-right: 0.5rem;
+    }
+
+    .debug-message-phone {
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+
+    .debug-message-content {
+        margin: 0.5rem 0 0 0;
+        color: var(--dark-color);
+    }
+
+    .debug-message-time {
+        font-size: 0.875rem;
+        color: #6c757d;
+        font-weight: 500;
+    }
+
+    .badge.bg-incoming {
+        background-color: var(--success-color) !important;
+    }
+
+    .badge.bg-outgoing {
+        background-color: var(--info-color) !important;
+    }
+
+    .badge.bg-test_message {
+        background-color: var(--warning-color) !important;
+    }
+
+    .badge.bg-webhook_event {
+        background-color: var(--secondary-color) !important;
+    }
+
+    /* Panel de pruebas */
+    .form-card .btn-primary {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        border: none;
+    }
+
+    .form-card .btn-primary:hover {
+        background: linear-gradient(135deg, #218838, #1abc9c);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+    }
+
+    .btn-outline-info {
+        border: 2px solid var(--info-color);
+        color: var(--info-color);
+        background: transparent;
+    }
+
+    .btn-outline-info:hover {
+        background: var(--info-color);
+        color: white;
+    }
+
+    /* Modal */
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        display: none;
+    }
+
+    .modal.show {
+        display: block;
+    }
+
+    .modal-dialog {
+        position: relative;
+        width: 90%;
+        max-width: 500px;
+        margin: 5% auto;
+        pointer-events: none;
+    }
+
+    .modal-dialog.modal-lg {
+        max-width: 800px;
+    }
+
+    .modal-content {
+        position: relative;
+        background-color: white;
+        border-radius: var(--border-radius);
+        border: none;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        pointer-events: auto;
+    }
+
+    .modal-header {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: white;
+        border-radius: var(--border-radius) var(--border-radius) 0 0;
+        padding: 1rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-header .btn-close {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-header .btn-close:hover {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+    }
+
+    .modal-body {
+        padding: 2rem;
+    }
+
+    .modal-footer {
+        border-top: 1px solid var(--border-color);
+        padding: 1rem 2rem;
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+    }
+
+    .modal-title {
+        margin: 0;
+        font-size: 1.25rem;
+    }
+
+    /* Badges de estado */
+    .badge {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.8rem;
+        border-radius: 50px;
+    }
+
+    /* Animaciones para el debug */
+    .debug-message-item {
+        animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes slideInRight {
+        from {
+            opacity: 0;
+            transform: translateX(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    /* Refresh button animation */
+    .btn-refresh {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn-refresh:hover i {
+        animation: spin 1s linear infinite;
+    }
+
+    /* Info Items */
+    .info-item {
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+    }
+
+    .info-value-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 0.5rem;
+    }
+
+    .info-value {
+        font-family: monospace;
+        font-size: 0.9rem;
+        color: var(--dark-color);
+        font-weight: 500;
+        flex: 1;
+        margin-right: 1rem;
+    }
+
+    .info-value.token-hidden {
+        color: #6c757d;
+        font-style: italic;
+    }
+
+    .info-item .btn {
+        white-space: nowrap;
+    }
+
+    /* Message List */
+    .message-list {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    /* Estilos base para mensajes (sin fondo por defecto) */
+    .message-item {
+        padding: 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        transition: var(--transition);
+        background: #f8f9fa;
+    }
+
+    .message-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .message-type {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .message-phone {
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+
+    .message-time {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+
+    .message-content {
+        color: var(--dark-color);
+        line-height: 1.4;
+        word-wrap: break-word;
+    }
+
+    /* Form Control Large */
+    .form-control-lg {
+        padding: 0.75rem 1rem;
+        font-size: 1.1rem;
+        border-radius: 8px;
+    }
+
+    .btn-lg {
+        padding: 0.75rem 1.5rem;
+        font-size: 1.1rem;
+    }
+
+    /* Modal improvements */
+    .modal-dialog {
+        max-width: 600px;
+    }
+
+    .modal-body .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .modal-body .form-control {
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+    }
+
+    .modal-body .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(24, 119, 242, 0.25);
+    }
+
+    /* Responsive improvements */
+    @media (max-width: 768px) {
+        .info-value-container {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        .info-value {
+            margin-right: 0;
+        }
+
+        .message-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        .message-type {
+            align-self: flex-start;
+        }
+
+        .message-phone, .message-time {
+            font-size: 0.9rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="main-content">
+        <!-- Header Section -->
+        <div class="header-section">
+            <div class="header-content">
+                <!-- Breadcrumbs -->
+                <nav aria-label="breadcrumb" class="mb-3">
+                    <ol class="breadcrumb">
+                        {% for breadcrumb in breadcrumbs %}
+                            {% if breadcrumb.url %}
+                                <li class="breadcrumb-item"><a href="{{ breadcrumb.url }}">{{ breadcrumb.name }}</a></li>
+                            {% else %}
+                                <li class="breadcrumb-item active" aria-current="page">{{ breadcrumb.name }}</li>
+                            {% endif %}
+                        {% endfor %}
+                    </ol>
+                </nav>
+
+                <!-- Header -->
+                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                    <div>
+                        <h1 class="page-title">
+                            <i class="fab fa-meta me-2"></i>
+                            {{ page_title }}
+                        </h1>
+                        <p class="page-subtitle">Gestiona tu configuración de Meta Business API para WhatsApp</p>
+                    </div>
+                    <div class="mt-2 mt-md-0">
+                        {% if has_active_config %}
+                            <div class="status-badge active">
+                                <i class="fas fa-check-circle"></i>
+                                Configuración Activa
+                            </div>
+                        {% else %}
+                            <div class="status-badge inactive">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Sin Configuración
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Section -->
+        <div class="content-section">
+
+            <!-- Mensajes -->
+            {% if messages %}
+                <div class="mb-4">
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Configuración Actual -->
+            <div class="form-card">
+                <div class="form-card-header">
+                    <h5 class="form-card-title">
+                        <i class="fas fa-cog"></i>
+                        Configuración Meta Business
+                    </h5>
+                </div>
+                <div class="form-card-body">
+                    {% if config %}
+                        <!-- Información Básica -->
+                        <div class="form-section">
+                            <h5 class="form-section-title">
+                                <i class="fas fa-info-circle"></i>
+                                Información Básica
+                            </h5>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="info-item">
+                                        <label class="form-label">ID del Número de Teléfono</label>
+                                        <div class="info-value-container">
+                                            <span class="info-value">{{ config.phone_number_id }}</span>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="editField('phone_number_id', '{{ config.phone_number_id }}')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="info-item">
+                                        <label class="form-label">ID de la Cuenta Comercial</label>
+                                        <div class="info-value-container">
+                                            <span class="info-value">{{ config.business_account_id }}</span>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="editField('business_account_id', '{{ config.business_account_id }}')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="info-item">
+                                        <label class="form-label">ID de la Cuenta de WhatsApp Business</label>
+                                        <div class="info-value-container">
+                                            <span class="info-value">{{ config.whatsapp_business_account_id|default:"No configurado" }}</span>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="editField('whatsapp_business_account_id', '{{ config.whatsapp_business_account_id|default:"" }}')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                        </div>
+                                        <div class="form-text">
+                                            <i class="fas fa-info-circle"></i>
+                                            Este campo es opcional pero recomendado para funcionalidad completa
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Token de Meta -->
+                        <div class="form-section">
+                            <h5 class="form-section-title">
+                                <i class="fas fa-key"></i>
+                                Tokens de Meta
+                            </h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="info-item">
+                                        <label class="form-label">Token de Acceso</label>
+                                        <div class="info-value-container">
+                                            <span class="info-value token-hidden">{{ config.access_token|slice:":20" }}...</span>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="editField('access_token', '{{ config.access_token }}')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="info-item">
+                                        <label class="form-label">Secreto de la Aplicación</label>
+                                        <div class="info-value-container">
+                                            <span class="info-value token-hidden">{{ config.app_secret|slice:":8" }}...</span>
+                                            <span class="badge bg-info">
+                                                <i class="fas fa-shield-alt"></i>
+                                                Auto-generado
+                                            </span>
+                                        </div>
+                                        <div class="form-text">
+                                            <i class="fas fa-info-circle"></i>
+                                            Este secreto se genera automáticamente por seguridad
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Configuración Webhook -->
+                        <div class="form-section">
+                            <h5 class="form-section-title">
+                                <i class="fas fa-link"></i>
+                                Configuración Webhook
+                            </h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="info-item">
+                                        <label class="form-label">Token de Verificación</label>
+                                        <div class="info-value-container">
+                                            <span class="info-value">{{ config.webhook_verify_token }}</span>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="editField('webhook_verify_token', '{{ config.webhook_verify_token }}')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                        </div>
+                                        <div class="form-text">
+                                            <i class="fas fa-info-circle"></i>
+                                            Secreto que tú eliges para que Facebook verifique tu webhook
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="info-item">
+                                        <label class="form-label">URL del Webhook</label>
+                                        <div class="info-value-container">
+                                            <span class="info-value">{{ config.webhook_url }}</span>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="editField('webhook_url', '{{ config.webhook_url }}')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Información del Webhook -->
+                            <div class="webhook-info">
+                                <h6><i class="fas fa-info-circle me-2"></i>Configuración en Meta/Facebook</h6>
+                                <p class="mb-2">
+                                    <strong>🔗 URL del Webhook para Facebook:</strong> 
+                                    <code>https://korban.duckdns.org/marketing/webhook/</code>
+                                </p>
+                                <p class="mb-2">
+                                    <strong>🔑 Token de Verificación:</strong> 
+                                    <code>{{ config.webhook_verify_token }}</code>
+                                </p>
+                                <p class="mb-2">
+                                    <strong>📋 Eventos a suscribir:</strong> messages, messaging_postbacks, message_deliveries, message_reads
+                                </p>
+                                <div class="alert alert-warning mt-3">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>¡IMPORTANTE!</strong> Facebook requiere <strong>HTTPS</strong>. Asegúrate de que tu certificado SSL esté configurado correctamente.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Estado -->
+                        <div class="form-section">
+                            <h5 class="form-section-title">
+                                <i class="fas fa-toggle-on"></i>
+                                Estado de la Configuración
+                            </h5>
+                            <div class="info-item">
+                                <label class="form-label">Estado</label>
+                                <div class="info-value-container">
+                                    <span class="info-value">
+                                        {% if config.is_active %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check-circle"></i>
+                                                Activa
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">
+                                                <i class="fas fa-pause-circle"></i>
+                                                Inactiva
+                                            </span>
+                                        {% endif %}
+                                    </span>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="editField('is_active', '{{ config.is_active }}')">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                    {% else %}
+                        <!-- No hay configuración -->
+                        <div class="text-center py-5">
+                            <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                            <h4>No hay configuración activa</h4>
+                            <p class="text-muted">Necesitas crear una configuración para empezar a usar WhatsApp Business</p>
+                            <button type="button" class="btn btn-primary" onclick="createNewConfig()">
+                                <i class="fas fa-plus"></i>
+                                Crear Nueva Configuración
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+
+            <!-- Panel de Pruebas -->
+            {% if has_active_config %}
+                <div class="form-card">
+                    <div class="form-card-header">
+                        <h5 class="form-card-title">
+                            <i class="fas fa-paper-plane"></i>
+                            Enviar Mensaje de Prueba
+                        </h5>
+                    </div>
+                    <div class="form-card-body">
+                        <div class="row align-items-end">
+                            <div class="col-md-8">
+                                <div class="form-group">
+                                    <label for="test_numero_destino" class="form-label">Número de Destino</label>
+                                    <input type="text" id="test_numero_destino" class="form-control form-control-lg" 
+                                           placeholder="Ej: 59165020724" value="59165020724">
+                                    <div class="form-text">Número en formato internacional sin el signo +</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="button" id="btn_enviar_prueba" class="btn btn-primary btn-lg w-100">
+                                    <i class="fas fa-paper-plane"></i>
+                                    Enviar Mensaje
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i>
+                                Se enviará un mensaje de template "hello_world" al número especificado
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Historial de Mensajes -->
+                <div class="form-card">
+                    <div class="form-card-header d-flex justify-content-between align-items-center">
+                        <h5 class="form-card-title mb-0">
+                            <i class="fas fa-comments"></i>
+                            Historial de Mensajes
+                        </h5>
+                        <button type="button" id="btn_actualizar_debug" class="btn btn-outline-info btn-sm">
+                            <i class="fas fa-sync"></i>
+                            Actualizar
+                        </button>
+                        <span id="live_indicator" class="badge bg-info ms-2">
+                            <i class="fas fa-sync"></i>
+                            Polling (3s)
+                        </span>
+                    </div>
+                    <div class="form-card-body p-0">
+                        <div id="debug_messages_container">
+                            {% if debug_messages %}
+                                <div class="message-list">
+                                    {% for message in debug_messages %}
+                                        {% if message.tipo != 'webhook_event' %}
+                                        <div class="message-item {% if message.tipo == 'incoming' %}incoming{% elif message.tipo == 'outgoing' or message.tipo == 'test_message' %}outgoing{% else %}system{% endif %}">
+                                            <div class="message-header">
+                                                <div class="message-type">
+                                                    {% if message.tipo == 'incoming' %}
+                                                        <i class="fas fa-arrow-down" style="color: #4caf50;"></i>
+                                                        <span class="badge" style="background-color: #4caf50; color: white;">📱 Recibido</span>
+                                                    {% elif message.tipo == 'outgoing' %}
+                                                        <i class="fas fa-arrow-up" style="color: #2196f3;"></i>
+                                                        <span class="badge" style="background-color: #2196f3; color: white;">📤 Enviado</span>
+                                                    {% elif message.tipo == 'test_message' %}
+                                                        <i class="fas fa-vial" style="color: #ff9800;"></i>
+                                                        <span class="badge" style="background-color: #ff9800; color: white;">🧪 Prueba</span>
+                                                    {% elif message.tipo == 'webhook_event' %}
+                                                        <i class="fas fa-exchange-alt" style="color: #6c757d;"></i>
+                                                        <span class="badge" style="background-color: #6c757d; color: white;">📡 Estado</span>
+                                                    {% else %}
+                                                        <i class="fas fa-cog text-secondary"></i>
+                                                        <span class="badge bg-secondary">Sistema</span>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="message-phone">{{ message.numero_telefono }}</div>
+                                                <div class="message-time">{{ message.created_at|date:"d/m H:i:s" }}</div>
+                                            </div>
+                                            <div class="message-content">
+                                                {{ message.contenido }}
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="text-center text-muted py-5">
+                                    <i class="fas fa-inbox fa-3x mb-3"></i>
+                                    <h5>No hay mensajes aún</h5>
+                                    <p>Los mensajes enviados y recibidos aparecerán aquí</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Editar Campo -->
+<div class="modal" id="editFieldModal" style="display: none;">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>
+                    <span id="modal_field_title">Editar Campo</span>
+                </h5>
+                <button type="button" class="btn-close" onclick="hideModal('editFieldModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="editFieldForm">
+                    <div class="form-group">
+                        <label for="modal_field_value" class="form-label" id="modal_field_label">Valor</label>
+                        <div id="modal_field_container">
+                            <!-- Este contenido se llenará dinámicamente -->
+                        </div>
+                        <div class="form-text" id="modal_field_help">
+                            <!-- Texto de ayuda dinámico -->
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="hideModal('editFieldModal')">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="saveFieldBtn">
+                    <i class="fas fa-save me-2"></i>
+                    Guardar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Crear Nueva Configuración -->
+<div class="modal" id="createConfigModal" style="display: none;">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>
+                    Crear Nueva Configuración
+                </h5>
+                <button type="button" class="btn-close" onclick="hideModal('createConfigModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="createConfigForm">
+                    <div class="form-group">
+                        <label for="new_phone_number_id" class="form-label">ID del Número de Teléfono</label>
+                        <input type="text" id="new_phone_number_id" class="form-control" 
+                               placeholder="Ej: 553105714563165">
+                    </div>
+                    <div class="form-group">
+                        <label for="new_business_account_id" class="form-label">ID de la Cuenta Comercial</label>
+                        <input type="text" id="new_business_account_id" class="form-control" 
+                               placeholder="Ej: 1234567890123456">
+                    </div>
+                    <div class="form-group">
+                        <label for="new_whatsapp_business_account_id" class="form-label">ID de la Cuenta de WhatsApp Business</label>
+                        <input type="text" id="new_whatsapp_business_account_id" class="form-control" 
+                               placeholder="Ej: 1234567890123456">
+                        <div class="form-text">Este es diferente del ID de la Cuenta Comercial</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="new_access_token" class="form-label">Token de Acceso (Meta Token)</label>
+                        <textarea id="new_access_token" class="form-control" rows="3" 
+                                  placeholder="Token de acceso de Meta"></textarea>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Nota:</strong> El secreto de la aplicación se generará automáticamente por seguridad.
+                    </div>
+                    <div class="form-group">
+                        <label for="new_webhook_verify_token" class="form-label">Token de Verificación Webhook</label>
+                        <input type="text" id="new_webhook_verify_token" class="form-control" 
+                               placeholder="Token de verificación">
+                    </div>
+                    <div class="form-group">
+                        <label for="new_webhook_url" class="form-label">URL del Webhook</label>
+                        <input type="url" id="new_webhook_url" class="form-control" 
+                               placeholder="https://tu-dominio.com/webhook/">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="hideModal('createConfigModal')">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="createConfigBtn">
+                    <i class="fas fa-plus me-2"></i>
+                    Crear Configuración
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function togglePassword(fieldId) {
+        const field = document.getElementById(fieldId);
+        const icon = field.parentElement.querySelector('.toggle-password');
+        
+        if (field.tagName === 'TEXTAREA') {
+            // Handle textarea visibility
+            if (field.style.webkitTextSecurity === 'disc') {
+                field.style.webkitTextSecurity = '';
+                field.style.textSecurity = '';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                field.style.webkitTextSecurity = 'disc';
+                field.style.textSecurity = 'disc';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        } else {
+            // Handle input type change
+            if (field.type === 'password') {
+                field.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                field.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+    }
+
+    // DOM Ready
+    document.addEventListener('DOMContentLoaded', function() {
+        
+        // Enviar mensaje de prueba
+        const btnEnviarPrueba = document.getElementById('btn_enviar_prueba');
+        if (btnEnviarPrueba) {
+            btnEnviarPrueba.addEventListener('click', function() {
+                const numeroDestino = document.getElementById('test_numero_destino').value;
+                
+                if (!numeroDestino.trim()) {
+                    alert('Por favor ingresa un número de destino');
+                    return;
+                }
+                
+                // Deshabilitar botón y mostrar loading
+                btnEnviarPrueba.disabled = true;
+                btnEnviarPrueba.innerHTML = '<div class="loading-spinner me-2"></div>Enviando...';
+                
+                // Preparar datos (siempre template)
+                const data = {
+                    numero_destino: numeroDestino,
+                    tipo: 'template',
+                    template_name: 'hello_world',
+                    language_code: 'en_US'
+                };
+                
+                // Enviar mensaje
+                fetch('/marketing/api/send-test-message/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Mensaje enviado exitosamente!');
+                        // Actualizar debug messages
+                        actualizarDebugMessages();
+                    } else {
+                        alert('Error al enviar mensaje: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error al enviar mensaje');
+                })
+                .finally(() => {
+                    // Reactivar botón
+                    btnEnviarPrueba.disabled = false;
+                    btnEnviarPrueba.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar Mensaje';
+                });
+            });
+        }
+        
+        // Actualizar debug messages
+        const btnActualizarDebug = document.getElementById('btn_actualizar_debug');
+        if (btnActualizarDebug) {
+            btnActualizarDebug.addEventListener('click', function() {
+                actualizarDebugMessages();
+            });
+        }
+        
+        // Auto-actualizar debug messages cada 3 segundos para tiempo real
+        setInterval(actualizarDebugMessages, 3000);
+        
+        // Actualizar inmediatamente cuando la ventana regresa al foco
+        window.addEventListener('focus', function() {
+            actualizarDebugMessages();
+        });
+    });
+    
+    // Función para actualizar mensajes de debug
+    function actualizarDebugMessages() {
+        const container = document.getElementById('debug_messages_container');
+        const indicator = document.getElementById('live_indicator');
+        
+        if (!container) return;
+        
+        // Mostrar indicador de carga
+        if (indicator) {
+            indicator.className = 'badge bg-warning ms-2';
+            indicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Actualizando...';
+        }
+        
+        fetch('/marketing/api/debug-messages/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    renderDebugMessages(data.messages);
+                    
+                    // Mostrar indicador de éxito
+                    if (indicator) {
+                        indicator.className = 'badge bg-info ms-2';
+                        indicator.innerHTML = '<i class="fas fa-sync"></i> Polling (3s)';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error al obtener mensajes de debug:', error);
+                
+                // Mostrar indicador de error
+                if (indicator) {
+                    indicator.className = 'badge bg-danger ms-2';
+                    indicator.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error';
+                }
+            });
+    }
+    
+    // Función para renderizar mensajes de debug
+    function renderDebugMessages(messages) {
+        const container = document.getElementById('debug_messages_container');
+        if (!container) return;
+        
+        if (messages.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-muted py-5">
+                    <i class="fas fa-inbox fa-3x mb-3"></i>
+                    <h5>No hay mensajes aún</h5>
+                    <p>Los mensajes enviados y recibidos aparecerán aquí</p>
+                </div>
+            `;
+            return;
+        }
+        
+        let html = '<div class="message-list">';
+        messages.forEach(message => {
+            // Filtrar TODOS los mensajes de webhook_event - son ruido del sistema
+            if (message.tipo === 'webhook_event') {
+                return; // Skip ALL webhook events
+            }
+            
+            // Filtrar mensajes de sistema adicionales que no necesitamos mostrar
+            if (message.tipo === 'system' || message.tipo === 'status' || message.tipo === 'delivery' || message.tipo === 'read') {
+                return; // Skip system messages
+            }
+            
+            const typeClass = message.tipo === 'incoming' ? 'incoming' : 
+                             message.tipo === 'outgoing' ? 'outgoing' : 
+                             message.tipo === 'test_message' ? 'outgoing' : 'system';
+            
+            let iconHtml = '';
+            let badgeHtml = '';
+            
+            if (message.tipo === 'incoming') {
+                iconHtml = '<i class="fas fa-arrow-down" style="color: #4caf50;"></i>';
+                badgeHtml = '<span class="badge" style="background-color: #4caf50; color: white;">📱 Recibido</span>';
+            } else if (message.tipo === 'outgoing') {
+                iconHtml = '<i class="fas fa-arrow-up" style="color: #2196f3;"></i>';
+                badgeHtml = '<span class="badge" style="background-color: #2196f3; color: white;">📤 Enviado</span>';
+            } else if (message.tipo === 'test_message') {
+                iconHtml = '<i class="fas fa-vial" style="color: #ff9800;"></i>';
+                badgeHtml = '<span class="badge" style="background-color: #ff9800; color: white;">🧪 Prueba</span>';
+            } else {
+                // Para cualquier mensaje no filtrado que llegue aquí
+                iconHtml = '<i class="fas fa-cog" style="color: #6c757d;"></i>';
+                badgeHtml = '<span class="badge" style="background-color: #6c757d; color: white;">Sistema</span>';
+            }
+            
+            const date = new Date(message.created_at);
+            const timeString = date.toLocaleDateString('es-ES', {
+                day: '2-digit',
+                month: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            
+            // Estilos inline completos para evitar pérdida de colores
+            let itemStyle = 'padding: 1rem !important; border-radius: 8px !important; margin-bottom: 1rem !important; transition: all 0.3s ease !important;';
+            if (message.tipo === 'incoming') {
+                itemStyle += 'background: linear-gradient(135deg, #e8f5e9, #f1f8e9) !important; border-left: 4px solid #4caf50 !important; border: 1px solid #c8e6c9 !important; box-shadow: 0 2px 4px rgba(76, 175, 80, 0.1) !important;';
+            } else if (message.tipo === 'outgoing') {
+                itemStyle += 'background: linear-gradient(135deg, #e3f2fd, #f0f7ff) !important; border-left: 4px solid #2196f3 !important; border: 1px solid #bbdefb !important; box-shadow: 0 2px 4px rgba(33, 150, 243, 0.1) !important;';
+            } else if (message.tipo === 'test_message') {
+                itemStyle += 'background: linear-gradient(135deg, #fff3e0, #ffecb3) !important; border-left: 4px solid #ff9800 !important; border: 1px solid #ffcc02 !important; box-shadow: 0 2px 4px rgba(255, 152, 0, 0.1) !important;';
+            } else {
+                itemStyle += 'background: linear-gradient(135deg, #fafafa, #f5f5f5) !important; border-left: 4px solid #9e9e9e !important; border: 1px solid #e0e0e0 !important; box-shadow: 0 2px 4px rgba(158, 158, 158, 0.1) !important;';
+            }
+            
+            html += `
+                <div class="message-item ${typeClass}" style="${itemStyle}">
+                    <div class="message-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <div class="message-type" style="display: flex; align-items: center; gap: 0.5rem;">
+                            ${iconHtml}
+                            ${badgeHtml}
+                        </div>
+                        <div class="message-phone" style="font-weight: 600; color: #1877f2;">${message.numero_telefono}</div>
+                        <div class="message-time" style="font-size: 0.8rem; color: #6c757d;">${timeString}</div>
+                    </div>
+                    <div class="message-content" style="color: #212529; line-height: 1.4; word-wrap: break-word;">
+                        ${message.contenido}
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        
+        container.innerHTML = html;
+    }
+    
+    // Función para inicializar WebSocket
+    function initializeWebSocket() {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws/whatsapp/messages/`;
+        
+        const socket = new WebSocket(wsUrl);
+        
+        socket.onopen = function(e) {
+            console.log('🔌 WebSocket conectado');
+            updateConnectionStatus('connected');
+        };
+        
+        socket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            console.log('📨 Mensaje WebSocket recibido:', data);
+            
+            if (data.type === 'message' && data.message.action === 'new_message') {
+                // Agregar nuevo mensaje a la lista
+                addMessageToList(data.message);
+                updateConnectionStatus('message_received');
+            } else if (data.type === 'connection') {
+                console.log('✅ Conexión WebSocket establecida');
+                updateConnectionStatus('connected');
+            }
+        };
+        
+        socket.onclose = function(event) {
+            console.log('❌ WebSocket desconectado');
+            updateConnectionStatus('disconnected');
+            
+            // Intentar reconectar después de 3 segundos
+            setTimeout(() => {
+                console.log('🔄 Intentando reconectar WebSocket...');
+                initializeWebSocket();
+            }, 3000);
+        };
+        
+        socket.onerror = function(error) {
+            console.error('❌ Error en WebSocket:', error);
+            updateConnectionStatus('error');
+        };
+    }
+    
+    // Función para actualizar estado de conexión
+    function updateConnectionStatus(status) {
+        const indicator = document.getElementById('live_indicator');
+        if (!indicator) return;
+        
+        switch(status) {
+            case 'connected':
+                indicator.className = 'badge bg-success ms-2';
+                indicator.innerHTML = '<i class="fas fa-wifi"></i> En vivo (WebSocket)';
+                break;
+            case 'message_received':
+                indicator.className = 'badge bg-primary ms-2';
+                indicator.innerHTML = '<i class="fas fa-bolt"></i> Mensaje recibido';
+                setTimeout(() => {
+                    indicator.className = 'badge bg-success ms-2';
+                    indicator.innerHTML = '<i class="fas fa-wifi"></i> En vivo (WebSocket)';
+                }, 1000);
+                break;
+            case 'disconnected':
+                indicator.className = 'badge bg-warning ms-2';
+                indicator.innerHTML = '<i class="fas fa-wifi"></i> Reconectando...';
+                break;
+            case 'error':
+                indicator.className = 'badge bg-danger ms-2';
+                indicator.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error';
+                break;
+        }
+    }
+    
+    // Función para agregar mensaje a la lista
+    function addMessageToList(message) {
+        const container = document.getElementById('debug_messages_container');
+        if (!container) return;
+        
+        // Filtrar mensajes de webhook_event y system al agregar mensaje individual
+        if (message.tipo === 'webhook_event' || message.tipo === 'system' || message.tipo === 'status' || message.tipo === 'delivery' || message.tipo === 'read') {
+            return; // Skip system messages
+        }
+        
+        const typeClass = message.tipo === 'incoming' ? 'incoming' : 
+                         message.tipo === 'outgoing' ? 'outgoing' : 
+                         message.tipo === 'test_message' ? 'outgoing' : 'system';
+        
+        let iconHtml = '';
+        let badgeHtml = '';
+        
+        if (message.tipo === 'incoming') {
+            iconHtml = '<i class="fas fa-arrow-down" style="color: #4caf50;"></i>';
+            badgeHtml = '<span class="badge" style="background-color: #4caf50; color: white;">📱 Recibido</span>';
+        } else if (message.tipo === 'outgoing') {
+            iconHtml = '<i class="fas fa-arrow-up" style="color: #2196f3;"></i>';
+            badgeHtml = '<span class="badge" style="background-color: #2196f3; color: white;">📤 Enviado</span>';
+        } else if (message.tipo === 'test_message') {
+            iconHtml = '<i class="fas fa-vial" style="color: #ff9800;"></i>';
+            badgeHtml = '<span class="badge" style="background-color: #ff9800; color: white;">🧪 Prueba</span>';
+        } else {
+            iconHtml = '<i class="fas fa-cog" style="color: #6c757d;"></i>';
+            badgeHtml = '<span class="badge" style="background-color: #6c757d; color: white;">Sistema</span>';
+        }
+        
+        const date = new Date(message.created_at);
+        const timeString = date.toLocaleDateString('es-ES', {
+            day: '2-digit',
+            month: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        
+        // Estilos inline completos para mantener colores
+        let itemStyle = 'padding: 1rem !important; border-radius: 8px !important; margin-bottom: 1rem !important; transition: all 0.3s ease !important; animation: slideInRight 0.3s ease-out;';
+        if (message.tipo === 'incoming') {
+            itemStyle += 'background: linear-gradient(135deg, #e8f5e9, #f1f8e9) !important; border-left: 4px solid #4caf50 !important; border: 1px solid #c8e6c9 !important; box-shadow: 0 2px 4px rgba(76, 175, 80, 0.1) !important;';
+        } else if (message.tipo === 'outgoing') {
+            itemStyle += 'background: linear-gradient(135deg, #e3f2fd, #f0f7ff) !important; border-left: 4px solid #2196f3 !important; border: 1px solid #bbdefb !important; box-shadow: 0 2px 4px rgba(33, 150, 243, 0.1) !important;';
+        } else if (message.tipo === 'test_message') {
+            itemStyle += 'background: linear-gradient(135deg, #fff3e0, #ffecb3) !important; border-left: 4px solid #ff9800 !important; border: 1px solid #ffcc02 !important; box-shadow: 0 2px 4px rgba(255, 152, 0, 0.1) !important;';
+        } else {
+            itemStyle += 'background: linear-gradient(135deg, #fafafa, #f5f5f5) !important; border-left: 4px solid #9e9e9e !important; border: 1px solid #e0e0e0 !important; box-shadow: 0 2px 4px rgba(158, 158, 158, 0.1) !important;';
+        }
+        
+        const messageHtml = `
+            <div class="message-item ${typeClass}" style="${itemStyle}">
+                <div class="message-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <div class="message-type" style="display: flex; align-items: center; gap: 0.5rem;">
+                        ${iconHtml}
+                        ${badgeHtml}
+                    </div>
+                    <div class="message-phone" style="font-weight: 600; color: #1877f2;">${message.numero_telefono}</div>
+                    <div class="message-time" style="font-size: 0.8rem; color: #6c757d;">${timeString}</div>
+                </div>
+                <div class="message-content" style="color: #212529; line-height: 1.4; word-wrap: break-word;">
+                    ${message.contenido}
+                </div>
+            </div>
+        `;
+        
+        // Agregar al principio de la lista
+        const messageList = container.querySelector('.message-list');
+        if (messageList) {
+            messageList.insertAdjacentHTML('afterbegin', messageHtml);
+        } else {
+            container.innerHTML = '<div class="message-list">' + messageHtml + '</div>';
+        }
+        
+        // Limitar a 10 mensajes máximo
+        const messages = container.querySelectorAll('.message-item');
+        if (messages.length > 10) {
+            messages[messages.length - 1].remove();
+        }
+    }
+    
+    // Función para obtener cookie CSRF
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Función para editar campo individual
+    function editField(fieldName, currentValue) {
+        const modal = document.getElementById('editFieldModal');
+        const fieldContainer = document.getElementById('modal_field_container');
+        const fieldLabel = document.getElementById('modal_field_label');
+        const fieldTitle = document.getElementById('modal_field_title');
+        const fieldHelp = document.getElementById('modal_field_help');
+        const saveBtn = document.getElementById('saveFieldBtn');
+        
+        // Configurar el modal según el campo
+        const fieldConfig = {
+            phone_number_id: {
+                title: 'Editar ID del Número de Teléfono',
+                label: 'ID del Número de Teléfono',
+                help: 'ID del número de teléfono registrado en Meta Business',
+                type: 'input',
+                placeholder: 'Ej: 553105714563165'
+            },
+            business_account_id: {
+                title: 'Editar ID de la Cuenta Comercial',
+                label: 'ID de la Cuenta Comercial',
+                help: 'ID de la cuenta comercial de WhatsApp Business',
+                type: 'input',
+                placeholder: 'Ej: 1234567890123456'
+            },
+            whatsapp_business_account_id: {
+                title: 'Editar ID de la Cuenta de WhatsApp Business',
+                label: 'ID de la Cuenta de WhatsApp Business',
+                help: 'ID de la cuenta de WhatsApp Business (diferente del Business Account ID)',
+                type: 'input',
+                placeholder: 'Ej: 1234567890123456'
+            },
+            access_token: {
+                title: 'Editar Token de Acceso',
+                label: 'Token de Acceso (Meta Token)',
+                help: 'Token de acceso permanente para la API de WhatsApp Business',
+                type: 'textarea',
+                placeholder: 'Token de acceso de Meta'
+            },
+            webhook_verify_token: {
+                title: 'Editar Token de Verificación',
+                label: 'Token de Verificación del Webhook',
+                help: 'Token secreto para verificar la autenticidad del webhook',
+                type: 'input',
+                placeholder: 'Token de verificación'
+            },
+            webhook_url: {
+                title: 'Editar URL del Webhook',
+                label: 'URL del Webhook',
+                help: 'URL donde Meta enviará los webhooks de WhatsApp',
+                type: 'input',
+                placeholder: 'https://tu-dominio.com/webhook/'
+            },
+            is_active: {
+                title: 'Cambiar Estado',
+                label: 'Estado de la Configuración',
+                help: 'Activar o desactivar la configuración',
+                type: 'checkbox'
+            }
+        };
+        
+        const config = fieldConfig[fieldName];
+        if (!config) return;
+        
+        // Configurar el modal
+        fieldTitle.textContent = config.title;
+        fieldLabel.textContent = config.label;
+        fieldHelp.textContent = config.help;
+        
+        // Crear el campo de entrada
+        let inputHtml = '';
+        if (config.type === 'textarea') {
+            inputHtml = `<textarea id="modal_field_value" class="form-control" rows="3" placeholder="${config.placeholder}">${currentValue}</textarea>`;
+        } else if (config.type === 'checkbox') {
+            const checked = (currentValue === 'True' || currentValue === true) ? 'checked' : '';
+            inputHtml = `
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="modal_field_value" ${checked}>
+                    <label class="form-check-label" for="modal_field_value">
+                        Configuración Activa
+                    </label>
+                </div>
+            `;
+        } else {
+            inputHtml = `<input type="text" id="modal_field_value" class="form-control" placeholder="${config.placeholder}" value="${currentValue}">`;
+        }
+        
+        fieldContainer.innerHTML = inputHtml;
+        
+        // Configurar el botón de guardar
+        saveBtn.setAttribute('data-field-name', fieldName);
+        
+        // Mostrar el modal
+        showModal('editFieldModal');
+    }
+    
+    // Función para crear nueva configuración
+    function createNewConfig() {
+        // Auto-llenar webhook URL
+        const webhookUrlField = document.getElementById('new_webhook_url');
+        webhookUrlField.value = window.location.origin + '/marketing/webhook/';
+        
+        showModal('createConfigModal');
+    }
+    
+    // Funciones para manejar modales sin Bootstrap
+    function showModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.style.display = 'block';
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+    
+    function hideModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.style.display = 'none';
+            modal.classList.remove('show');
+            document.body.style.overflow = 'auto';
+        }
+    }
+    
+    // Event listeners para los botones de guardar
+    document.addEventListener('DOMContentLoaded', function() {
+        // Guardar campo editado
+        const saveFieldBtn = document.getElementById('saveFieldBtn');
+        if (saveFieldBtn) {
+            saveFieldBtn.addEventListener('click', function() {
+                const fieldName = this.getAttribute('data-field-name');
+                const fieldElement = document.getElementById('modal_field_value');
+                let fieldValue;
+                
+                // Get value based on field type
+                if (fieldElement.type === 'checkbox') {
+                    fieldValue = fieldElement.checked ? 'on' : '';
+                } else {
+                    fieldValue = fieldElement.value;
+                }
+                
+                if (!fieldValue.trim() && fieldName !== 'is_active') {
+                    alert('Por favor ingresa un valor');
+                    return;
+                }
+                
+                // Deshabilitar botón y mostrar loading
+                saveFieldBtn.disabled = true;
+                saveFieldBtn.innerHTML = '<div class="loading-spinner me-2"></div>Guardando...';
+                
+                // Preparar datos para enviar
+                const formData = new FormData();
+                formData.append(fieldName, fieldValue);
+                formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+                
+                // Enviar al servidor
+                fetch('/marketing/configuracion/', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Cerrar modal y recargar página
+                        hideModal('editFieldModal');
+                        window.location.reload();
+                    } else {
+                        alert('Error al guardar el campo');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error al guardar el campo');
+                })
+                .finally(() => {
+                    // Reactivar botón
+                    saveFieldBtn.disabled = false;
+                    saveFieldBtn.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Cambios';
+                });
+            });
+        }
+        
+        // Crear nueva configuración
+        const createConfigBtn = document.getElementById('createConfigBtn');
+        if (createConfigBtn) {
+            createConfigBtn.addEventListener('click', function() {
+                const phoneNumberId = document.getElementById('new_phone_number_id').value;
+                const businessAccountId = document.getElementById('new_business_account_id').value;
+                const whatsappBusinessAccountId = document.getElementById('new_whatsapp_business_account_id').value;
+                const accessToken = document.getElementById('new_access_token').value;
+                const webhookVerifyToken = document.getElementById('new_webhook_verify_token').value;
+                const webhookUrl = document.getElementById('new_webhook_url').value;
+                
+                if (!phoneNumberId.trim() || !businessAccountId.trim() || !accessToken.trim() || !webhookVerifyToken.trim() || !webhookUrl.trim()) {
+                    alert('Por favor completa todos los campos requeridos');
+                    return;
+                }
+                
+                // Deshabilitar botón y mostrar loading
+                createConfigBtn.disabled = true;
+                createConfigBtn.innerHTML = '<div class="loading-spinner me-2"></div>Creando...';
+                
+                // Preparar datos para enviar
+                const formData = new FormData();
+                formData.append('phone_number_id', phoneNumberId);
+                formData.append('business_account_id', businessAccountId);
+                formData.append('whatsapp_business_account_id', whatsappBusinessAccountId);
+                formData.append('access_token', accessToken);
+                formData.append('webhook_verify_token', webhookVerifyToken);
+                formData.append('webhook_url', webhookUrl);
+                formData.append('is_active', 'on');
+                formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+                
+                // Enviar al servidor
+                fetch('/marketing/configuracion/', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Cerrar modal y recargar página
+                        hideModal('createConfigModal');
+                        window.location.reload();
+                    } else {
+                        alert('Error al crear la configuración');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error al crear la configuración');
+                })
+                .finally(() => {
+                    // Reactivar botón
+                    createConfigBtn.disabled = false;
+                    createConfigBtn.innerHTML = '<i class="fas fa-plus me-2"></i>Crear Configuración';
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}

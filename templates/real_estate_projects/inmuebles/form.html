@@ -1,0 +1,812 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/select2.min.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="mb-6 flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">{{ title }}</h1>
+                {% if fase %}
+                    <p class="text-gray-600 mt-1">Proyecto: {{ proyecto.nombre }} | Fase: {{ fase.nombre }}</p>
+                {% else %}
+                    <p class="text-gray-600 mt-1">Completa la información del inmueble</p>
+                {% endif %}
+            </div>
+            <div>
+                <a href="{% url 'projects:inmuebles_list' %}" 
+                   class="text-gray-600 hover:text-gray-900 font-medium">
+                    <svg class="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Volver a Inmuebles
+                </a>
+            </div>
+        </div>
+
+        <!-- Formulario -->
+        <div class="bg-white rounded-lg shadow-sm border">
+            <form method="post" class="p-6">
+                {% csrf_token %}
+                
+                <!-- Errores generales -->
+                {% if form.non_field_errors %}
+                    <div class="mb-4 bg-red-50 border border-red-200 rounded-lg p-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-red-800">Errores en el formulario</h3>
+                                <div class="mt-2 text-sm text-red-700">
+                                    <ul class="list-disc list-inside">
+                                        {% for error in form.non_field_errors %}
+                                            <li>{{ error }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if not is_create %}
+                <!-- Formulario de Edición - Solo campos editables -->
+                <div class="space-y-6">
+                    <!-- Información del Inmueble (Solo lectura) -->
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h3 class="text-lg font-medium text-gray-900 border-b pb-2 mb-4">Información del Inmueble</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Proyecto</label>
+                                {{ form.proyecto_info }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Fase</label>
+                                {{ form.fase_info }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Código del Inmueble</label>
+                                {{ form.codigo_info }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
+                                {{ form.tipo_info }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Campos Editables -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Área -->
+                        <div class="space-y-4">
+                            <h3 class="text-lg font-medium text-gray-900 border-b pb-2">Área del Inmueble</h3>
+                            
+                            <!-- Área Total m² -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Área Total (m²) *
+                                </label>
+                                {{ form.m2 }}
+                                {% if form.m2.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.m2.errors.0 }}</p>
+                                {% endif %}
+                                <p class="text-xs text-gray-500 mt-1">
+                                    El precio se calcula automáticamente basado en el área y los ponderadores aplicados.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Precio Calculado -->
+                        <div class="space-y-4">
+                            <h3 class="text-lg font-medium text-gray-900 border-b pb-2">Precio Calculado</h3>
+                            
+                            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                                <div class="text-center">
+                                    <p class="text-sm text-green-600 mb-1">Precio Total</p>
+                                    <p class="text-3xl font-bold text-green-700 precio-calculado-valor">${{ instance.precio_calculado|floatformat:0 }}</p>
+                                </div>
+                                <div class="mt-3 text-xs text-green-600">
+                                    <p><strong>Fórmula:</strong> <span class="formula-m2">{{ instance.m2 }}</span> m² × <span class="formula-precio-base">${{ instance.fase.precio_m2|floatformat:0 }}</span>/m² × Ponderadores</p>
+                                    <p class="mt-1"><strong>Ponderadores aplicados:</strong></p>
+                                    <ul class="ml-4 list-disc lista-ponderadores-aplicados">
+                                        {% for ponderador in instance.ponderadores.all %}
+                                            <li>{{ ponderador.nombre }}: {% if ponderador.porcentaje >= 0 %}+{% endif %}{{ ponderador.porcentaje }}%</li>
+                                        {% empty %}
+                                            <li>Ninguno</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Estado y Configuración -->
+                        <div class="space-y-4">
+                            <h3 class="text-lg font-medium text-gray-900 border-b pb-2">Estado y Configuración</h3>
+                            
+                            <!-- Estado -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Estado *
+                                </label>
+                                {{ form.estado }}
+                                {% if form.estado.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.estado.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+
+
+                            <!-- Disponible comercialización -->
+                            <div class="flex items-center">
+                                {{ form.disponible_comercializacion }}
+                                <label class="ml-2 text-sm font-medium text-gray-700">
+                                    Disponible para comercialización
+                                </label>
+                                {% if form.disponible_comercializacion.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.disponible_comercializacion.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Características -->
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900 border-b pb-2 mb-4">Características Adicionales</h3>
+                        {{ form.caracteristicas }}
+                        {% if form.caracteristicas.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.caracteristicas.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Ponderadores de Precio -->
+                    <div>
+                        <div class="flex justify-between items-center border-b pb-2 mb-4">
+                            <h3 class="text-lg font-medium text-gray-900">Ponderadores de Precio</h3>
+                            <button type="button" onclick="openPonderadorModal()" 
+                                    class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1.5 rounded-lg font-medium inline-flex items-center">
+                                <i class="fas fa-plus mr-1.5"></i>
+                                Crear Ponderador
+                            </button>
+                        </div>
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                            <div class="flex items-center">
+                                <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                                <p class="text-sm text-blue-700">
+                                    Los ponderadores afectan el precio final del inmueble. Se pueden aplicar múltiples ponderadores y sus efectos se multiplicarán.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            {% for checkbox in form.ponderadores %}
+                                <div class="flex items-start space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                                    <div class="flex items-center h-5">
+                                        {{ checkbox.tag }}
+                                    </div>
+                                    <div class="flex-1">
+                                        <label for="{{ checkbox.id_for_label }}" class="text-sm font-medium text-gray-900 cursor-pointer">
+                                            {{ checkbox.choice_label }}
+                                        </label>
+                                        {% if checkbox.choice_value in form.ponderadores.queryset.all %}
+                                            {% for ponderador in form.ponderadores.queryset.all %}
+                                                {% if ponderador.pk == checkbox.choice_value %}
+                                                    <p class="text-xs text-gray-600 mt-1">
+                                                        {{ ponderador.get_tipo_display }} - {{ ponderador.get_nivel_aplicacion_display }}
+                                                        <span class="font-medium {% if ponderador.porcentaje >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                                                            {% if ponderador.porcentaje >= 0 %}+{% endif %}{{ ponderador.porcentaje }}%
+                                                        </span>
+                                                    </p>
+                                                    {% if ponderador.descripcion %}
+                                                        <p class="text-xs text-gray-500 mt-1">{{ ponderador.descripcion }}</p>
+                                                    {% endif %}
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% empty %}
+                                <div class="text-center py-8 text-gray-500">
+                                    <p class="text-sm">No hay ponderadores disponibles para este inmueble.</p>
+                                    <p class="text-xs mt-1">Los ponderadores se crean a nivel de proyecto, fase o inmueble específico.</p>
+                                </div>
+                            {% endfor %}
+                            {% if form.ponderadores.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.ponderadores.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <!-- Formulario de Creación - Todos los campos -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Información básica -->
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-medium text-gray-900 border-b pb-2">Información Básica</h3>
+                        
+                        <!-- Código -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Código del Inmueble *
+                            </label>
+                            {{ form.codigo }}
+                            {% if form.codigo.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.codigo.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Tipo -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Tipo *
+                            </label>
+                            {{ form.tipo }}
+                            {% if form.tipo.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.tipo.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Estado -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Estado *
+                            </label>
+                            {{ form.estado }}
+                            {% if form.estado.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.estado.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+
+                        <!-- Comercializable -->
+                        <div>
+                            <label class="flex items-center">
+                                {{ form.disponible_comercializacion }}
+                                <span class="ml-2 text-sm text-gray-700">Disponible para comercialización</span>
+                            </label>
+                            {% if form.disponible_comercializacion.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.disponible_comercializacion.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Ubicación -->
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-medium text-gray-900 border-b pb-2">Ubicación</h3>
+                        
+                        <!-- Proyecto -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Proyecto *
+                            </label>
+                            {{ form.proyecto }}
+                            {% if form.proyecto.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.proyecto.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Fase -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Fase *
+                            </label>
+                            {{ form.fase }}
+                            {% if form.fase.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.fase.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Campos para departamentos -->
+                        <div id="departamentos-fields" class="space-y-4 hidden">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Torre
+                                </label>
+                                {{ form.torre }}
+                                {% if form.torre.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.torre.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Piso
+                                </label>
+                                {{ form.piso }}
+                                {% if form.piso.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.piso.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Campos para terrenos -->
+                        <div id="terrenos-fields" class="space-y-4 hidden">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Sector
+                                </label>
+                                {{ form.sector }}
+                                {% if form.sector.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.sector.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Manzana
+                                </label>
+                                {{ form.manzana }}
+                                {% if form.manzana.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.manzana.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Áreas y precios -->
+                <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-medium text-gray-900 border-b pb-2">Áreas</h3>
+                        
+                        <!-- Área total m² -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Área Total (m²) *
+                            </label>
+                            {{ form.m2 }}
+                            {% if form.m2.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.m2.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-medium text-gray-900 border-b pb-2">Precios</h3>
+                        
+                        <!-- Factor precio -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Factor de Precio
+                            </label>
+                            {{ form.factor_precio }}
+                            {% if form.factor_precio.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.factor_precio.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Precio manual -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Precio Manual (opcional)
+                            </label>
+                            {{ form.precio_manual }}
+                            {% if form.precio_manual.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.precio_manual.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Características -->
+                <div class="mt-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Características Adicionales
+                    </label>
+                    {{ form.caracteristicas }}
+                    {% if form.caracteristicas.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.caracteristicas.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Ponderadores de Precio -->
+                <div class="mt-6">
+                    <div class="flex justify-between items-center border-b pb-2 mb-4">
+                        <h3 class="text-lg font-medium text-gray-900">Ponderadores de Precio</h3>
+                        <button type="button" onclick="openPonderadorModal()" 
+                                class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1.5 rounded-lg font-medium inline-flex items-center">
+                            <i class="fas fa-plus mr-1.5"></i>
+                            Crear Ponderador
+                        </button>
+                    </div>
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                            <p class="text-sm text-blue-700">
+                                Los ponderadores afectan el precio final del inmueble. Se pueden aplicar múltiples ponderadores y sus efectos se multiplicarán.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        {% for checkbox in form.ponderadores %}
+                            <div class="flex items-start space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                                <div class="flex items-center h-5">
+                                    {{ checkbox.tag }}
+                                </div>
+                                <div class="flex-1">
+                                    <label for="{{ checkbox.id_for_label }}" class="text-sm font-medium text-gray-900 cursor-pointer">
+                                        {{ checkbox.choice_label }}
+                                    </label>
+                                    {% if checkbox.choice_value in form.ponderadores.queryset.all %}
+                                        {% for ponderador in form.ponderadores.queryset.all %}
+                                            {% if ponderador.pk == checkbox.choice_value %}
+                                                <p class="text-xs text-gray-600 mt-1">
+                                                    {{ ponderador.get_tipo_display }} - {{ ponderador.get_nivel_aplicacion_display }}
+                                                    <span class="font-medium {% if ponderador.porcentaje >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                                                        {% if ponderador.porcentaje >= 0 %}+{% endif %}{{ ponderador.porcentaje }}%
+                                                    </span>
+                                                </p>
+                                                {% if ponderador.descripcion %}
+                                                    <p class="text-xs text-gray-500 mt-1">{{ ponderador.descripcion }}</p>
+                                                {% endif %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% empty %}
+                            <div class="text-center py-8 text-gray-500">
+                                <p class="text-sm">No hay ponderadores disponibles.</p>
+                                <p class="text-xs mt-1">Selecciona primero un proyecto y fase para ver los ponderadores aplicables.</p>
+                            </div>
+                        {% endfor %}
+                        {% if form.ponderadores.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.ponderadores.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Botones -->
+                <div class="mt-8 flex justify-end space-x-4">
+                    <a href="{% url 'projects:inmuebles_list' %}" 
+                       class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium">
+                        Cancelar
+                    </a>
+                    <button type="submit" 
+                            class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium">
+                        {% if is_create %}
+                            Crear Inmueble
+                        {% else %}
+                            Actualizar Inmueble
+                        {% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/select2.min.js' %}"></script>
+<script>
+// Verificar que jQuery está cargado
+if (typeof $ === 'undefined') {
+    console.error('jQuery no está cargado!');
+}
+
+$(document).ready(function() {
+    // Inicializar Select2 para los campos de selección
+    $('#id_proyecto').select2({
+        placeholder: 'Seleccionar proyecto',
+        allowClear: true
+    });
+
+    // Manejar cambios en el proyecto
+    $('#id_proyecto').on('change', function() {
+        var proyectoId = $(this).val();
+        if (proyectoId) {
+            // Cargar fases del proyecto
+            $.ajax({
+                url: '{% url "projects:ajax_fases_by_proyecto" 0 %}'.replace('0', proyectoId),
+                method: 'GET',
+                success: function(data) {
+                    var faseSelect = $('#id_fase');
+                    faseSelect.empty().append('<option value="">Seleccionar fase</option>');
+                    $.each(data.fases, function(index, fase) {
+                        faseSelect.append('<option value="' + fase.id + '">' + fase.nombre + '</option>');
+                    });
+                    faseSelect.prop('disabled', false);
+                    
+                    // Obtener tipo de proyecto
+                    $.ajax({
+                        url: '{% url "projects:ajax_get_project_type" 0 %}'.replace('0', proyectoId),
+                        method: 'GET',
+                        success: function(typeData) {
+                            if (typeData.tipo === 'departamentos') {
+                                $('#departamentos-fields').removeClass('hidden');
+                                $('#terrenos-fields').addClass('hidden');
+                            } else if (typeData.tipo === 'terrenos') {
+                                $('#terrenos-fields').removeClass('hidden');
+                                $('#departamentos-fields').addClass('hidden');
+                            }
+                        }
+                    });
+                }
+            });
+        } else {
+            $('#id_fase').empty().append('<option value="">Seleccionar fase</option>').prop('disabled', true);
+            $('#departamentos-fields, #terrenos-fields').addClass('hidden');
+        }
+    });
+
+    // Manejar cambios en la fase (para departamentos)
+    $('#id_fase').on('change', function() {
+        var faseId = $(this).val();
+        if (faseId) {
+            // Cargar torres de la fase
+            $.ajax({
+                url: '{% url "projects:ajax_torres_by_fase" 0 %}'.replace('0', faseId),
+                method: 'GET',
+                success: function(data) {
+                    var torreSelect = $('#id_torre');
+                    torreSelect.empty().append('<option value="">Seleccionar torre</option>');
+                    $.each(data.torres, function(index, torre) {
+                        torreSelect.append('<option value="' + torre.id + '">' + torre.nombre + '</option>');
+                    });
+                    torreSelect.prop('disabled', false);
+                }
+            });
+            
+            // Cargar sectores de la fase
+            $.ajax({
+                url: '{% url "projects:ajax_sectores_by_fase" 0 %}'.replace('0', faseId),
+                method: 'GET',
+                success: function(data) {
+                    var sectorSelect = $('#id_sector');
+                    sectorSelect.empty().append('<option value="">Seleccionar sector</option>');
+                    $.each(data.sectores, function(index, sector) {
+                        sectorSelect.append('<option value="' + sector.id + '">' + sector.nombre + '</option>');
+                    });
+                    sectorSelect.prop('disabled', false);
+                }
+            });
+        }
+    });
+
+    // Manejar cambios en la torre
+    $('#id_torre').on('change', function() {
+        var torreId = $(this).val();
+        if (torreId) {
+            $.ajax({
+                url: '{% url "projects:ajax_pisos_by_torre" 0 %}'.replace('0', torreId),
+                method: 'GET',
+                success: function(data) {
+                    var pisoSelect = $('#id_piso');
+                    pisoSelect.empty().append('<option value="">Seleccionar piso</option>');
+                    $.each(data.pisos, function(index, piso) {
+                        pisoSelect.append('<option value="' + piso.id + '">Piso ' + piso.numero_piso + '</option>');
+                    });
+                    pisoSelect.prop('disabled', false);
+                }
+            });
+        }
+    });
+
+    // Manejar cambios en el sector
+    $('#id_sector').on('change', function() {
+        var sectorId = $(this).val();
+        if (sectorId) {
+            $.ajax({
+                url: '{% url "projects:ajax_manzanas_by_sector" 0 %}'.replace('0', sectorId),
+                method: 'GET',
+                success: function(data) {
+                    var manzanaSelect = $('#id_manzana');
+                    manzanaSelect.empty().append('<option value="">Seleccionar manzana</option>');
+                    $.each(data.manzanas, function(index, manzana) {
+                        manzanaSelect.append('<option value="' + manzana.id + '">Manzana ' + manzana.numero_manzana + '</option>');
+                    });
+                    manzanaSelect.prop('disabled', false);
+                }
+            });
+        }
+    });
+
+    // Trigger inicial si hay datos precargados
+    {% if form.proyecto.value %}
+        $('#id_proyecto').trigger('change');
+    {% endif %}
+    
+    // Actualizar precio en tiempo real (solo en modo edición)
+    {% if instance and instance.pk %}
+    $('#id_m2').on('input', updatePrecio);
+    $('input[name="ponderadores"]').on('change', updatePrecio);
+    {% endif %}
+});
+
+// Función para actualizar el precio calculado en tiempo real
+function updatePrecio() {
+    {% if instance and instance.pk %}
+    const m2 = parseFloat($('#id_m2').val()) || 0;
+    const precioBase = {{ instance.fase.precio_m2|default:0 }};
+    const ponderadoresSeleccionados = [];
+    
+    // Obtener ponderadores seleccionados
+    $('input[name="ponderadores"]:checked').each(function() {
+        const ponderadorId = $(this).val();
+        // Buscar el porcentaje en los datos del template
+        {% for ponderador in form.ponderadores.queryset.all %}
+        if (ponderadorId == '{{ ponderador.pk }}') {
+            ponderadoresSeleccionados.push({
+                nombre: '{{ ponderador.nombre }}',
+                porcentaje: {{ ponderador.porcentaje }}
+            });
+        }
+        {% endfor %}
+    });
+    
+    // Calcular precio
+    let precio = m2 * precioBase;
+    let factorTotal = 1;
+    
+    ponderadoresSeleccionados.forEach(function(ponderador) {
+        factorTotal *= (1 + ponderador.porcentaje / 100);
+    });
+    
+    precio *= factorTotal;
+    
+    // Actualizar la visualización
+    $('.precio-calculado-valor').text('$' + Math.round(precio).toLocaleString());
+    $('.formula-m2').text(m2);
+    $('.formula-precio-base').text('$' + precioBase.toLocaleString());
+    
+    // Actualizar lista de ponderadores aplicados
+    const listaPonderadores = $('.lista-ponderadores-aplicados');
+    listaPonderadores.empty();
+    if (ponderadoresSeleccionados.length > 0) {
+        ponderadoresSeleccionados.forEach(function(ponderador) {
+            listaPonderadores.append('<li>' + ponderador.nombre + ': ' + 
+                (ponderador.porcentaje >= 0 ? '+' : '') + ponderador.porcentaje + '%</li>');
+        });
+    } else {
+        listaPonderadores.append('<li>Ninguno</li>');
+    }
+    {% endif %}
+}
+
+// Modal para crear ponderadores
+function openPonderadorModal() {
+    console.log('Abriendo modal ponderador...');
+    const modal = document.getElementById('ponderadorModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+    } else {
+        console.error('Modal no encontrado!');
+    }
+}
+
+function closePonderadorModal() {
+    console.log('Cerrando modal ponderador...');
+    const modal = document.getElementById('ponderadorModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        document.getElementById('ponderadorForm').reset();
+    }
+}
+
+function savePonderador() {
+    console.log('Guardando ponderador...');
+    const form = document.getElementById('ponderadorForm');
+    const formData = new FormData(form);
+    
+    // Agregar el proyecto e inmueble actual
+    {% if instance and instance.fase %}
+        formData.append('proyecto_id', '{{ instance.fase.proyecto.pk }}');
+        formData.append('fase_id', '{{ instance.fase.pk }}');
+    {% elif form.proyecto.value %}
+        const proyectoSelect = document.getElementById('id_proyecto');
+        const faseSelect = document.getElementById('id_fase');
+        formData.append('proyecto_id', proyectoSelect ? proyectoSelect.value : '{{ form.proyecto.value }}');
+        formData.append('fase_id', faseSelect ? faseSelect.value : '');
+    {% endif %}
+    
+    fetch('{% url "projects:ajax_create_ponderador" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log('Ponderador creado exitosamente');
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'No se pudo crear el ponderador'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error de conexión al crear el ponderador');
+    });
+}
+</script>
+
+<!-- Modal para crear ponderadores -->
+<div id="ponderadorModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <!-- Header -->
+            <div class="flex justify-between items-center pb-3 border-b">
+                <h3 class="text-lg font-medium text-gray-900">Crear Nuevo Ponderador</h3>
+                <button type="button" onclick="closePonderadorModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Form -->
+            <form id="ponderadorForm" class="mt-4 space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nombre *</label>
+                        <input type="text" name="nombre" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                               placeholder="Ej: Vista al Mar, Piso Alto">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
+                        <select name="tipo" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <option value="valorizacion">Valorización</option>
+                            <option value="descuento">Descuento</option>
+                            <option value="promocion">Promoción Temporal</option>
+                            <option value="ubicacion">Por Ubicación</option>
+                            <option value="infraestructura">Infraestructura</option>
+                            <option value="comercial">Estrategia Comercial</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nivel de Aplicación *</label>
+                        <select name="nivel_aplicacion" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <option value="proyecto">Todo el Proyecto</option>
+                            <option value="fase">Solo esta Fase</option>
+                            <option value="inmueble">Inmuebles Específicos</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Porcentaje *</label>
+                        <input type="number" name="porcentaje" step="0.01" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                               placeholder="Ej: 15.00 (+15%) o -5.00 (-5%)">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
+                    <textarea name="descripcion" rows="3"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                              placeholder="Descripción del ponderador..."></textarea>
+                </div>
+                
+                <!-- Buttons -->
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" onclick="closePonderadorModal()"
+                            class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                        Cancelar
+                    </button>
+                    <button type="button" onclick="savePonderador()"
+                            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+                        Crear Ponderador
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

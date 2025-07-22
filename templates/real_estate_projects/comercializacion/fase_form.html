@@ -1,0 +1,172 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Gestión de Comercialización - {{ fase.nombre }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <div class="max-w-2xl mx-auto">
+        <!-- Header -->
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold text-gray-900">Gestión de Comercialización</h1>
+            <p class="text-gray-600 mt-1">
+                {{ fase.nombre }} - {{ fase.proyecto.nombre }}
+            </p>
+        </div>
+
+        <!-- Current Status -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div class="flex items-center">
+                <svg class="w-5 h-5 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                </svg>
+                <div>
+                    <h3 class="text-sm font-medium text-blue-800">Estado Actual</h3>
+                    <p class="text-sm text-blue-700">
+                        {% if fase.es_comercializable %}
+                            Esta fase tiene <strong>{{ fase.inmuebles_comercializables }}</strong> inmuebles comercializables
+                        {% else %}
+                            Esta fase no tiene inmuebles comercializables
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Configuración de Comercialización</h2>
+                
+                <!-- Marcar fase como comercializable -->
+                <div class="mb-6">
+                    <div class="flex items-center">
+                        {{ form.comercializable }}
+                        <label for="{{ form.comercializable.id_for_label }}" class="ml-2 text-sm font-medium text-gray-700">
+                            Marcar todos los inmuebles de esta fase como comercializables
+                        </label>
+                    </div>
+                    {% if form.comercializable.errors %}
+                        <p class="text-red-500 text-sm mt-1">{{ form.comercializable.errors.0 }}</p>
+                    {% endif %}
+                    <p class="text-sm text-gray-500 mt-2">
+                        Al activar esta opción, se marcarán automáticamente como comercializables todos los inmuebles de:
+                        {% if fase.proyecto.tipo == 'departamentos' %}
+                            <strong>{{ fase.torres.count }}</strong> torre{% if fase.torres.count != 1 %}s{% endif %}
+                        {% else %}
+                            <strong>{{ fase.sectores.count }}</strong> sector{% if fase.sectores.count != 1 %}es{% endif %}
+                        {% endif %}
+                        en esta fase.
+                    </p>
+                </div>
+
+                <!-- Configuración adicional -->
+                {% if fase.proyecto.tipo == 'departamentos' %}
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h3 class="text-sm font-medium text-gray-900 mb-3">Torres en esta fase:</h3>
+                        <div class="space-y-2">
+                            {% for torre in fase.torres.all %}
+                                <div class="flex justify-between items-center text-sm">
+                                    <span class="text-gray-700">Torre {{ torre.numero_torre }} - {{ torre.nombre }}</span>
+                                    <span class="{% if torre.es_comercializable %}text-green-600{% else %}text-gray-500{% endif %}">
+                                        {% if torre.es_comercializable %}
+                                            {{ torre.inmuebles_comercializables }} comercializables
+                                        {% else %}
+                                            No comercializable
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            {% empty %}
+                                <p class="text-sm text-gray-500">No hay torres creadas en esta fase.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h3 class="text-sm font-medium text-gray-900 mb-3">Sectores en esta fase:</h3>
+                        <div class="space-y-2">
+                            {% for sector in fase.sectores.all %}
+                                <div class="flex justify-between items-center text-sm">
+                                    <span class="text-gray-700">Sector {{ sector.numero_sector }} - {{ sector.nombre }}</span>
+                                    <span class="{% if sector.es_comercializable %}text-green-600{% else %}text-gray-500{% endif %}">
+                                        {% if sector.es_comercializable %}
+                                            {{ sector.inmuebles_comercializables }} comercializables
+                                        {% else %}
+                                            No comercializable
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            {% empty %}
+                                <p class="text-sm text-gray-500">No hay sectores creados en esta fase.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Warning -->
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-yellow-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                    <div>
+                        <h3 class="text-sm font-medium text-yellow-800">Atención</h3>
+                        <p class="text-sm text-yellow-700 mt-1">
+                            Esta acción afectará el estado de comercialización de todos los inmuebles en esta fase y sus 
+                            {% if fase.proyecto.tipo == 'departamentos' %}torres{% else %}sectores{% endif %}.
+                            Asegúrese de que esta es la acción deseada antes de continuar.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex justify-end space-x-3">
+                <a href="{% url 'projects:detail' fase.proyecto.pk %}" 
+                   class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg transition-colors">
+                    Cancelar
+                </a>
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    Aplicar Cambios
+                </button>
+            </div>
+        </form>
+
+        <!-- Additional Actions -->
+        <div class="mt-6 bg-white rounded-lg shadow-sm border p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Acciones Específicas</h3>
+            <div class="space-y-3">
+                {% if fase.proyecto.tipo == 'departamentos' %}
+                    {% for torre in fase.torres.all %}
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                            <div>
+                                <h4 class="text-sm font-medium text-gray-900">Torre {{ torre.numero_torre }} - {{ torre.nombre }}</h4>
+                                <p class="text-xs text-gray-500">{{ torre.total_inmuebles }} inmuebles totales</p>
+                            </div>
+                            <a href="{% url 'projects:torre_comercializacion' fase.proyecto.pk torre.pk %}" 
+                               class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                Gestionar →
+                            </a>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    {% for sector in fase.sectores.all %}
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                            <div>
+                                <h4 class="text-sm font-medium text-gray-900">Sector {{ sector.numero_sector }} - {{ sector.nombre }}</h4>
+                                <p class="text-xs text-gray-500">{{ sector.total_inmuebles }} inmuebles totales</p>
+                            </div>
+                            <a href="{% url 'projects:sector_comercializacion' fase.proyecto.pk sector.pk %}" 
+                               class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                Gestionar →
+                            </a>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
