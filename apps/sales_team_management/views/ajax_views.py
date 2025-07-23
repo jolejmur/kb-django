@@ -63,7 +63,7 @@ def get_member_by_role(member_id, rol):
 # ============================================================
 
 @login_required
-@permission_required('sales.change_equipoventa', raise_exception=True)
+@permission_required('sales_team_management.change_equipoventa', raise_exception=True)
 def ajax_cambiar_estado_miembro(request):
     """Cambiar estado activo/inactivo de un miembro del equipo via AJAX"""
     if request.method != 'POST':
@@ -118,7 +118,7 @@ def ajax_cambiar_estado_miembro(request):
 
 
 @login_required
-@permission_required('sales.change_equipoventa', raise_exception=True)
+@permission_required('sales_team_management.change_equipoventa', raise_exception=True)
 def ajax_migrar_miembro(request):
     """Migrar un miembro a otro equipo via AJAX"""
     if request.method != 'POST':

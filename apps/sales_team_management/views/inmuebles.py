@@ -13,7 +13,7 @@ from ..forms import InmuebleForm
 # ============================================================
 
 @login_required
-@permission_required('sales.view_inmueble', raise_exception=True)
+@permission_required('real_estate_projects.view_inmueble', raise_exception=True)
 def inmuebles_list(request, proyecto_pk):
     """Lista inmuebles de un proyecto específico"""
     proyecto = get_object_or_404(Proyecto, pk=proyecto_pk)
@@ -61,7 +61,7 @@ def inmuebles_list(request, proyecto_pk):
 
 
 @login_required
-@permission_required('sales.view_inmueble', raise_exception=True)
+@permission_required('real_estate_projects.view_inmueble', raise_exception=True)
 def inmuebles_detail(request, proyecto_pk, pk):
     """Ver detalles de un inmueble"""
     proyecto = get_object_or_404(Proyecto, pk=proyecto_pk)
@@ -76,7 +76,7 @@ def inmuebles_detail(request, proyecto_pk, pk):
 
 
 @login_required
-@permission_required('sales.add_inmueble', raise_exception=True)
+@permission_required('real_estate_projects.add_inmueble', raise_exception=True)
 def inmuebles_create(request, proyecto_pk):
     """Crear un nuevo inmueble en un proyecto"""
     proyecto = get_object_or_404(Proyecto, pk=proyecto_pk)
@@ -104,7 +104,7 @@ def inmuebles_create(request, proyecto_pk):
 
 
 @login_required
-@permission_required('sales.change_inmueble', raise_exception=True)
+@permission_required('real_estate_projects.change_inmueble', raise_exception=True)
 def inmuebles_edit(request, proyecto_pk, pk):
     """Editar un inmueble existente"""
     proyecto = get_object_or_404(Proyecto, pk=proyecto_pk)
@@ -132,7 +132,7 @@ def inmuebles_edit(request, proyecto_pk, pk):
 
 
 @login_required
-@permission_required('sales.delete_inmueble', raise_exception=True)
+@permission_required('real_estate_projects.delete_inmueble', raise_exception=True)
 def inmuebles_delete(request, proyecto_pk, pk):
     """Eliminar un inmueble"""
     proyecto = get_object_or_404(Proyecto, pk=proyecto_pk)

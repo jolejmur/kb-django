@@ -30,7 +30,7 @@ from ..forms import (
 # ============================================================
 
 @login_required
-@permission_required('sales.view_equipoventa', raise_exception=True)
+@permission_required('sales_team_management.view_equipoventa', raise_exception=True)
 def equipos_venta_list(request):
     """Lista todos los equipos de venta con filtros"""
     form = EquipoVentaFilterForm(request.GET)
@@ -65,7 +65,7 @@ def equipos_venta_list(request):
 
 
 @login_required
-@permission_required('sales.view_equipoventa', raise_exception=True)
+@permission_required('sales_team_management.view_equipoventa', raise_exception=True)
 def equipos_venta_detail(request, pk):
     """Ver detalles de un equipo de venta"""
     equipo = get_object_or_404(EquipoVenta, pk=pk)
@@ -93,7 +93,7 @@ def equipos_venta_detail(request, pk):
 
 
 @login_required
-@permission_required('sales.add_equipoventa', raise_exception=True)
+@permission_required('sales_team_management.add_equipoventa', raise_exception=True)
 def equipos_venta_create(request):
     """Crear un nuevo equipo de venta"""
     if request.method == 'POST':
@@ -117,7 +117,7 @@ def equipos_venta_create(request):
 
 
 @login_required
-@permission_required('sales.change_equipoventa', raise_exception=True)
+@permission_required('sales_team_management.change_equipoventa', raise_exception=True)
 def equipos_venta_edit(request, pk):
     """Editar un equipo de venta existente"""
     equipo = get_object_or_404(EquipoVenta, pk=pk)
@@ -143,7 +143,7 @@ def equipos_venta_edit(request, pk):
 
 
 @login_required
-@permission_required('sales.delete_equipoventa', raise_exception=True)
+@permission_required('sales_team_management.delete_equipoventa', raise_exception=True)
 def equipos_venta_delete(request, pk):
     """Eliminar un equipo de venta"""
     equipo = get_object_or_404(EquipoVenta, pk=pk)
@@ -188,7 +188,7 @@ def equipos_venta_delete(request, pk):
 
 
 @login_required
-@permission_required('sales.change_equipoventa', raise_exception=True)
+@permission_required('sales_team_management.change_equipoventa', raise_exception=True)
 def equipos_manage_hierarchy(request, pk):
     """Gestionar la jerarquía de un equipo de ventas"""
     equipo = get_object_or_404(EquipoVenta, pk=pk)
@@ -298,7 +298,7 @@ def equipos_manage_hierarchy(request, pk):
 
 
 @login_required
-@permission_required('sales.add_gerenteequipo', raise_exception=True)
+@permission_required('sales_team_management.add_gerenteequipo', raise_exception=True)
 def equipos_add_gerente(request, pk):
     """Agregar gerente a un equipo"""
     equipo = get_object_or_404(EquipoVenta, pk=pk)
@@ -332,7 +332,7 @@ def equipos_add_gerente(request, pk):
 
 
 @login_required
-@permission_required('sales.change_equipoventa', raise_exception=True)
+@permission_required('sales_team_management.change_equipoventa', raise_exception=True)
 def equipos_add_member(request, pk):
     """Agregar miembro del equipo con rol unificado"""
     equipo = get_object_or_404(EquipoVenta, pk=pk)

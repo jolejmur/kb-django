@@ -324,3 +324,199 @@ class User(AbstractUser):
             'activo': self.is_active,
             'rol': self.role.name if self.role else None
         }
+    
+    # ============================================================
+    # MÉTODOS PARA JERARQUÍA DE VENTAS (INCLUYENDO SUPERVISIÓN DIRECTA)
+    # ============================================================
+    
+    def get_supervisores_directos(self, equipo_venta=None):
+        """
+        Obtiene supervisores directos (excepciones) de este usuario.
+        Si no tiene supervisores directos, retorna supervisores de jerarquía normal.
+        """
+        from apps.sales_team_management.models import SupervisionDirecta
+        
+        # Filtro base
+        filtros = {'subordinado': self, 'activo': True}
+        if equipo_venta:
+            filtros['equipo_venta'] = equipo_venta
+        
+        supervisores_directos = SupervisionDirecta.objects.filter(**filtros)
+        
+        if supervisores_directos.exists():
+            # Tiene supervisores directos, retornarlos
+            return [(sd.supervisor, f'Supervisor Directo ({sd.get_tipo_supervision_display()})') 
+                    for sd in supervisores_directos]
+        else:
+            # No tiene supervisores directos, usar jerarquía normal
+            return self._get_supervisores_jerarquia_normal(equipo_venta)
+    
+    def get_subordinados_directos(self, equipo_venta=None):
+        """
+        Obtiene subordinados directos (excepciones) de este usuario.
+        Además retorna subordinados de jerarquía normal.
+        """
+        from apps.sales_team_management.models import SupervisionDirecta
+        
+        subordinados = []
+        
+        # 1. Subordinados por supervisión directa
+        filtros = {'supervisor': self, 'activo': True}
+        if equipo_venta:
+            filtros['equipo_venta'] = equipo_venta
+        
+        supervisiones_directas = SupervisionDirecta.objects.filter(**filtros)
+        for sd in supervisiones_directas:
+            subordinados.append((
+                sd.subordinado, 
+                f'Subordinado Directo ({sd.get_tipo_supervision_display()})'
+            ))
+        
+        # 2. Subordinados por jerarquía normal
+        subordinados.extend(self._get_subordinados_jerarquia_normal(equipo_venta))
+        
+        return subordinados
+    
+    def _get_supervisores_jerarquia_normal(self, equipo_venta=None):
+        """Obtiene supervisores según jerarquía normal"""
+        supervisores = []
+        
+        # Buscar en vendedores (supervisor = team leader)
+        vendedores = self.vendedores.filter(activo=True)
+        if equipo_venta:
+            vendedores = vendedores.filter(
+                team_leader__jefe_venta__gerente_equipo__equipo_venta=equipo_venta
+            )
+        
+        for vendedor in vendedores:
+            supervisores.append((vendedor.team_leader.usuario, 'Team Leader (Jerarquía Normal)'))
+        
+        # Buscar en team leaders (supervisor = jefe venta)
+        team_leaders = self.team_leaders.filter(activo=True)
+        if equipo_venta:
+            team_leaders = team_leaders.filter(
+                jefe_venta__gerente_equipo__equipo_venta=equipo_venta
+            )
+        
+        for tl in team_leaders:
+            supervisores.append((tl.jefe_venta.usuario, 'Jefe de Venta (Jerarquía Normal)'))
+        
+        # Buscar en jefes de venta (supervisor = gerente)
+        jefes_venta = self.jefe_ventas.filter(activo=True)
+        if equipo_venta:
+            jefes_venta = jefes_venta.filter(
+                gerente_equipo__equipo_venta=equipo_venta
+            )
+        
+        for jefe in jefes_venta:
+            supervisores.append((jefe.gerente_equipo.usuario, 'Gerente de Equipo (Jerarquía Normal)'))
+        
+        return supervisores
+    
+    def _get_subordinados_jerarquia_normal(self, equipo_venta=None):
+        """Obtiene subordinados según jerarquía normal"""
+        subordinados = []
+        
+        # Si es gerente (subordinados = jefes de venta)
+        gerencias = self.gerente_equipos.filter(activo=True)
+        if equipo_venta:
+            gerencias = gerencias.filter(equipo_venta=equipo_venta)
+        
+        for gerencia in gerencias:
+            for jefe in gerencia.jefeventas.filter(activo=True):
+                subordinados.append((jefe.usuario, 'Jefe de Venta (Jerarquía Normal)'))
+        
+        # Si es jefe de venta (subordinados = team leaders)
+        jefaturas = self.jefe_ventas.filter(activo=True)
+        if equipo_venta:
+            jefaturas = jefaturas.filter(gerente_equipo__equipo_venta=equipo_venta)
+        
+        for jefatura in jefaturas:
+            for tl in jefatura.teamleaders.filter(activo=True):
+                subordinados.append((tl.usuario, 'Team Leader (Jerarquía Normal)'))
+        
+        # Si es team leader (subordinados = vendedores)
+        team_leaderships = self.team_leaders.filter(activo=True)
+        if equipo_venta:
+            team_leaderships = team_leaderships.filter(
+                jefe_venta__gerente_equipo__equipo_venta=equipo_venta
+            )
+        
+        for tl in team_leaderships:
+            for vendedor in tl.vendedores.filter(activo=True):
+                subordinados.append((vendedor.usuario, 'Vendedor (Jerarquía Normal)'))
+        
+        return subordinados
+    
+    def get_equipo_venta(self):
+        """Obtiene el equipo de venta al que pertenece este usuario"""
+        from apps.sales_team_management.models import EquipoVenta
+        
+        # Buscar en gerentes
+        gerencia = self.gerente_equipos.filter(activo=True).first()
+        if gerencia:
+            return gerencia.equipo_venta
+        
+        # Buscar en jefes de venta
+        jefatura = self.jefe_ventas.filter(activo=True).first()
+        if jefatura:
+            return jefatura.gerente_equipo.equipo_venta
+        
+        # Buscar en team leaders
+        team_leadership = self.team_leaders.filter(activo=True).first()
+        if team_leadership:
+            return team_leadership.jefe_venta.gerente_equipo.equipo_venta
+        
+        # Buscar en vendedores
+        venta = self.vendedores.filter(activo=True).first()
+        if venta:
+            return venta.team_leader.jefe_venta.gerente_equipo.equipo_venta
+        
+        return None
+    
+    def get_rol_en_equipo_venta(self, equipo_venta=None):
+        """Obtiene el rol del usuario en el equipo de ventas"""
+        if not equipo_venta:
+            equipo_venta = self.get_equipo_venta()
+        
+        if not equipo_venta:
+            return None
+        
+        # Verificar cada nivel de jerarquía
+        if self.gerente_equipos.filter(equipo_venta=equipo_venta, activo=True).exists():
+            return 'GERENTE_EQUIPO'
+        
+        if self.jefe_ventas.filter(
+            gerente_equipo__equipo_venta=equipo_venta, 
+            activo=True
+        ).exists():
+            return 'JEFE_VENTA'
+        
+        if self.team_leaders.filter(
+            jefe_venta__gerente_equipo__equipo_venta=equipo_venta, 
+            activo=True
+        ).exists():
+            return 'TEAM_LEADER'
+        
+        if self.vendedores.filter(
+            team_leader__jefe_venta__gerente_equipo__equipo_venta=equipo_venta, 
+            activo=True
+        ).exists():
+            return 'VENDEDOR'
+        
+        return None
+    
+    def tiene_supervision_directa_activa(self, como_supervisor=True, equipo_venta=None):
+        """Verifica si el usuario tiene supervisión directa activa"""
+        from apps.sales_team_management.models import SupervisionDirecta
+        
+        filtros = {'activo': True}
+        if equipo_venta:
+            filtros['equipo_venta'] = equipo_venta
+        
+        if como_supervisor:
+            filtros['supervisor'] = self
+        else:
+            filtros['subordinado'] = self
+        
+        return SupervisionDirecta.objects.filter(**filtros).exists()

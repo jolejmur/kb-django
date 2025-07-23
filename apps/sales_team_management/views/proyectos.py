@@ -13,7 +13,7 @@ from ..forms import ProyectoForm, ProyectoFilterForm
 
 
 @login_required
-@permission_required('sales.view_proyecto', raise_exception=True)
+@permission_required('real_estate_projects.view_proyecto', raise_exception=True)
 def proyectos_list(request):
     """Lista todos los proyectos con filtros"""
     form = ProyectoFilterForm(request.GET)
@@ -61,7 +61,7 @@ def proyectos_list(request):
 
 
 @login_required
-@permission_required('sales.view_proyecto', raise_exception=True)
+@permission_required('real_estate_projects.view_proyecto', raise_exception=True)
 def proyectos_detail(request, pk):
     """Ver detalles de un proyecto"""
     proyecto = get_object_or_404(Proyecto.objects.select_related(
@@ -117,7 +117,7 @@ def proyectos_detail(request, pk):
 
 
 @login_required
-@permission_required('sales.add_proyecto', raise_exception=True)
+@permission_required('real_estate_projects.add_proyecto', raise_exception=True)
 def proyectos_create(request):
     """Crear un nuevo proyecto"""
     if request.method == 'POST':
@@ -141,7 +141,7 @@ def proyectos_create(request):
 
 
 @login_required
-@permission_required('sales.change_proyecto', raise_exception=True)
+@permission_required('real_estate_projects.change_proyecto', raise_exception=True)
 def proyectos_edit(request, pk):
     """Editar un proyecto existente"""
     proyecto = get_object_or_404(Proyecto, pk=pk)
@@ -167,7 +167,7 @@ def proyectos_edit(request, pk):
 
 
 @login_required
-@permission_required('sales.delete_proyecto', raise_exception=True)
+@permission_required('real_estate_projects.delete_proyecto', raise_exception=True)
 def proyectos_delete(request, pk):
     """Eliminar un proyecto"""
     proyecto = get_object_or_404(Proyecto, pk=pk)

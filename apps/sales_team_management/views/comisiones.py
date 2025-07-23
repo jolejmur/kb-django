@@ -21,7 +21,7 @@ from ..forms import (
 # ============================================================
 
 @login_required
-@permission_required('sales.change_proyecto', raise_exception=True)
+@permission_required('real_estate_projects.change_proyecto', raise_exception=True)
 def comisiones_desarrollo_config(request, proyecto_pk):
     """Configurar comisiones de desarrollo para un proyecto"""
     proyecto = get_object_or_404(Proyecto, pk=proyecto_pk)
@@ -55,7 +55,7 @@ def comisiones_desarrollo_config(request, proyecto_pk):
 
 
 @login_required
-@permission_required('sales.change_equipoventa', raise_exception=True)
+@permission_required('sales_team_management.change_equipoventa', raise_exception=True)
 def comisiones_venta_config(request, equipo_pk):
     """Configurar comisiones de venta para un equipo"""
     equipo = get_object_or_404(EquipoVenta, pk=equipo_pk)
@@ -94,7 +94,7 @@ def comisiones_venta_config(request, equipo_pk):
 
 
 @login_required
-@permission_required('sales.view_equipoventa', raise_exception=True)
+@permission_required('sales_team_management.view_equipoventa', raise_exception=True)
 def comisiones_equipos_list(request):
     """Lista de equipos para gestión de comisiones"""
     
@@ -148,7 +148,7 @@ def comisiones_equipos_list(request):
 
 
 @login_required
-@permission_required('sales.view_proyecto', raise_exception=True)
+@permission_required('real_estate_projects.view_proyecto', raise_exception=True)
 def comisiones_proyectos_list(request):
     """Lista de proyectos para gestión de comisiones de desarrollo"""
     

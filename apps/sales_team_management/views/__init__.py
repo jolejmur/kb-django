@@ -54,6 +54,17 @@ from .ajax_views import (
     ajax_search_users,
     ajax_create_user,
 )
+from .supervision_directa import (
+    supervision_directa_list,
+    supervision_directa_create,
+    supervision_directa_edit,
+    supervision_directa_detail,
+    supervision_directa_toggle,
+    supervision_directa_delete,
+    ajax_supervisores_disponibles,
+    ajax_subordinados_disponibles,
+    ajax_validar_tipo_supervision,
+)
 
 __all__ = [
     # Dashboard
@@ -112,4 +123,15 @@ __all__ = [
     'ajax_get_supervisores',
     'ajax_search_users',
     'ajax_create_user',
+    
+    # Supervisión Directa
+    'supervision_directa_list',
+    'supervision_directa_create',
+    'supervision_directa_edit',
+    'supervision_directa_detail',
+    'supervision_directa_toggle',
+    'supervision_directa_delete',
+    'ajax_supervisores_disponibles',
+    'ajax_subordinados_disponibles',
+    'ajax_validar_tipo_supervision',
 ]

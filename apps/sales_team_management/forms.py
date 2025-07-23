@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from decimal import Decimal
 from .models import (
     EquipoVenta, GerenteEquipo, JefeVenta, TeamLeader, Vendedor,
-    ComisionVenta
+    ComisionVenta, SupervisionDirecta
 )
 from apps.real_estate_projects.models import (
     GerenteProyecto, JefeProyecto, Proyecto, Inmueble,
@@ -325,6 +325,183 @@ class MiembroEquipoForm(forms.Form):
                     })
         
         return cleaned_data
+
+
+# ============================================================
+# FORMULARIOS PARA SUPERVISIÓN DIRECTA
+# ============================================================
+
+class SupervisionDirectaForm(forms.ModelForm):
+    """Formulario para crear supervisión directa (saltando niveles jerárquicos)"""
+    
+    supervisor = forms.ModelChoiceField(
+        queryset=User.objects.none(),  # Se llenará dinámicamente
+        widget=forms.Select(attrs={
+            'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+        }),
+        label="Supervisor",
+        help_text="Usuario que supervisará directamente (Gerente, Jefe de Venta)"
+    )
+    
+    subordinado = forms.ModelChoiceField(
+        queryset=User.objects.none(),  # Se llenará dinámicamente
+        widget=forms.Select(attrs={
+            'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+        }),
+        label="Subordinado",
+        help_text="Usuario que reportará directamente (Vendedor, Team Leader)"
+    )
+    
+    class Meta:
+        model = SupervisionDirecta
+        fields = ['supervisor', 'subordinado', 'equipo_venta', 'tipo_supervision', 'notas']
+        widgets = {
+            'equipo_venta': forms.Select(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+            }),
+            'tipo_supervision': forms.Select(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+            }),
+            'notas': forms.Textarea(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500',
+                'rows': 3,
+                'placeholder': 'Notas adicionales sobre esta supervisión directa...'
+            })
+        }
+        labels = {
+            'equipo_venta': 'Equipo de Venta',
+            'tipo_supervision': 'Tipo de Supervisión',
+            'notas': 'Notas Adicionales'
+        }
+        help_texts = {
+            'equipo_venta': 'Equipo donde se dará esta supervisión directa',
+            'tipo_supervision': 'Tipo de relación de supervisión directa',
+            'notas': 'Información adicional sobre esta asignación especial'
+        }
+    
+    def __init__(self, *args, **kwargs):
+        self.equipo = kwargs.pop('equipo', None)
+        super().__init__(*args, **kwargs)
+        
+        # Solo equipos activos
+        self.fields['equipo_venta'].queryset = EquipoVenta.objects.filter(activo=True)
+        
+        if self.equipo:
+            # Pre-seleccionar el equipo si se pasa como parámetro
+            self.fields['equipo_venta'].initial = self.equipo
+            self.setup_queryset_for_equipo(self.equipo)
+    
+    def setup_queryset_for_equipo(self, equipo):
+        """Configura los querysets de supervisor y subordinado para un equipo específico"""
+        # Posibles supervisores: Gerentes y Jefes de Venta del equipo
+        supervisores_ids = set()
+        
+        # Gerentes del equipo
+        for gerente in equipo.gerenteequipo_set.filter(activo=True):
+            supervisores_ids.add(gerente.usuario.id)
+        
+        # Jefes de venta del equipo
+        for gerente in equipo.gerenteequipo_set.filter(activo=True):
+            for jefe in gerente.jefeventas.filter(activo=True):
+                supervisores_ids.add(jefe.usuario.id)
+        
+        # Posibles subordinados: Team Leaders y Vendedores del equipo
+        subordinados_ids = set()
+        
+        # Team Leaders del equipo
+        for gerente in equipo.gerenteequipo_set.filter(activo=True):
+            for jefe in gerente.jefeventas.filter(activo=True):
+                for team_leader in jefe.teamleaders.filter(activo=True):
+                    subordinados_ids.add(team_leader.usuario.id)
+                    
+                    # Vendedores del equipo
+                    for vendedor in team_leader.vendedores.filter(activo=True):
+                        subordinados_ids.add(vendedor.usuario.id)
+        
+        # Establecer querysets
+        self.fields['supervisor'].queryset = User.objects.filter(
+            id__in=supervisores_ids
+        ).order_by('first_name', 'last_name')
+        
+        self.fields['subordinado'].queryset = User.objects.filter(
+            id__in=subordinados_ids
+        ).order_by('first_name', 'last_name')
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        supervisor = cleaned_data.get('supervisor')
+        subordinado = cleaned_data.get('subordinado')
+        equipo_venta = cleaned_data.get('equipo_venta')
+        tipo_supervision = cleaned_data.get('tipo_supervision')
+        
+        if not all([supervisor, subordinado, equipo_venta, tipo_supervision]):
+            return cleaned_data
+        
+        # Validar que supervisor y subordinado sean diferentes
+        if supervisor == subordinado:
+            raise ValidationError('El supervisor y subordinado no pueden ser la misma persona.')
+        
+        # Validar que no exista ya una supervisión directa activa para este subordinado en este equipo
+        if SupervisionDirecta.objects.filter(
+            subordinado=subordinado,
+            equipo_venta=equipo_venta,
+            activo=True
+        ).exclude(pk=self.instance.pk if self.instance else None).exists():
+            raise ValidationError({
+                'subordinado': f'{subordinado.get_full_name() or subordinado.username} ya tiene una supervisión directa activa en este equipo.'
+            })
+        
+        # Validar coherencia del tipo de supervisión
+        supervisor_rol = self._get_rol_en_equipo(supervisor, equipo_venta)
+        subordinado_rol = self._get_rol_en_equipo(subordinado, equipo_venta)
+        
+        # Validar combinaciones válidas
+        combinaciones_validas = {
+            'GERENTE_TO_VENDEDOR': ('GERENTE', 'VENDEDOR'),
+            'GERENTE_TO_TEAMLEADER': ('GERENTE', 'TEAM_LEADER'),
+            'JEFE_TO_VENDEDOR': ('JEFE_VENTA', 'VENDEDOR'),
+        }
+        
+        if tipo_supervision in combinaciones_validas:
+            supervisor_esperado, subordinado_esperado = combinaciones_validas[tipo_supervision]
+            
+            if supervisor_rol != supervisor_esperado:
+                raise ValidationError({
+                    'supervisor': f'Para {tipo_supervision}, el supervisor debe ser {supervisor_esperado}, pero es {supervisor_rol}.'
+                })
+            
+            if subordinado_rol != subordinado_esperado:
+                raise ValidationError({
+                    'subordinado': f'Para {tipo_supervision}, el subordinado debe ser {subordinado_esperado}, pero es {subordinado_rol}.'
+                })
+        
+        return cleaned_data
+    
+    def _get_rol_en_equipo(self, usuario, equipo):
+        """Obtiene el rol de un usuario en un equipo específico"""
+        # Buscar en gerentes
+        if equipo.gerenteequipo_set.filter(usuario=usuario, activo=True).exists():
+            return 'GERENTE'
+        
+        # Buscar en jefes de venta
+        for gerente in equipo.gerenteequipo_set.filter(activo=True):
+            if gerente.jefeventas.filter(usuario=usuario, activo=True).exists():
+                return 'JEFE_VENTA'
+        
+        # Buscar en team leaders
+        for gerente in equipo.gerenteequipo_set.filter(activo=True):
+            for jefe in gerente.jefeventas.filter(activo=True):
+                if jefe.teamleaders.filter(usuario=usuario, activo=True).exists():
+                    return 'TEAM_LEADER'
+        
+        # Buscar en vendedores
+        for gerente in equipo.gerenteequipo_set.filter(activo=True):
+            for jefe in gerente.jefeventas.filter(activo=True):
+                for team_leader in jefe.teamleaders.filter(activo=True):
+                    if team_leader.vendedores.filter(usuario=usuario, activo=True).exists():
+                        return 'VENDEDOR'
+        
+        return 'DESCONOCIDO'
 
 
 class GerenteEquipoForm(forms.ModelForm):

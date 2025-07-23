@@ -79,4 +79,19 @@ urlpatterns = [
     # Búsqueda y creación de usuarios AJAX
     path('ajax/search-users/', views.ajax_search_users, name='ajax_search_users'),
     path('ajax/create-user/', views.ajax_create_user, name='ajax_create_user'),
+
+    # ============================================================
+    # URLs PARA SUPERVISIÓN DIRECTA
+    # ============================================================
+    path('supervision-directa/', views.supervision_directa_list, name='supervision_directa_list'),
+    path('supervision-directa/crear/', views.supervision_directa_create, name='supervision_directa_create'),
+    path('supervision-directa/<int:pk>/', views.supervision_directa_detail, name='supervision_directa_detail'),
+    path('supervision-directa/<int:pk>/editar/', views.supervision_directa_edit, name='supervision_directa_edit'),
+    path('supervision-directa/<int:pk>/toggle/', views.supervision_directa_toggle, name='supervision_directa_toggle'),
+    path('supervision-directa/<int:pk>/eliminar/', views.supervision_directa_delete, name='supervision_directa_delete'),
+    
+    # AJAX para supervisión directa
+    path('ajax/supervision/supervisores/', views.ajax_supervisores_disponibles, name='ajax_supervisores_disponibles'),
+    path('ajax/supervision/subordinados/', views.ajax_subordinados_disponibles, name='ajax_subordinados_disponibles'),
+    path('ajax/supervision/validar-tipo/', views.ajax_validar_tipo_supervision, name='ajax_validar_tipo_supervision'),
 ]

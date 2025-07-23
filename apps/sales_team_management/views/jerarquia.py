@@ -25,7 +25,7 @@ from .helpers import get_member_by_role
 
 
 @login_required
-@permission_required('sales.view_equipoventa', raise_exception=True)
+@permission_required('sales_team_management.view_equipoventa', raise_exception=True)
 def jerarquia_equipos_list(request):
     """Lista de jerarquía de equipos con filtros por equipo y rol"""
     
@@ -244,7 +244,7 @@ def jerarquia_equipos_list(request):
 
 
 @login_required
-@permission_required('sales.add_equipoventa', raise_exception=True)
+@permission_required('sales_team_management.add_equipoventa', raise_exception=True)
 def jerarquia_create_member(request):
     """Crear/asignar un nuevo miembro a la jerarquía"""
     from django.contrib.auth import get_user_model
@@ -384,7 +384,7 @@ def jerarquia_create_member(request):
 
 
 @login_required
-@permission_required('sales.view_equipoventa', raise_exception=True)
+@permission_required('sales_team_management.view_equipoventa', raise_exception=True)
 def jerarquia_member_detail(request, member_id, rol):
     """Ver detalles de un miembro de la jerarquía"""
     from datetime import datetime, date
@@ -547,7 +547,7 @@ def update_user_info(request, usuario):
 
 
 @login_required
-@permission_required('sales.change_equipoventa', raise_exception=True)
+@permission_required('sales_team_management.change_equipoventa', raise_exception=True)
 def jerarquia_member_edit(request, member_id, rol):
     """Editar un miembro de la jerarquía (incluyendo cambio de equipo)"""
     from django.contrib.auth import get_user_model
@@ -965,7 +965,7 @@ def jerarquia_member_edit(request, member_id, rol):
 
 
 @login_required
-@permission_required('sales.delete_equipoventa', raise_exception=True)
+@permission_required('sales_team_management.delete_equipoventa', raise_exception=True)
 def jerarquia_member_delete(request, member_id, rol):
     """Eliminar un miembro de la jerarquía"""
     try:
@@ -1052,7 +1052,7 @@ def jerarquia_member_delete(request, member_id, rol):
 
 
 @login_required
-@permission_required('sales.change_equipoventa', raise_exception=True)
+@permission_required('sales_team_management.change_equipoventa', raise_exception=True)
 def jerarquia_member_reassign(request, member_id, rol):
     """Reasignar un miembro a un nuevo rol (degradar/promover)"""
     from django.contrib.auth import get_user_model
@@ -1244,7 +1244,7 @@ def jerarquia_member_reassign(request, member_id, rol):
 
 
 @login_required
-@permission_required('sales.change_gerenteequipo', raise_exception=True)
+@permission_required('sales_team_management.change_gerenteequipo', raise_exception=True)
 def jerarquia_member_deactivate(request, member_id, rol):
     """
     Vista para inactivar un miembro de jerarquía con diálogo de reemplazo
@@ -1417,7 +1417,7 @@ def jerarquia_member_deactivate(request, member_id, rol):
 
 
 @login_required
-@permission_required('sales.change_gerenteequipo', raise_exception=True)
+@permission_required('sales_team_management.change_gerenteequipo', raise_exception=True)
 def jerarquia_member_toggle_status(request, member_id, rol):
     """
     Vista para alternar el estado activo/inactivo de un miembro

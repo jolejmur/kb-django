@@ -208,6 +208,135 @@ class Vendedor(models.Model):
 
 
 # ============================================================
+# SUPERVISIÓN DIRECTA (EXCEPCIONES A LA JERARQUÍA)
+# ============================================================
+
+class SupervisionDirecta(models.Model):
+    """
+    Tabla para manejar casos donde un supervisor de nivel superior
+    supervisa directamente a un subordinado saltando niveles jerárquicos.
+    
+    Ejemplo: Gerente supervisa directamente a Vendedores
+    """
+    TIPOS_SUPERVISION = [
+        ('GERENTE_TO_VENDEDOR', 'Gerente supervisa Vendedor directamente'),
+        ('GERENTE_TO_TEAMLEADER', 'Gerente supervisa Team Leader directamente'),
+        ('JEFE_TO_VENDEDOR', 'Jefe Venta supervisa Vendedor directamente'),
+    ]
+    
+    # Quién supervisa (debe estar en una de las tablas de jerarquía)
+    supervisor = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE, 
+        related_name='subordinados_directos',
+        help_text='Usuario que actúa como supervisor directo'
+    )
+    
+    # A quién supervisa (debe estar en una tabla de jerarquía)
+    subordinado = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE, 
+        related_name='supervisores_directos',
+        help_text='Usuario que reporta directamente al supervisor'
+    )
+    
+    # En qué equipo se da esta supervisión
+    equipo_venta = models.ForeignKey(
+        EquipoVenta, 
+        on_delete=models.CASCADE, 
+        related_name='supervisiones_directas'
+    )
+    
+    # Tipo de supervisión directa
+    tipo_supervision = models.CharField(
+        max_length=50, 
+        choices=TIPOS_SUPERVISION,
+        help_text='Tipo de relación de supervisión directa'
+    )
+    
+    # Control de estado
+    activo = models.BooleanField(
+        default=True,
+        help_text='Si esta supervisión directa está activa'
+    )
+    
+    # Fechas de auditoría
+    fecha_inicio = models.DateTimeField(auto_now_add=True)
+    fecha_fin = models.DateTimeField(
+        null=True, 
+        blank=True,
+        help_text='Fecha cuando terminó esta supervisión directa'
+    )
+    
+    # Notas adicionales
+    notas = models.TextField(
+        blank=True,
+        help_text='Notas adicionales sobre esta supervisión directa'
+    )
+    
+    class Meta:
+        verbose_name = 'Supervisión Directa'
+        verbose_name_plural = 'Supervisiones Directas'
+        # Un subordinado solo puede tener una supervisión directa activa por equipo
+        unique_together = ['subordinado', 'equipo_venta', 'activo']
+        ordering = ['-fecha_inicio']
+    
+    def clean(self):
+        """Validaciones personalizadas del modelo"""
+        from django.core.exceptions import ValidationError
+        
+        # Validar que supervisor y subordinado son diferentes
+        if self.supervisor == self.subordinado:
+            raise ValidationError('Un usuario no puede supervisarse a sí mismo.')
+        
+        # Validar que ambos usuarios pertenecen al equipo de venta
+        # (Esta validación se puede hacer más específica según tu lógica de negocio)
+        
+        # Si está marcado como inactivo, debe tener fecha_fin
+        if not self.activo and not self.fecha_fin:
+            from django.utils import timezone
+            self.fecha_fin = timezone.now()
+    
+    def save(self, *args, **kwargs):
+        """Override save para validaciones adicionales"""
+        self.full_clean()
+        super().save(*args, **kwargs)
+    
+    def __str__(self):
+        estado = "Activa" if self.activo else "Inactiva"
+        return f"{self.get_tipo_supervision_display()} - {self.supervisor.get_full_name()} → {self.subordinado.get_full_name()} ({estado})"
+    
+    def desactivar(self):
+        """Método para desactivar la supervisión directa"""
+        from django.utils import timezone
+        self.activo = False
+        self.fecha_fin = timezone.now()
+        self.save()
+    
+    def get_supervisor_rol_en_equipo(self):
+        """Obtiene el rol del supervisor en el equipo"""
+        # Buscar en qué tabla de jerarquía está el supervisor para este equipo
+        if self.supervisor.gerente_equipos.filter(equipo_venta=self.equipo_venta, activo=True).exists():
+            return 'GERENTE'
+        elif self.supervisor.jefe_ventas.filter(gerente_equipo__equipo_venta=self.equipo_venta, activo=True).exists():
+            return 'JEFE_VENTA'
+        elif self.supervisor.team_leaders.filter(jefe_venta__gerente_equipo__equipo_venta=self.equipo_venta, activo=True).exists():
+            return 'TEAM_LEADER'
+        return 'DESCONOCIDO'
+    
+    def get_subordinado_rol_en_equipo(self):
+        """Obtiene el rol del subordinado en el equipo"""
+        # Buscar en qué tabla de jerarquía está el subordinado para este equipo
+        if self.subordinado.vendedores.filter(team_leader__jefe_venta__gerente_equipo__equipo_venta=self.equipo_venta, activo=True).exists():
+            return 'VENDEDOR'
+        elif self.subordinado.team_leaders.filter(jefe_venta__gerente_equipo__equipo_venta=self.equipo_venta, activo=True).exists():
+            return 'TEAM_LEADER'
+        elif self.subordinado.jefe_ventas.filter(gerente_equipo__equipo_venta=self.equipo_venta, activo=True).exists():
+            return 'JEFE_VENTA'
+        return 'DESCONOCIDO'
+
+
+# ============================================================
 # COMISIONES
 # ============================================================
 
