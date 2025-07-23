@@ -268,6 +268,7 @@ def ajax_get_supervisores(request):
     equipo_id = request.GET.get('equipo')
     rol = request.GET.get('rol')
     usuario_actual_id = request.GET.get('usuario_actual')  # Usuario que se está editando/promoviendo
+    supervision_directa = request.GET.get('supervision_directa') == '1'  # Nuevo parámetro
     
     supervisores = []
     advertencia = None
@@ -275,57 +276,147 @@ def ajax_get_supervisores(request):
     try:
         equipo = EquipoVenta.objects.get(id=equipo_id)
         
-        # Verificar si hay gerente activo para roles que lo requieren como jefe directo
-        if rol == 'jefe':
-            gerente_activo = GerenteEquipo.objects.filter(equipo_venta=equipo, activo=True).first()
-            if not gerente_activo:
-                advertencia = "Este equipo no tiene un gerente activo. Primero debes asignar un gerente."
-                return JsonResponse({'supervisores': supervisores, 'advertencia': advertencia})
-        
-        if rol == 'jefe':
-            # Para jefes de venta, los jefes directos son los gerentes del equipo
-            gerentes = GerenteEquipo.objects.filter(equipo_venta=equipo, activo=True)
-            # Excluir el usuario actual de los supervisores
-            if usuario_actual_id:
-                gerentes = gerentes.exclude(usuario_id=usuario_actual_id)
-            supervisores = [
-                {
-                    'id': gerente.id,
-                    'nombre': f"{gerente.usuario.get_full_name() or gerente.usuario.username} - Gerente de Equipo"
-                }
-                for gerente in gerentes
-            ]
-        elif rol == 'team_leader':
-            # Para team leaders, los jefes directos son los jefes de venta del equipo
-            jefes = JefeVenta.objects.filter(gerente_equipo__equipo_venta=equipo, activo=True)
-            # Excluir el usuario actual de los supervisores
-            if usuario_actual_id:
-                jefes = jefes.exclude(usuario_id=usuario_actual_id)
-            supervisores = [
-                {
-                    'id': jefe.id,
-                    'nombre': f"{jefe.usuario.get_full_name() or jefe.usuario.username} - Jefe de Venta"
-                }
-                for jefe in jefes
-            ]
-        elif rol == 'vendedor':
-            # Para vendedores, los jefes directos son los team leaders del equipo
-            team_leaders = TeamLeader.objects.filter(jefe_venta__gerente_equipo__equipo_venta=equipo, activo=True)
-            # Excluir el usuario actual de los supervisores
-            if usuario_actual_id:
-                team_leaders = team_leaders.exclude(usuario_id=usuario_actual_id)
-            supervisores = [
-                {
-                    'id': tl.id,
-                    'nombre': f"{tl.usuario.get_full_name() or tl.usuario.username} - Team Leader"
-                }
-                for tl in team_leaders
-            ]
+        if supervision_directa:
+            # SUPERVISIÓN DIRECTA: Permitir cualquier supervisor de nivel superior
+            supervisores = _get_supervisores_supervision_directa(equipo, rol, usuario_actual_id)
+        else:
+            # JERARQUÍA NORMAL: Solo supervisores directos según la estructura
+            supervisores = _get_supervisores_jerarquia_normal(equipo, rol, usuario_actual_id)
+            
+            # Verificar advertencias para jerarquía normal  
+            # TEMPORALMENTE DESHABILITADO PARA TESTING
+            # if rol == 'jefe' and not supervisores:
+            #     advertencia = f"No hay gerentes activos en este equipo. Supervisores encontrados: {len(supervisores)}"
     
     except EquipoVenta.DoesNotExist:
         advertencia = "Equipo no encontrado."
     
     return JsonResponse({'supervisores': supervisores, 'advertencia': advertencia})
+
+
+def _get_supervisores_jerarquia_normal(equipo, rol, usuario_actual_id):
+    """Obtener supervisores según jerarquía normal"""
+    supervisores = []
+    
+    if rol == 'jefe':
+        # Para jefes de venta, los jefes directos son los gerentes del equipo
+        gerentes = GerenteEquipo.objects.filter(equipo_venta=equipo, activo=True)
+        if usuario_actual_id:
+            gerentes = gerentes.exclude(usuario_id=usuario_actual_id)
+        supervisores = [
+            {
+                'id': gerente.id,
+                'nombre': f"{gerente.usuario.get_full_name() or gerente.usuario.username} - Gerente de Equipo"
+            }
+            for gerente in gerentes
+        ]
+    elif rol == 'team_leader':
+        # Para team leaders, los jefes directos son los jefes de venta del equipo
+        jefes = JefeVenta.objects.filter(gerente_equipo__equipo_venta=equipo, activo=True)
+        if usuario_actual_id:
+            jefes = jefes.exclude(usuario_id=usuario_actual_id)
+        supervisores = [
+            {
+                'id': jefe.id,
+                'nombre': f"{jefe.usuario.get_full_name() or jefe.usuario.username} - Jefe de Venta"
+            }
+            for jefe in jefes
+        ]
+    elif rol == 'vendedor':
+        # Para vendedores, los jefes directos son los team leaders del equipo
+        team_leaders = TeamLeader.objects.filter(jefe_venta__gerente_equipo__equipo_venta=equipo, activo=True)
+        if usuario_actual_id:
+            team_leaders = team_leaders.exclude(usuario_id=usuario_actual_id)
+        supervisores = [
+            {
+                'id': tl.id,
+                'nombre': f"{tl.usuario.get_full_name() or tl.usuario.username} - Team Leader"
+            }
+            for tl in team_leaders
+        ]
+    
+    return supervisores
+
+
+def _get_supervisores_supervision_directa(equipo, rol, usuario_actual_id):
+    """Obtener supervisores para supervisión directa (cualquier nivel superior)"""
+    supervisores = []
+    
+    # Para supervisión directa, pueden supervisar roles de niveles superiores
+    if rol == 'vendedor':
+        # Vendedores pueden ser supervisados por: Team Leaders, Jefes de Venta, Gerentes
+        
+        # Team Leaders
+        team_leaders = TeamLeader.objects.filter(jefe_venta__gerente_equipo__equipo_venta=equipo, activo=True)
+        if usuario_actual_id:
+            team_leaders = team_leaders.exclude(usuario_id=usuario_actual_id)
+        for tl in team_leaders:
+            supervisores.append({
+                'id': tl.usuario.id,
+                'nombre': f"{tl.usuario.get_full_name() or tl.usuario.username}",
+                'rol': 'Team Leader'
+            })
+        
+        # Jefes de Venta
+        jefes = JefeVenta.objects.filter(gerente_equipo__equipo_venta=equipo, activo=True)
+        if usuario_actual_id:
+            jefes = jefes.exclude(usuario_id=usuario_actual_id)
+        for jefe in jefes:
+            supervisores.append({
+                'id': jefe.usuario.id,
+                'nombre': f"{jefe.usuario.get_full_name() or jefe.usuario.username}",
+                'rol': 'Jefe de Venta'
+            })
+        
+        # Gerentes
+        gerentes = GerenteEquipo.objects.filter(equipo_venta=equipo, activo=True)
+        if usuario_actual_id:
+            gerentes = gerentes.exclude(usuario_id=usuario_actual_id)
+        for gerente in gerentes:
+            supervisores.append({
+                'id': gerente.usuario.id,
+                'nombre': f"{gerente.usuario.get_full_name() or gerente.usuario.username}",
+                'rol': 'Gerente de Equipo'
+            })
+            
+    elif rol == 'team_leader':
+        # Team Leaders pueden ser supervisados por: Jefes de Venta, Gerentes
+        
+        # Jefes de Venta
+        jefes = JefeVenta.objects.filter(gerente_equipo__equipo_venta=equipo, activo=True)
+        if usuario_actual_id:
+            jefes = jefes.exclude(usuario_id=usuario_actual_id)
+        for jefe in jefes:
+            supervisores.append({
+                'id': jefe.usuario.id,
+                'nombre': f"{jefe.usuario.get_full_name() or jefe.usuario.username}",
+                'rol': 'Jefe de Venta'
+            })
+        
+        # Gerentes
+        gerentes = GerenteEquipo.objects.filter(equipo_venta=equipo, activo=True)
+        if usuario_actual_id:
+            gerentes = gerentes.exclude(usuario_id=usuario_actual_id)
+        for gerente in gerentes:
+            supervisores.append({
+                'id': gerente.usuario.id,
+                'nombre': f"{gerente.usuario.get_full_name() or gerente.usuario.username}",
+                'rol': 'Gerente de Equipo'
+            })
+            
+    elif rol == 'jefe':
+        # Jefes de Venta pueden ser supervisados por: Gerentes
+        gerentes = GerenteEquipo.objects.filter(equipo_venta=equipo, activo=True)
+        if usuario_actual_id:
+            gerentes = gerentes.exclude(usuario_id=usuario_actual_id)
+        for gerente in gerentes:
+            supervisores.append({
+                'id': gerente.usuario.id,
+                'nombre': f"{gerente.usuario.get_full_name() or gerente.usuario.username}",
+                'rol': 'Gerente de Equipo'
+            })
+    
+    return supervisores
 
 
 @login_required

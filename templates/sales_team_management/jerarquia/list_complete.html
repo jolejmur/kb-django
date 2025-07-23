@@ -33,14 +33,10 @@ select option {
     z-index: 999999 !important;
 }
 
-/* Fix específico para mobile - Versión mejorada */
+/* Fix específico para mobile */
 @media (max-width: 768px) {
     select {
         font-size: 16px !important; /* iOS zoom fix */
-        min-height: 44px !important; /* Altura mínima para touch */
-        height: 44px !important;
-        line-height: 1.2 !important;
-        padding: 10px 40px 10px 12px !important;
         touch-action: manipulation !important;
         -webkit-appearance: none !important;
         -moz-appearance: none !important;
@@ -51,20 +47,10 @@ select option {
         right: auto !important;
         bottom: auto !important;
         position: relative !important;
-        display: block !important;
-        border: 1px solid #d1d5db !important;
-        border-radius: 8px !important;
-        background-color: white !important;
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
-        background-position: right 12px center !important;
-        background-repeat: no-repeat !important;
-        background-size: 16px 16px !important;
-        color: #111827 !important;
-        font-weight: 400 !important;
     }
-
+    
     /* Force normal positioning */
-    select, select:focus, select:active, select:hover {
+    select, select:focus, select:active {
         position: relative !important;
         transform: none !important;
         top: 0 !important;
@@ -73,170 +59,6 @@ select option {
         bottom: 0 !important;
         width: 100% !important;
         margin: 0 !important;
-        z-index: 1 !important;
-    }
-    
-    /* Específico para las opciones en mobile */
-    select option {
-        font-size: 16px !important;
-        line-height: 1.4 !important;
-        padding: 12px 16px !important;
-        min-height: 44px !important;
-        color: #111827 !important;
-        background-color: white !important;
-        border: none !important;
-        display: block !important;
-        position: relative !important;
-        font-weight: 400 !important;
-    }
-    
-    /* Forzar que el dropdown aparezca en la posición correcta */
-    select:focus {
-        outline: 2px solid #3b82f6 !important;
-        outline-offset: 2px !important;
-        border-color: #3b82f6 !important;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
-    }
-    
-    /* Reset para webkit en mobile */
-    select::-webkit-appearance {
-        -webkit-appearance: none !important;
-    }
-    
-    /* Fix para Android */
-    @supports (-webkit-touch-callout: none) {
-        select {
-            background-attachment: scroll !important;
-        }
-    }
-    
-    /* Selector específico para paginación */
-    .mobile-select {
-        min-height: 36px !important;
-        height: 36px !important;
-        font-size: 14px !important;
-        padding: 6px 32px 6px 8px !important;
-        background-size: 14px 14px !important;
-        background-position: right 8px center !important;
-    }
-    
-    .mobile-select option {
-        font-size: 14px !important;
-        padding: 8px 12px !important;
-        min-height: 36px !important;
-    }
-    
-    /* Selectores de filtros específicos */
-    .mobile-filter-select {
-        /* Heredar todos los estilos de select pero más específicos */
-        font-size: 16px !important;
-        min-height: 44px !important;
-        height: 44px !important;
-        line-height: 1.2 !important;
-        padding: 10px 40px 10px 12px !important;
-    }
-    
-    .mobile-filter-select option {
-        font-size: 16px !important;
-        line-height: 1.4 !important;
-        padding: 12px 16px !important;
-        min-height: 44px !important;
-        color: #111827 !important;
-        background-color: white !important;
-    }
-
-    /* Custom dropdown para móviles */
-    .custom-select-wrapper {
-        position: relative;
-        display: block;
-    }
-    
-    .custom-select {
-        position: relative;
-        background: white;
-        border: 1px solid #d1d5db;
-        border-radius: 8px;
-        font-size: 16px;
-        min-height: 44px;
-        padding: 10px 40px 10px 12px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-    
-    .custom-select:after {
-        content: '▼';
-        position: absolute;
-        right: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        font-size: 12px;
-        color: #6b7280;
-        pointer-events: none;
-    }
-    
-    .custom-select.active:after {
-        transform: translateY(-50%) rotate(180deg);
-    }
-    
-    .custom-options {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        background: white;
-        border: 1px solid #d1d5db;
-        border-top: none;
-        border-radius: 0 0 8px 8px;
-        max-height: 200px;
-        overflow-y: auto;
-        z-index: 1000;
-        display: none;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    }
-    
-    .custom-options.show {
-        display: block;
-    }
-    
-    .custom-option {
-        padding: 12px 16px;
-        font-size: 16px;
-        line-height: 1.4;
-        color: #111827;
-        cursor: pointer;
-        border-bottom: 1px solid #f3f4f6;
-    }
-    
-    .custom-option:hover {
-        background-color: #f9fafb;
-    }
-    
-    .custom-option.selected {
-        background-color: #eff6ff;
-        color: #1d4ed8;
-        font-weight: 500;
-    }
-    
-    .custom-option:last-child {
-        border-bottom: none;
-    }
-    
-    /* Ocultar el select nativo en móviles */
-    .mobile-filter-select {
-        display: none !important;
-    }
-}
-
-/* Desktop: mostrar selects nativos, ocultar custom */
-@media (min-width: 768px) {
-    .mobile-filter-select {
-        display: block !important;
-    }
-    
-    .custom-select-wrapper {
-        display: none !important;
     }
 }
 
@@ -346,14 +168,14 @@ select option {
                 <i class="fas fa-chevron-down transition-transform duration-200" id="filter-chevron"></i>
             </button>
         </div>
-
+        
         <!-- Filter Content -->
         <div id="filter-content" class="hidden sm:block p-4 sm:p-6">
             <form method="get" class="space-y-4">
                 <!-- Búsqueda por nombre - Always full width on mobile -->
                 <div class="w-full">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Buscar</label>
-                    <input type="text" name="search" value="{{ search }}"
+                    <input type="text" name="search" value="{{ search }}" 
                            placeholder="Nombre, email o usuario..."
                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 </div>
@@ -363,8 +185,7 @@ select option {
                     <!-- Filtro por equipo -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Equipo</label>
-                        <!-- Select nativo (oculto en móviles) -->
-                        <select name="equipo" id="equipo-select" class="mobile-filter-select w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white">
+                        <select name="equipo" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white">
                             <option value="">Todos los equipos</option>
                             {% for equipo in equipos %}
                                 <option value="{{ equipo.id }}" {% if equipo_seleccionado|stringformat:"s" == equipo.id|stringformat:"s" %}selected{% endif %}>
@@ -372,68 +193,28 @@ select option {
                                 </option>
                             {% endfor %}
                         </select>
-                        <!-- Custom select para móviles -->
-                        <div class="custom-select-wrapper block sm:hidden">
-                            <div class="custom-select" data-target="equipo-select">
-                                <span class="custom-select-text">Todos los equipos</span>
-                            </div>
-                            <div class="custom-options">
-                                <div class="custom-option selected" data-value="">Todos los equipos</div>
-                                {% for equipo in equipos %}
-                                    <div class="custom-option{% if equipo_seleccionado|stringformat:"s" == equipo.id|stringformat:"s" %} selected{% endif %}" data-value="{{ equipo.id }}">
-                                        {{ equipo.nombre }}
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        </div>
                     </div>
 
                     <!-- Filtro por rol -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Rol</label>
-                        <!-- Select nativo (oculto en móviles) -->
-                        <select name="rol" id="rol-select" class="mobile-filter-select w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white">
+                        <select name="rol" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white">
                             <option value="todos">Todos los roles</option>
                             <option value="gerente" {% if rol_seleccionado == 'gerente' %}selected{% endif %}>Gerente</option>
                             <option value="jefe" {% if rol_seleccionado == 'jefe' %}selected{% endif %}>Jefe</option>
                             <option value="team_leader" {% if rol_seleccionado == 'team_leader' %}selected{% endif %}>Team Leader</option>
                             <option value="vendedor" {% if rol_seleccionado == 'vendedor' %}selected{% endif %}>Vendedor</option>
                         </select>
-                        <!-- Custom select para móviles -->
-                        <div class="custom-select-wrapper block sm:hidden">
-                            <div class="custom-select" data-target="rol-select">
-                                <span class="custom-select-text">Todos los roles</span>
-                            </div>
-                            <div class="custom-options">
-                                <div class="custom-option{% if rol_seleccionado == 'todos' or not rol_seleccionado %} selected{% endif %}" data-value="todos">Todos los roles</div>
-                                <div class="custom-option{% if rol_seleccionado == 'gerente' %} selected{% endif %}" data-value="gerente">Gerente</div>
-                                <div class="custom-option{% if rol_seleccionado == 'jefe' %} selected{% endif %}" data-value="jefe">Jefe</div>
-                                <div class="custom-option{% if rol_seleccionado == 'team_leader' %} selected{% endif %}" data-value="team_leader">Team Leader</div>
-                                <div class="custom-option{% if rol_seleccionado == 'vendedor' %} selected{% endif %}" data-value="vendedor">Vendedor</div>
-                            </div>
-                        </div>
                     </div>
 
                     <!-- Filtro por estado -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Estado</label>
-                        <!-- Select nativo (oculto en móviles) -->
-                        <select name="activo" id="activo-select" class="mobile-filter-select w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white">
+                        <select name="activo" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white">
                             <option value="todos">Todos</option>
                             <option value="true" {% if activo_seleccionado == 'true' %}selected{% endif %}>Activos</option>
                             <option value="false" {% if activo_seleccionado == 'false' %}selected{% endif %}>Inactivos</option>
                         </select>
-                        <!-- Custom select para móviles -->
-                        <div class="custom-select-wrapper block sm:hidden">
-                            <div class="custom-select" data-target="activo-select">
-                                <span class="custom-select-text">Todos</span>
-                            </div>
-                            <div class="custom-options">
-                                <div class="custom-option{% if activo_seleccionado == 'todos' or not activo_seleccionado %} selected{% endif %}" data-value="todos">Todos</div>
-                                <div class="custom-option{% if activo_seleccionado == 'true' %} selected{% endif %}" data-value="true">Activos</div>
-                                <div class="custom-option{% if activo_seleccionado == 'false' %} selected{% endif %}" data-value="false">Inactivos</div>
-                            </div>
-                        </div>
                     </div>
                 </div>
 
@@ -465,7 +246,7 @@ select option {
                     </div>
                 </div>
             </div>
-
+            
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4">
                 <div class="flex items-center">
                     <div class="p-1.5 sm:p-2 bg-green-100 rounded-lg flex-shrink-0">
@@ -477,7 +258,7 @@ select option {
                     </div>
                 </div>
             </div>
-
+            
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4">
                 <div class="flex items-center">
                     <div class="p-1.5 sm:p-2 bg-yellow-100 rounded-lg flex-shrink-0">
@@ -489,7 +270,7 @@ select option {
                     </div>
                 </div>
             </div>
-
+            
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4">
                 <div class="flex items-center">
                     <div class="p-1.5 sm:p-2 bg-orange-100 rounded-lg flex-shrink-0">
@@ -501,7 +282,7 @@ select option {
                     </div>
                 </div>
             </div>
-
+            
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4">
                 <div class="flex items-center">
                     <div class="p-1.5 sm:p-2 bg-purple-100 rounded-lg flex-shrink-0">
@@ -665,13 +446,13 @@ select option {
                                             {{ miembro.usuario.get_full_name|default:miembro.usuario.username }}
                                         </h3>
                                         <p class="text-sm text-gray-500 truncate">{{ miembro.usuario.email }}</p>
-
+                                        
                                         <div class="flex items-center flex-wrap gap-2 mt-3">
                                             <span class="inline-flex items-center px-2.5 py-1 rounded-full text-sm font-medium
                                                 {% if miembro.rol_key == 'gerente' %}bg-blue-100 text-blue-800{% elif miembro.rol_key == 'jefe' %}bg-green-100 text-green-800{% elif miembro.rol_key == 'team_leader' %}bg-yellow-100 text-yellow-800{% else %}bg-purple-100 text-purple-800{% endif %}">
                                                 {{ miembro.rol }}
                                             </span>
-
+                                            
                                             {% if miembro.activo %}
                                                 <span class="inline-flex items-center px-2.5 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
                                                     <i class="fas fa-check-circle mr-1"></i>Activo
@@ -684,20 +465,20 @@ select option {
                                         </div>
                                     </div>
                                 </div>
-
+                                
                                 <!-- Acciones -->
                                 <div class="flex items-center space-x-2 ml-4">
-                                    <a href="{% url 'sales:jerarquia_member_detail' miembro.objeto.id miembro.rol_key %}"
+                                    <a href="{% url 'sales:jerarquia_member_detail' miembro.objeto.id miembro.rol_key %}" 
                                        class="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    <a href="{% url 'sales:jerarquia_member_edit' miembro.objeto.id miembro.rol_key %}"
+                                    <a href="{% url 'sales:jerarquia_member_edit' miembro.objeto.id miembro.rol_key %}" 
                                        class="text-yellow-600 hover:text-yellow-900 p-2 rounded-lg hover:bg-yellow-50 transition-colors">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                 </div>
                             </div>
-
+                            
                             <!-- Información adicional -->
                             <div class="mt-4 pt-4 border-t border-gray-100">
                                 <div class="grid grid-cols-2 gap-3 text-sm text-gray-600">
@@ -739,7 +520,7 @@ select option {
                                     <i class="fas fa-user text-purple-600 text-sm"></i>
                                 {% endif %}
                             </div>
-
+                            
                             <!-- Detalles -->
                             <div class="ml-3 flex-1 min-w-0">
                                 <div class="flex items-center space-x-2">
@@ -767,14 +548,14 @@ select option {
                                 </div>
                             </div>
                         </div>
-
+                        
                         <!-- Acciones -->
                         <div class="flex items-center space-x-1 ml-2">
-                            <a href="{% url 'sales:jerarquia_member_detail' miembro.objeto.id miembro.rol_key %}"
+                            <a href="{% url 'sales:jerarquia_member_detail' miembro.objeto.id miembro.rol_key %}" 
                                class="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded">
                                 <i class="fas fa-eye text-xs"></i>
                             </a>
-                            <a href="{% url 'sales:jerarquia_member_edit' miembro.objeto.id miembro.rol_key %}"
+                            <a href="{% url 'sales:jerarquia_member_edit' miembro.objeto.id miembro.rol_key %}" 
                                class="p-1.5 text-yellow-600 hover:text-yellow-800 hover:bg-yellow-50 rounded">
                                 <i class="fas fa-edit text-xs"></i>
                             </a>
@@ -798,7 +579,7 @@ select option {
             <div class="text-center sm:text-left text-sm text-gray-600">
                 Mostrando {{ page_obj.start_index }} a {{ page_obj.end_index }} de {{ page_obj.paginator.count }} resultados
             </div>
-
+            
             <!-- Navegación y selector de páginas -->
             <div class="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
                 <!-- Navegación de páginas -->
@@ -833,12 +614,12 @@ select option {
                         {% endif %}
                     </nav>
                 {% endif %}
-
+                
                 <!-- Selector de entradas por página -->
                 <div class="flex items-center space-x-2 text-sm">
                     <label class="text-gray-600 whitespace-nowrap">Por página:</label>
-                    <select name="page_size" onchange="changePageSize(this.value)"
-                            class="mobile-select px-2 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white">
+                    <select name="page_size" onchange="changePageSize(this.value)" 
+                            class="px-2 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white">
                         <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
                         <option value="25" {% if page_size == 25 %}selected{% endif %}>25</option>
                         <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
@@ -869,11 +650,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const mobileFilterToggle = document.getElementById('mobile-filter-toggle');
     const filterContent = document.getElementById('filter-content');
     const filterChevron = document.getElementById('filter-chevron');
-
+    
     if (mobileFilterToggle && filterContent && filterChevron) {
         mobileFilterToggle.addEventListener('click', function() {
             const isHidden = filterContent.classList.contains('hidden');
-
+            
             if (isHidden) {
                 filterContent.classList.remove('hidden');
                 filterChevron.classList.add('rotate-180');
@@ -883,85 +664,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
-    // Custom select functionality para móviles
-    initCustomSelects();
 });
-
-function initCustomSelects() {
-    // Solo en móviles (menos de 768px)
-    if (window.innerWidth < 768) {
-        const customSelects = document.querySelectorAll('.custom-select');
-        
-        customSelects.forEach(select => {
-            const targetId = select.getAttribute('data-target');
-            const targetSelect = document.getElementById(targetId);
-            const optionsContainer = select.nextElementSibling;
-            const selectText = select.querySelector('.custom-select-text');
-            
-            // Inicializar texto seleccionado
-            const selectedOption = targetSelect.querySelector('option[selected]');
-            if (selectedOption) {
-                selectText.textContent = selectedOption.textContent;
-                // Marcar opción como seleccionada en custom select
-                const customOption = optionsContainer.querySelector(`[data-value="${selectedOption.value}"]`);
-                if (customOption) {
-                    optionsContainer.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
-                    customOption.classList.add('selected');
-                }
-            }
-            
-            // Click en el selector personalizado
-            select.addEventListener('click', function(e) {
-                e.stopPropagation();
-                
-                // Cerrar otros selects abiertos
-                document.querySelectorAll('.custom-options.show').forEach(other => {
-                    if (other !== optionsContainer) {
-                        other.classList.remove('show');
-                        other.previousElementSibling.classList.remove('active');
-                    }
-                });
-                
-                // Toggle el select actual
-                optionsContainer.classList.toggle('show');
-                select.classList.toggle('active');
-            });
-            
-            // Click en las opciones
-            const options = optionsContainer.querySelectorAll('.custom-option');
-            options.forEach(option => {
-                option.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    
-                    const value = this.getAttribute('data-value');
-                    const text = this.textContent;
-                    
-                    // Actualizar el select nativo
-                    targetSelect.value = value;
-                    
-                    // Actualizar el texto mostrado
-                    selectText.textContent = text;
-                    
-                    // Marcar como seleccionado
-                    options.forEach(opt => opt.classList.remove('selected'));
-                    this.classList.add('selected');
-                    
-                    // Cerrar el dropdown
-                    optionsContainer.classList.remove('show');
-                    select.classList.remove('active');
-                });
-            });
-        });
-        
-        // Cerrar dropdowns al hacer click fuera
-        document.addEventListener('click', function() {
-            document.querySelectorAll('.custom-options.show').forEach(optionsContainer => {
-                optionsContainer.classList.remove('show');
-                optionsContainer.previousElementSibling.classList.remove('active');
-            });
-        });
-    }
-}
 </script>
 {% endblock %}

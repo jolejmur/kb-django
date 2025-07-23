@@ -10,19 +10,20 @@
 {% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto">
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
     <!-- Breadcrumb -->
-    <nav class="flex mb-6" aria-label="Breadcrumb">
-        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+    <nav class="flex mb-4 sm:mb-6" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 text-xs sm:text-sm md:space-x-3">
             <li class="inline-flex items-center">
                 <a href="{% url 'sales:equipos_list' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
-                    <i class="fas fa-users mr-2"></i>
-                    Equipos de Venta
+                    <i class="fas fa-users mr-1 sm:mr-2"></i>
+                    <span class="hidden sm:inline">Equipos de Venta</span>
+                    <span class="sm:hidden">Equipos</span>
                 </a>
             </li>
             <li>
                 <div class="flex items-center">
-                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <i class="fas fa-chevron-right text-gray-400 mx-1 sm:mx-2"></i>
                     <span class="text-sm font-medium text-gray-500">
                         {% if form.instance.pk %}Editar{% else %}Crear{% endif %}
                     </span>
@@ -32,17 +33,19 @@
     </nav>
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-200">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h2 class="text-lg font-semibold text-gray-900">
+        <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
+            <h2 class="text-base sm:text-lg font-semibold text-gray-900">
                 {% if form.instance.pk %}
-                    Editar Equipo: {{ form.instance.nombre }}
+                    <span class="hidden sm:inline">Editar Equipo: {{ form.instance.nombre }}</span>
+                    <span class="sm:hidden">Editar: {{ form.instance.nombre|truncatechars:20 }}</span>
                 {% else %}
-                    Nuevo Equipo de Venta
+                    <span class="hidden sm:inline">Nuevo Equipo de Venta</span>
+                    <span class="sm:hidden">Nuevo Equipo</span>
                 {% endif %}
             </h2>
         </div>
 
-        <form method="post" class="p-6">
+        <form method="post" class="p-4 sm:p-6">
             {% csrf_token %}
             
             <!-- Mostrar errores generales -->

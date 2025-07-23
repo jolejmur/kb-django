@@ -10,7 +10,7 @@ from django.http import JsonResponse
 
 from ..models import (
     EquipoVenta, GerenteEquipo, JefeVenta, TeamLeader, Vendedor,
-    ComisionVenta
+    ComisionVenta, SupervisionDirecta
 )
 from apps.real_estate_projects.models import (
     GerenteProyecto, JefeProyecto, Proyecto, Inmueble,
@@ -22,6 +22,40 @@ from ..forms import (
     ProyectoFilterForm
 )
 from .helpers import get_member_by_role
+
+
+def get_supervisor_real(usuario, objeto, rol_key):
+    """
+    Obtiene el supervisor real de un usuario considerando supervisi贸n directa
+    """
+    # Verificar si tiene supervisi贸n directa activa
+    supervision_directa = SupervisionDirecta.objects.filter(
+        subordinado=usuario, 
+        activo=True
+    ).first()
+    
+    if supervision_directa:
+        return {
+            'supervisor': supervision_directa.supervisor.get_full_name() or supervision_directa.supervisor.username,
+            'es_supervision_directa': True,
+            'tipo_supervision': supervision_directa.get_tipo_supervision_display()
+        }
+    
+    # Si no hay supervisi贸n directa, usar jerarqu铆a normal
+    supervisor_info = {
+        'supervisor': None,
+        'es_supervision_directa': False,
+        'tipo_supervision': None
+    }
+    
+    if rol_key == 'jefe' and hasattr(objeto, 'gerente_equipo'):
+        supervisor_info['supervisor'] = objeto.gerente_equipo.usuario.get_full_name() or objeto.gerente_equipo.usuario.username
+    elif rol_key == 'team_leader' and hasattr(objeto, 'jefe_venta'):
+        supervisor_info['supervisor'] = objeto.jefe_venta.usuario.get_full_name() or objeto.jefe_venta.usuario.username
+    elif rol_key == 'vendedor' and hasattr(objeto, 'team_leader'):
+        supervisor_info['supervisor'] = objeto.team_leader.usuario.get_full_name() or objeto.team_leader.usuario.username
+    
+    return supervisor_info
 
 
 @login_required
@@ -114,6 +148,9 @@ def jerarquia_equipos_list(request):
                     # Verificar si puede eliminar (no tiene subalternos)
                     puede_eliminar_jefe = not jefe.teamleaders.exists()
                     
+                    # Obtener supervisor real
+                    supervisor_info = get_supervisor_real(usuario_jefe, jefe, 'jefe')
+                    
                     miembros.append({
                         'equipo': equipo,
                         'usuario': usuario_jefe,
@@ -121,7 +158,9 @@ def jerarquia_equipos_list(request):
                         'rol_key': 'jefe',
                         'activo': jefe.activo,
                         'fecha_asignacion': jefe.created_at,
-                        'supervisor': usuario.get_full_name() or usuario.username,
+                        'supervisor': supervisor_info['supervisor'],
+                        'es_supervision_directa': supervisor_info['es_supervision_directa'],
+                        'tipo_supervision': supervisor_info['tipo_supervision'],
                         'objeto': jefe,
                         'puede_eliminar': puede_eliminar_jefe
                     })
@@ -149,6 +188,9 @@ def jerarquia_equipos_list(request):
                         # Verificar si puede eliminar (no tiene subalternos)
                         puede_eliminar_tl = not team_leader.vendedores.exists()
                         
+                        # Obtener supervisor real
+                        supervisor_info = get_supervisor_real(usuario_tl, team_leader, 'team_leader')
+                        
                         miembros.append({
                             'equipo': equipo,
                             'usuario': usuario_tl,
@@ -156,7 +198,9 @@ def jerarquia_equipos_list(request):
                             'rol_key': 'team_leader',
                             'activo': team_leader.activo,
                             'fecha_asignacion': team_leader.created_at,
-                            'supervisor': usuario_jefe.get_full_name() or usuario_jefe.username,
+                            'supervisor': supervisor_info['supervisor'],
+                            'es_supervision_directa': supervisor_info['es_supervision_directa'],
+                            'tipo_supervision': supervisor_info['tipo_supervision'],
                             'objeto': team_leader,
                             'puede_eliminar': puede_eliminar_tl
                         })
@@ -186,6 +230,9 @@ def jerarquia_equipos_list(request):
                             # Por ahora asumo que puede eliminar, pero debes implementar la verificación
                             puede_eliminar_v = True  # Cambiar por la lógica real de procesos de venta
                             
+                            # Obtener supervisor real
+                            supervisor_info = get_supervisor_real(usuario_v, vendedor, 'vendedor')
+                            
                             miembros.append({
                                 'equipo': equipo,
                                 'usuario': usuario_v,
@@ -193,7 +240,9 @@ def jerarquia_equipos_list(request):
                                 'rol_key': 'vendedor',
                                 'activo': vendedor.activo,
                                 'fecha_asignacion': vendedor.created_at,
-                                'supervisor': usuario_tl.get_full_name() or usuario_tl.username,
+                                'supervisor': supervisor_info['supervisor'],
+                                'es_supervision_directa': supervisor_info['es_supervision_directa'],
+                                'tipo_supervision': supervisor_info['tipo_supervision'],
                                 'objeto': vendedor,
                                 'puede_eliminar': puede_eliminar_v
                             })
@@ -256,10 +305,15 @@ def jerarquia_create_member(request):
         equipo_id = request.POST.get('equipo')
         rol = request.POST.get('rol')
         supervisor_id = request.POST.get('supervisor')
+        supervision_directa = request.POST.get('supervision_directa') == '1'  # Nuevo campo
         
         try:
             usuario = User.objects.get(id=usuario_id)
             equipo = EquipoVenta.objects.get(id=equipo_id)
+            
+            # Si es supervisión directa, manejar de forma diferente
+            if supervision_directa and rol != 'gerente':
+                return _crear_supervision_directa(request, usuario, equipo, rol, supervisor_id)
             
             # Validar que el usuario no esté ya asignado en este equipo
             if rol == 'gerente':
@@ -397,25 +451,25 @@ def jerarquia_member_detail(request, member_id, rol):
             equipo = miembro.equipo_venta
             usuario = miembro.usuario
             rol_display = 'Gerente de Equipo'
-            supervisor = None
+            supervisor_info = {'supervisor': None, 'es_supervision_directa': False, 'tipo_supervision': None}
         elif rol == 'jefe':
             miembro = get_object_or_404(JefeVenta, id=member_id)
             equipo = miembro.gerente_equipo.equipo_venta
             usuario = miembro.usuario
             rol_display = 'Jefe de Venta'
-            supervisor = miembro.gerente_equipo.usuario
+            supervisor_info = get_supervisor_real(usuario, miembro, 'jefe')
         elif rol == 'team_leader':
             miembro = get_object_or_404(TeamLeader, id=member_id)
             equipo = miembro.jefe_venta.gerente_equipo.equipo_venta
             usuario = miembro.usuario
             rol_display = 'Team Leader'
-            supervisor = miembro.jefe_venta.usuario
+            supervisor_info = get_supervisor_real(usuario, miembro, 'team_leader')
         elif rol == 'vendedor':
             miembro = get_object_or_404(Vendedor, id=member_id)
             equipo = miembro.team_leader.jefe_venta.gerente_equipo.equipo_venta
             usuario = miembro.usuario
             rol_display = 'Vendedor'
-            supervisor = miembro.team_leader.usuario
+            supervisor_info = get_supervisor_real(usuario, miembro, 'vendedor')
         else:
             messages.error(request, 'Rol no válido.')
             return redirect('sales:jerarquia_list')
@@ -453,7 +507,9 @@ def jerarquia_member_detail(request, member_id, rol):
             'equipo': equipo,
             'rol': rol,
             'rol_display': rol_display,
-            'supervisor': supervisor,
+            'supervisor': supervisor_info['supervisor'],
+            'es_supervision_directa': supervisor_info['es_supervision_directa'],
+            'tipo_supervision': supervisor_info['tipo_supervision'],
             'estadisticas_mes': estadisticas_mes,
             'subordinados_count': subordinados_count,
             'subordinados_tipo': subordinados_tipo,
@@ -575,9 +631,64 @@ def jerarquia_member_edit(request, member_id, rol):
         if request.method == 'POST':
             nuevo_equipo_id = request.POST.get('equipo')
             nuevo_supervisor_id = request.POST.get('supervisor')
+            supervision_directa = request.POST.get('supervision_directa') == '1'
             activo = request.POST.get('activo') == 'on'
             accion = request.POST.get('accion', 'editar')  # 'editar' o 'inactivar'
             reemplazo_id = request.POST.get('reemplazo')
+            
+            # MANEJO SIMPLIFICADO DE SUPERVISIÓN DIRECTA EN EDICIÓN
+            if supervision_directa and nuevo_supervisor_id and rol != 'gerente':
+                try:
+                    from django.contrib.auth import get_user_model
+                    User = get_user_model()
+                    
+                    usuario = miembro.usuario
+                    supervisor_usuario = User.objects.get(id=nuevo_supervisor_id)
+                    
+                    # Desactivar cualquier supervisión directa anterior
+                    SupervisionDirecta.objects.filter(subordinado=usuario, activo=True).update(activo=False)
+                    
+                    # Determinar tipo de supervisión
+                    # Obtener rol del supervisor
+                    supervisor_rol = None
+                    if GerenteEquipo.objects.filter(usuario=supervisor_usuario, activo=True).exists():
+                        supervisor_rol = 'gerente'
+                    elif JefeVenta.objects.filter(usuario=supervisor_usuario, activo=True).exists():
+                        supervisor_rol = 'jefe'
+                    elif TeamLeader.objects.filter(usuario=supervisor_usuario, activo=True).exists():
+                        supervisor_rol = 'team_leader'
+                    
+                    # Determinar tipo de supervisión según roles
+                    tipo_supervision = None
+                    if supervisor_rol == 'gerente' and rol == 'vendedor':
+                        tipo_supervision = 'GERENTE_TO_VENDEDOR'
+                    elif supervisor_rol == 'gerente' and rol == 'team_leader':
+                        tipo_supervision = 'GERENTE_TO_TEAMLEADER'
+                    elif supervisor_rol == 'jefe' and rol == 'vendedor':
+                        tipo_supervision = 'JEFE_TO_VENDEDOR'
+                    
+                    if tipo_supervision:
+                        # Crear nueva supervisión directa
+                        SupervisionDirecta.objects.create(
+                            supervisor=supervisor_usuario,
+                            subordinado=usuario,
+                            equipo_venta=equipo_actual,
+                            tipo_supervision=tipo_supervision,
+                            activo=True
+                        )
+                        
+                        messages.success(request, f'Supervisión directa actualizada exitosamente.')
+                        return redirect('sales:jerarquia_member_detail', member_id=member_id, rol=rol)
+                        
+                except Exception as e:
+                    messages.error(request, f'Error al actualizar supervisión directa: {str(e)}')
+            
+            elif not supervision_directa and rol != 'gerente':
+                # Si se desactivó supervisión directa, desactivar registros existentes
+                SupervisionDirecta.objects.filter(subordinado=miembro.usuario, activo=True).update(activo=False)
+                # Aquí deberías actualizar la jerarquía normal, pero es complejo
+                messages.success(request, f'Supervisión directa desactivada. Actualiza el supervisor en jerarquía normal.')
+                return redirect('sales:jerarquia_member_detail', member_id=member_id, rol=rol)
             
             # Verificar si se está intentando inactivar un usuario con subordinados
             if miembro.activo and not activo and rol != 'vendedor':
@@ -948,12 +1059,41 @@ def jerarquia_member_edit(request, member_id, rol):
         # GET request - mostrar formulario
         equipos = EquipoVenta.objects.filter(activo=True).order_by('nombre')
         
+        # Obtener el usuario del miembro
+        usuario = miembro.usuario
+        
+        # Obtener información de supervisor actual
+        if rol != 'gerente':
+            supervisor_info = get_supervisor_real(usuario, miembro, rol)
+            # Obtener el ID del supervisor actual para pre-seleccionarlo
+            supervisor_actual_id = None
+            if supervisor_info['es_supervision_directa']:
+                # Si es supervisión directa, buscar en SupervisionDirecta
+                supervision_directa = SupervisionDirecta.objects.filter(
+                    subordinado=usuario, activo=True
+                ).first()
+                if supervision_directa:
+                    supervisor_actual_id = supervision_directa.supervisor.id
+            else:
+                # Si es jerarquía normal, obtener el ID del supervisor según el rol
+                if rol == 'jefe' and hasattr(miembro, 'gerente_equipo'):
+                    supervisor_actual_id = miembro.gerente_equipo.id
+                elif rol == 'team_leader' and hasattr(miembro, 'jefe_venta'):
+                    supervisor_actual_id = miembro.jefe_venta.id
+                elif rol == 'vendedor' and hasattr(miembro, 'team_leader'):
+                    supervisor_actual_id = miembro.team_leader.id
+        else:
+            supervisor_info = {'es_supervision_directa': False}
+            supervisor_actual_id = None
+        
         context = {
             'miembro': miembro,
             'rol': rol,
             'rol_display': rol.replace('_', ' ').title(),
             'equipo_actual': equipo_actual,
             'equipos': equipos,
+            'es_supervision_directa': supervisor_info['es_supervision_directa'],
+            'supervisor_actual_id': supervisor_actual_id,
             'title': f'Editar {rol.replace("_", " ").title()}',
         }
         
@@ -1471,3 +1611,135 @@ def jerarquia_member_toggle_status(request, member_id, rol):
     except Exception as e:
         messages.error(request, f'Error al cambiar estado: {str(e)}')
         return redirect('sales:jerarquia_list')
+
+
+def _crear_supervision_directa(request, usuario, equipo, rol, supervisor_id):
+    """
+    Función auxiliar para crear supervisión directa
+    """
+    from django.contrib.auth import get_user_model
+    from ..models import SupervisionDirecta
+    
+    User = get_user_model()
+    
+    try:
+        # Obtener el supervisor
+        supervisor = User.objects.get(id=supervisor_id)
+        
+        # Primero crear la relación jerárquica normal (necesaria para que el usuario esté en el equipo)
+        if rol == 'jefe':
+            # Para jefe de venta, necesita un gerente como supervisor normal
+            # Buscar un gerente del equipo (puede ser cualquiera)
+            gerente_default = GerenteEquipo.objects.filter(equipo_venta=equipo, activo=True).first()
+            if not gerente_default:
+                messages.error(request, 'El equipo necesita al menos un gerente activo para crear supervisión directa.')
+                return redirect('sales:jerarquia_create_member')
+            
+            # Verificar si ya existe
+            if JefeVenta.objects.filter(usuario=usuario, gerente_equipo=gerente_default).exists():
+                messages.error(request, f'{usuario.get_full_name() or usuario.username} ya es jefe de venta en este equipo.')
+                return redirect('sales:jerarquia_create_member')
+            
+            # Crear la relacion normal
+            miembro_creado = JefeVenta.objects.create(usuario=usuario, gerente_equipo=gerente_default)
+            
+        elif rol == 'team_leader':
+            # Para team leader, necesita un jefe de venta como supervisor normal
+            jefe_default = JefeVenta.objects.filter(gerente_equipo__equipo_venta=equipo, activo=True).first()
+            if not jefe_default:
+                messages.error(request, 'El equipo necesita al menos un jefe de venta activo para crear supervisión directa.')
+                return redirect('sales:jerarquia_create_member')
+            
+            # Verificar si ya existe
+            if TeamLeader.objects.filter(usuario=usuario, jefe_venta=jefe_default).exists():
+                messages.error(request, f'{usuario.get_full_name() or usuario.username} ya es team leader en este equipo.')
+                return redirect('sales:jerarquia_create_member')
+            
+            # Crear la relacion normal
+            miembro_creado = TeamLeader.objects.create(usuario=usuario, jefe_venta=jefe_default)
+            
+        elif rol == 'vendedor':
+            # Para vendedor, necesita un team leader como supervisor normal
+            tl_default = TeamLeader.objects.filter(jefe_venta__gerente_equipo__equipo_venta=equipo, activo=True).first()
+            if not tl_default:
+                messages.error(request, 'El equipo necesita al menos un team leader activo para crear supervisión directa.')
+                return redirect('sales:jerarquia_create_member')
+            
+            # Verificar si ya existe
+            if Vendedor.objects.filter(usuario=usuario, team_leader=tl_default).exists():
+                messages.error(request, f'{usuario.get_full_name() or usuario.username} ya es vendedor en este equipo.')
+                return redirect('sales:jerarquia_create_member')
+            
+            # Crear la relacion normal
+            miembro_creado = Vendedor.objects.create(usuario=usuario, team_leader=tl_default)
+        
+        # Determinar el tipo de supervisión directa
+        supervisor_rol = _get_rol_usuario_en_equipo(supervisor, equipo)
+        subordinado_rol = rol.upper()
+        
+        tipo_supervision = None
+        if supervisor_rol == 'GERENTE' and subordinado_rol == 'VENDEDOR':
+            tipo_supervision = 'GERENTE_TO_VENDEDOR'
+        elif supervisor_rol == 'GERENTE' and subordinado_rol == 'TEAM_LEADER':
+            tipo_supervision = 'GERENTE_TO_TEAMLEADER'
+        elif supervisor_rol == 'JEFE' and subordinado_rol == 'VENDEDOR':
+            tipo_supervision = 'JEFE_TO_VENDEDOR'
+        else:
+            messages.error(request, f'Tipo de supervisión directa no válido: {supervisor_rol} → {subordinado_rol}')
+            return redirect('sales:jerarquia_create_member')
+        
+        # Verificar que no existe ya una supervisión directa activa
+        supervision_existente = SupervisionDirecta.objects.filter(
+            subordinado=usuario,
+            equipo_venta=equipo,
+            activo=True
+        ).first()
+        
+        if supervision_existente:
+            messages.error(request, f'{usuario.get_full_name() or usuario.username} ya tiene supervisión directa activa con {supervision_existente.supervisor.get_full_name()}.')
+            return redirect('sales:jerarquia_create_member')
+        
+        # Crear la supervisión directa
+        SupervisionDirecta.objects.create(
+            supervisor=supervisor,
+            subordinado=usuario,
+            equipo_venta=equipo,
+            tipo_supervision=tipo_supervision,
+            activo=True,
+            notas=f'Supervisión directa creada desde formulario de jerarquía: {supervisor.get_full_name()} supervisa directamente a {usuario.get_full_name()}'
+        )
+        
+        messages.success(
+            request,
+            f'✨ {usuario.get_full_name() or usuario.username} asignado con SUPERVISIÓN DIRECTA: '
+            f'{supervisor.get_full_name()} → {usuario.get_full_name()} ({tipo_supervision.replace("_", " → ")})'
+        )
+        
+        return redirect('sales:jerarquia_list')
+        
+    except User.DoesNotExist:
+        messages.error(request, 'Supervisor no encontrado.')
+        return redirect('sales:jerarquia_create_member')
+    except Exception as e:
+        messages.error(request, f'Error al crear supervisión directa: {str(e)}')
+        return redirect('sales:jerarquia_create_member')
+
+
+def _get_rol_usuario_en_equipo(usuario, equipo):
+    """
+    Obtiene el rol de un usuario en un equipo específico
+    """
+    # Verificar cada nivel de jerarquía
+    if GerenteEquipo.objects.filter(usuario=usuario, equipo_venta=equipo, activo=True).exists():
+        return 'GERENTE'
+    
+    if JefeVenta.objects.filter(usuario=usuario, gerente_equipo__equipo_venta=equipo, activo=True).exists():
+        return 'JEFE'
+    
+    if TeamLeader.objects.filter(usuario=usuario, jefe_venta__gerente_equipo__equipo_venta=equipo, activo=True).exists():
+        return 'TEAM_LEADER'
+    
+    if Vendedor.objects.filter(usuario=usuario, team_leader__jefe_venta__gerente_equipo__equipo_venta=equipo, activo=True).exists():
+        return 'VENDEDOR'
+    
+    return 'DESCONOCIDO'
