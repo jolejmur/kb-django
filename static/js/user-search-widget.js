@@ -449,7 +449,10 @@ class CreateUserModal {
                     const firstName = firstNameInput.value.trim().toLowerCase();
                     const lastName = lastNameInput.value.trim().toLowerCase();
                     if (firstName && lastName) {
-                        usernameInput.value = `${firstName}.${lastName}`.replace(/[^a-z0-9._]/g, '');
+                        // Tomar primera letra del nombre y primer apellido (hasta el primer espacio)
+                        const firstLetter = firstName.charAt(0);
+                        const firstLastName = lastName.split(' ')[0]; // Solo hasta el primer espacio
+                        usernameInput.value = `${firstLetter}${firstLastName}`.replace(/[^a-z0-9._]/g, '');
                         usernameInput.setAttribute('data-auto-generated', 'true');
                     }
                 }
@@ -598,6 +601,7 @@ class LocationSelectorModal {
         this.map = null;
         this.marker = null;
         this.selectedCoordinates = null;
+        this.resizeObserver = null;
         
         this.createHTML();
         this.attachEvents();
@@ -605,54 +609,57 @@ class LocationSelectorModal {
     
     createHTML() {
         const modalHTML = `
-            <div class="location-selector-modal fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="location-modal-title" role="dialog" aria-modal="true">
-                <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <div class="location-selector-modal fixed inset-0 z-50 hidden flex items-start justify-center pt-12 p-4" aria-labelledby="location-modal-title" role="dialog" aria-modal="true">
+                <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+                
+                <div class="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[85vh] flex flex-col">
+                    <!-- Header compacto -->
+                    <div class="flex items-center justify-between p-4 border-b border-gray-200">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 flex items-center justify-center h-8 w-8 rounded-full bg-blue-100 mr-3">
+                                <i class="fas fa-map-marker-alt text-blue-600 text-sm"></i>
+                            </div>
+                            <h3 class="text-lg font-medium text-gray-900" id="location-modal-title">
+                                Seleccionar Ubicación
+                            </h3>
+                        </div>
+                        <button type="button" class="cancel-location-btn text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
                     
-                    <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-                    
-                    <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
-                        <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                            <div class="sm:flex sm:items-start">
-                                <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
-                                    <i class="fas fa-map-marker-alt text-blue-600"></i>
-                                </div>
-                                <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                                    <h3 class="text-lg leading-6 font-medium text-gray-900" id="location-modal-title">
-                                        Seleccionar Ubicación en el Mapa
-                                    </h3>
-                                    <div class="mt-4">
-                                        <p class="text-sm text-gray-600 mb-4">
-                                            Haz clic en el mapa para seleccionar la ubicación del domicilio
-                                        </p>
-                                        
-                                        <div class="map-container">
-                                            <div id="location-map" class="w-full h-96 border border-gray-300 rounded-lg"></div>
-                                        </div>
-                                        
-                                        <div class="mt-4 coordinates-info hidden bg-blue-50 p-3 rounded-lg">
-                                            <div class="flex items-center">
-                                                <i class="fas fa-map-marker-alt text-blue-600 mr-2"></i>
-                                                <div>
-                                                    <p class="text-sm font-medium text-blue-900">Ubicación seleccionada</p>
-                                                    <p class="text-sm text-blue-700 coordinates-display-text"></p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                    <!-- Contenido del mapa - ocupa el espacio disponible -->
+                    <div class="flex-1 p-4 min-h-0">
+                        <p class="text-sm text-gray-600 mb-3">
+                            Haz clic en el mapa para seleccionar la ubicación del domicilio
+                        </p>
+                        
+                        <div class="map-container h-full min-h-[400px]">
+                            <div id="location-map" class="w-full h-full border border-gray-300 rounded-lg"></div>
+                        </div>
+                        
+                        <div class="mt-3 coordinates-info hidden bg-blue-50 p-3 rounded-lg">
+                            <div class="flex items-center">
+                                <i class="fas fa-map-marker-alt text-blue-600 mr-2"></i>
+                                <div>
+                                    <p class="text-sm font-medium text-blue-900">Ubicación seleccionada</p>
+                                    <p class="text-sm text-blue-700 coordinates-display-text"></p>
                                 </div>
                             </div>
                         </div>
-                        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                            <button type="button" class="confirm-location-btn w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm" disabled>
-                                <i class="fas fa-check mr-2"></i>
-                                Confirmar Ubicación
-                            </button>
-                            <button type="button" class="cancel-location-btn mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
-                                Cancelar
-                            </button>
-                        </div>
                     </div>
+                    
+                    <!-- Footer con botones -->
+                    <div class="flex justify-end space-x-3 p-4 border-t border-gray-200">
+                        <button type="button" class="cancel-location-btn px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            Cancelar
+                        </button>
+                        <button type="button" class="confirm-location-btn px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" disabled>
+                            <i class="fas fa-check mr-2"></i>
+                            Confirmar Ubicación
+                        </button>
+                    </div>
+                </div>
                 </div>
             </div>
         `;
@@ -673,9 +680,11 @@ class LocationSelectorModal {
             }
         });
         
-        // Botón cancelar
-        this.modal.querySelector('.cancel-location-btn').addEventListener('click', () => {
-            this.hide();
+        // Botones cancelar (hay dos en el nuevo HTML)
+        this.modal.querySelectorAll('.cancel-location-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.hide();
+            });
         });
         
         // Cerrar al hacer click en el overlay
@@ -686,6 +695,7 @@ class LocationSelectorModal {
     
     show() {
         this.modal.classList.remove('hidden');
+        this.modal.style.display = 'flex'; // Asegurar que use flexbox
         document.body.classList.add('overflow-hidden');
         
         // Inicializar el mapa después de mostrar el modal
@@ -696,40 +706,134 @@ class LocationSelectorModal {
     
     hide() {
         this.modal.classList.add('hidden');
+        this.modal.style.display = 'none'; // Ocultar completamente
         document.body.classList.remove('overflow-hidden');
     }
     
     initializeMap() {
+        console.log('🗺️ Iniciando mapa...');
+        
         // Verificar si Leaflet está disponible
         if (typeof L === 'undefined') {
-            console.error('Leaflet no está disponible. Asegúrate de incluir la librería Leaflet.');
+            console.error('❌ Leaflet no está disponible');
             this.showFallbackInput();
             return;
         }
         
-        // Crear el mapa
-        this.map = L.map('location-map').setView([this.options.defaultLat, this.options.defaultLng], 13);
+        // Esperar un poco más en móviles para que el DOM esté listo
+        const isMobile = window.innerWidth < 768;
+        const delay = isMobile ? 300 : 100;
         
-        // Agregar capa de OpenStreetMap
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(this.map);
-        
-        // Agregar evento de clic
-        this.map.on('click', (e) => {
-            this.setLocation(e.latlng.lat, e.latlng.lng);
-        });
-        
-        // Intentar obtener la ubicación actual del usuario
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition((position) => {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-                this.map.setView([lat, lng], 15);
-            }, (error) => {
-                console.log('No se pudo obtener la ubicación actual:', error);
-            });
-        }
+        setTimeout(() => {
+            try {
+                // Asegurar que el contenedor del mapa tenga dimensiones
+                const mapContainer = document.getElementById('location-map');
+                if (!mapContainer) {
+                    console.error('❌ Contenedor del mapa no encontrado');
+                    this.showFallbackInput();
+                    return;
+                }
+                
+                console.log('📏 Configurando dimensiones del contenedor...');
+                
+                // Forzar que el contenedor tenga altura antes de inicializar
+                if (isMobile) {
+                    // En móviles, usar altura fija más pequeña
+                    mapContainer.style.height = '300px';
+                    mapContainer.style.minHeight = '300px';
+                } else {
+                    // En desktop, usar altura completa
+                    mapContainer.style.height = '100%';
+                    mapContainer.style.minHeight = '400px';
+                }
+                mapContainer.style.width = '100%';
+                mapContainer.style.display = 'block';
+                
+                console.log(`📱 Modo: ${isMobile ? 'Móvil' : 'Desktop'}, Altura: ${mapContainer.style.height}`);
+            
+                console.log('🗺️ Creando instancia del mapa...');
+                
+                // Crear el mapa con configuración optimizada para móviles
+                this.map = L.map('location-map', {
+                    zoomControl: !isMobile, // Sin controles de zoom en móvil
+                    scrollWheelZoom: !isMobile, // Sin scroll zoom en móvil
+                    doubleClickZoom: true,
+                    boxZoom: !isMobile,
+                    keyboard: !isMobile,
+                    dragging: true,
+                    touchZoom: isMobile, // Habilitar zoom táctil en móvil
+                    // Configuración específica para modales
+                    fadeAnimation: false,
+                    zoomAnimation: false,
+                    markerZoomAnimation: false
+                }).setView([this.options.defaultLat, this.options.defaultLng], isMobile ? 12 : 13);
+                
+                console.log('✅ Mapa creado exitosamente');
+                
+                // Agregar capa de OpenStreetMap con timeout para evitar errores de red
+                const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors',
+                    maxZoom: 19,
+                    timeout: 10000 // 10 segundos de timeout
+                });
+                
+                tileLayer.on('tileerror', (e) => {
+                    console.warn('⚠️ Error cargando tile del mapa:', e);
+                });
+                
+                tileLayer.addTo(this.map);
+                
+                // Invalidar el tamaño del mapa después de varios delays
+                const invalidateSizes = [250, 500, 1000];
+                invalidateSizes.forEach(delay => {
+                    setTimeout(() => {
+                        if (this.map) {
+                            console.log(`🔄 Invalidando tamaño del mapa (${delay}ms)`);
+                            this.map.invalidateSize();
+                        }
+                    }, delay);
+                });
+                
+                // Observer para cambios de tamaño del modal
+                if (window.ResizeObserver && !isMobile) {
+                    this.resizeObserver = new ResizeObserver(() => {
+                        if (this.map) {
+                            this.map.invalidateSize();
+                        }
+                    });
+                    this.resizeObserver.observe(mapContainer);
+                }
+                
+                // Agregar evento de clic
+                this.map.on('click', (e) => {
+                    console.log('📍 Click en mapa:', e.latlng);
+                    this.setLocation(e.latlng.lat, e.latlng.lng);
+                });
+                
+                // Intentar obtener la ubicación actual del usuario (opcional en móvil)
+                if (navigator.geolocation && !isMobile) {
+                    navigator.geolocation.getCurrentPosition((position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        console.log('📍 Ubicación actual obtenida:', lat, lng);
+                        this.map.setView([lat, lng], 15);
+                        setTimeout(() => {
+                            if (this.map) {
+                                this.map.invalidateSize();
+                            }
+                        }, 100);
+                    }, (error) => {
+                        console.log('⚠️ No se pudo obtener la ubicación actual:', error);
+                    });
+                }
+                
+                console.log('✅ Mapa inicializado completamente');
+                
+            } catch (error) {
+                console.error('❌ Error al inicializar el mapa:', error);
+                this.showFallbackInput();
+            }
+        }, delay);
     }
     
     setLocation(lat, lng) {
@@ -800,6 +904,18 @@ class LocationSelectorModal {
     }
     
     destroy() {
+        // Limpiar observer
+        if (this.resizeObserver) {
+            this.resizeObserver.disconnect();
+            this.resizeObserver = null;
+        }
+        
+        // Limpiar mapa
+        if (this.map) {
+            this.map.remove();
+            this.map = null;
+        }
+        
         if (this.modal) {
             this.modal.remove();
         }

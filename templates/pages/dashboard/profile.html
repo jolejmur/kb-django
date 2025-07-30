@@ -54,41 +54,45 @@
         </div>
     </div>
 
-    <!-- QR Code Section -->
-    {% if qr_data_url %}
+    {% if user.role and user.role.name in 'Gerente de Proyecto,Jefe de Equipo,Team Leader,Ventas,Super Admin' %}
+    <!-- Event QR Codes Section -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-        <div class="flex flex-col md:flex-row items-center justify-between">
-            <div class="flex-1 mb-6 md:mb-0">
-                <h3 class="text-xl font-semibold text-gray-900 mb-2 flex items-center">
-                    <i class="fas fa-qrcode text-blue-600 mr-3"></i>
-                    Mi Tarjeta de Contacto Digital
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h3 class="text-xl font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-calendar-alt text-purple-600 mr-3"></i>
+                    QRs de Invitación a Eventos
                 </h3>
-                <p class="text-gray-600 mb-4">
-                    Comparte tu información de contacto de manera fácil y rápida con este código QR.
-                    Incluye tu nombre completo, email y teléfono.
+                <p class="text-gray-600 mt-1">
+                    Descarga los códigos QR para invitar clientes a eventos comerciales
                 </p>
-                <div class="flex flex-wrap gap-3">
-                    <a href="{% url 'dashboard:download_qr' %}" 
-                       class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
-                        <i class="fas fa-download mr-2"></i>
-                        Descargar QR
-                    </a>
-                    <button onclick="shareQRWhatsApp()" 
-                            class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors">
-                        <i class="fab fa-whatsapp mr-2"></i>
-                        Compartir
-                    </button>
-                    <button onclick="copyQRLink()" 
-                            class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors">
-                        <i class="fas fa-copy mr-2"></i>
-                        Copiar
-                    </button>
-                </div>
             </div>
-            <div class="flex-shrink-0">
-                <div class="bg-gray-50 p-4 rounded-lg border">
-                    <img src="{{ qr_data_url }}" alt="QR Contact Card" class="w-32 h-32">
-                </div>
+            <a href="{% url 'events:eventos_list' %}" 
+               class="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors">
+                <i class="fas fa-eye mr-2"></i>
+                Ver Todos los Eventos
+            </a>
+        </div>
+        
+        <div id="event-qr-loading" class="text-center py-8">
+            <i class="fas fa-spinner fa-spin text-gray-400 text-2xl mb-2"></i>
+            <p class="text-gray-600">Cargando eventos disponibles...</p>
+        </div>
+        
+        <div id="event-qr-container" class="hidden">
+            <div id="event-qr-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- QR cards will be loaded here -->
+            </div>
+            
+            <div id="no-events" class="hidden text-center py-8">
+                <i class="fas fa-calendar-times text-gray-300 text-4xl mb-4"></i>
+                <h4 class="text-lg font-medium text-gray-900 mb-2">No hay eventos disponibles</h4>
+                <p class="text-gray-600 mb-4">No hay eventos activos para generar invitaciones en este momento.</p>
+                <a href="{% url 'events:eventos_list' %}" 
+                   class="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors">
+                    <i class="fas fa-plus mr-2"></i>
+                    Ver Gestión de Eventos
+                </a>
             </div>
         </div>
     </div>
@@ -304,63 +308,85 @@ function downloadData() {
     alert('Data download feature coming soon!');
 }
 
-function shareQRWhatsApp() {
-    const name = "{{ user.get_full_name }}";
-    const message = `¡Hola! Te comparto mi tarjeta de contacto digital de ${name}. Puedes escanear este QR para guardar mi información de contacto.`;
-    
-    // Download the QR first to get it locally
-    fetch('{% url "dashboard:download_qr" %}')
-        .then(response => response.blob())
-        .then(blob => {
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `${name}_contact.png`;
-            link.click();
+{% if user.role and user.role.name in 'Gerente de Proyecto,Jefe de Equipo,Team Leader,Ventas,Super Admin' %}
+// Load Event QR Codes
+document.addEventListener('DOMContentLoaded', function() {
+    loadEventQRCodes();
+});
+
+function loadEventQRCodes() {
+    fetch('/events/api/user-qrs/')
+        .then(response => response.json())
+        .then(data => {
+            const loading = document.getElementById('event-qr-loading');
+            const container = document.getElementById('event-qr-container');
+            const grid = document.getElementById('event-qr-grid');
+            const noEvents = document.getElementById('no-events');
             
-            // After download, open WhatsApp
-            setTimeout(() => {
-                const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-                window.open(whatsappUrl, '_blank');
-            }, 1000);
+            loading.classList.add('hidden');
+            container.classList.remove('hidden');
+            
+            if (data.qr_codes && data.qr_codes.length > 0) {
+                grid.innerHTML = '';
+                
+                data.qr_codes.forEach(qr => {
+                    const card = createQRCard(qr);
+                    grid.appendChild(card);
+                });
+            } else {
+                grid.classList.add('hidden');
+                noEvents.classList.remove('hidden');
+            }
         })
         .catch(error => {
-            console.error('Error:', error);
-            alert('Error al compartir en WhatsApp');
+            console.error('Error loading event QR codes:', error);
+            const loading = document.getElementById('event-qr-loading');
+            loading.innerHTML = `
+                <i class="fas fa-exclamation-triangle text-red-400 text-2xl mb-2"></i>
+                <p class="text-red-600">Error al cargar los eventos. Por favor, recarga la página.</p>
+            `;
         });
 }
 
-function copyQRLink() {
-    const qrImage = document.querySelector('img[alt="QR Contact Card"]');
-    if (qrImage) {
-        // Create a canvas to convert the image to blob
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = qrImage.naturalWidth;
-        canvas.height = qrImage.naturalHeight;
-        ctx.drawImage(qrImage, 0, 0);
+function createQRCard(qr) {
+    const card = document.createElement('div');
+    card.className = 'bg-gray-50 border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow';
+    
+    card.innerHTML = `
+        <div class="flex items-start justify-between mb-3">
+            <div class="flex-1 min-w-0">
+                <h4 class="text-lg font-medium text-gray-900 truncate">${qr.evento_nombre}</h4>
+                <p class="text-sm text-gray-600">${qr.evento_fecha}</p>
+                <p class="text-xs text-purple-600 mt-1">
+                    <i class="fas fa-users mr-1"></i>
+                    ${qr.visitas} visita${qr.visitas !== 1 ? 's' : ''}
+                </p>
+                <p class="text-xs text-blue-600">
+                    <i class="fas fa-eye mr-1"></i>
+                    ${qr.vistas_qr} vista${qr.vistas_qr !== 1 ? 's' : ''} QR
+                </p>
+            </div>
+            <div class="flex-shrink-0 ml-3">
+                <div class="w-16 h-16 bg-white border border-gray-300 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-qrcode text-gray-400 text-2xl"></i>
+                </div>
+            </div>
+        </div>
         
-        canvas.toBlob(function(blob) {
-            const item = new ClipboardItem({ 'image/png': blob });
-            navigator.clipboard.write([item]).then(function() {
-                // Show success message
-                const button = event.target.closest('button');
-                const originalText = button.innerHTML;
-                button.innerHTML = '<i class="fas fa-check mr-2"></i>Copiado';
-                button.classList.remove('bg-gray-600', 'hover:bg-gray-700');
-                button.classList.add('bg-green-600', 'hover:bg-green-700');
-                
-                setTimeout(() => {
-                    button.innerHTML = originalText;
-                    button.classList.remove('bg-green-600', 'hover:bg-green-700');
-                    button.classList.add('bg-gray-600', 'hover:bg-gray-700');
-                }, 2000);
-            }).catch(function(error) {
-                console.error('Error copying to clipboard:', error);
-                alert('Error al copiar. Tu navegador puede no soportar esta función.');
-            });
-        });
-    }
+        <div class="flex justify-center">
+            <a href="${qr.download_url}" 
+               class="inline-flex items-center justify-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-lg font-medium transition-colors"
+               download="${qr.evento_nombre}_invitation.png">
+                <i class="fas fa-download mr-2"></i>
+                Descargar QR
+            </a>
+        </div>
+    `;
+    
+    return card;
 }
+
+{% endif %}
+
 </script>
 {% endblock %}

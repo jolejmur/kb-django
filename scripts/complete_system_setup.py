@@ -1,26 +1,29 @@
 #!/usr/bin/env python
 """
-Script de configuración para PRODUCCIÓN - Django CRM
-Configura la base de datos, módulos estáticos y roles personalizados
+Script unificado para configuración completa del sistema Django CRM
+Incluye: categorías, módulos, roles, permisos y asignación de Super Admin
+
+Uso:
+    python complete_system_setup.py
+
+Este script:
+1. Aplica migraciones
+2. Crea superusuario admin (si no existe)
+3. Crea categorías de menú
+4. Crea todos los módulos del sistema
+5. Crea todos los roles necesarios (incluyendo jerarquía de equipos)
+6. Asigna permisos específicos
+7. Asigna rol Super Admin al usuario admin
+8. Sincroniza grupos con usuarios existentes
 """
 import os
 import sys
 import django
 
 # Configurar Django
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-def setup_django():
-    """Configurar Django según el entorno"""
-    # Detectar entorno
-    if os.getenv('PRODUCTION'):
-        os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.production')
-        print("🏭 Configurando para PRODUCCIÓN")
-    else:
-        os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.development')
-        print("🔧 Configurando para DESARROLLO")
-    
-    django.setup()
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.development')
+django.setup()
 
 def apply_migrations():
     """Aplicar todas las migraciones"""
@@ -30,11 +33,9 @@ def apply_migrations():
     original_argv = sys.argv[:]
     
     try:
-        # Ejecutar migraciones
         sys.argv = ['manage.py', 'migrate']
         execute_from_command_line(sys.argv)
         print("✅ Migraciones aplicadas correctamente")
-        
     except Exception as e:
         print(f"❌ Error en migraciones: {e}")
         sys.exit(1)
@@ -42,16 +43,15 @@ def apply_migrations():
         sys.argv = original_argv
 
 def create_superuser():
-    """Crear usuario admin para producción"""
-    print("👤 Configurando superusuario...")
+    """Crear usuario admin si no existe"""
+    print("👤 Configurando superusuario admin...")
     
     from django.contrib.auth import get_user_model
     User = get_user_model()
     
-    # Obtener credenciales desde variables de entorno o usar defaults
-    admin_username = os.getenv('ADMIN_USERNAME', 'admin')
-    admin_email = os.getenv('ADMIN_EMAIL', 'admin@empresa.com')
-    admin_password = os.getenv('ADMIN_PASSWORD', 'admin123')
+    admin_username = 'admin'
+    admin_email = 'admin@empresa.com'
+    admin_password = 'admin123'
     
     admin_user, created = User.objects.get_or_create(
         username=admin_username,
@@ -67,11 +67,8 @@ def create_superuser():
     admin_user.save()
     
     status = "✅ Superusuario creado" if created else "✅ Superusuario actualizado"
-    print(f"{status}: {admin_username}")
-    
-    # Solo mostrar password en desarrollo
-    if not os.getenv('PRODUCTION'):
-        print(f"   Password: {admin_password}")
+    print(f"  {status}: {admin_username}")
+    print(f"  Contraseña: {admin_password}")
     
     return admin_user
 
@@ -386,14 +383,14 @@ def create_system_modules(categories):
     
     return created_groups
 
-def create_custom_roles(all_groups):
-    """Crear roles personalizados del sistema"""
-    print("👥 Creando roles personalizados...")
+def create_all_roles(all_groups):
+    """Crear todos los roles del sistema"""
+    print("👥 Creando todos los roles del sistema...")
     
     from apps.accounts.models import Role
     from django.contrib.auth.models import Group
     
-    # Obtener módulo de Usuarios (perfil básico)
+    # Obtener módulo de Usuarios (acceso básico al perfil)
     try:
         usuarios_module = Group.objects.get(name='Usuarios')
     except Group.DoesNotExist:
@@ -410,54 +407,57 @@ def create_custom_roles(all_groups):
         except Group.DoesNotExist:
             print(f"  ⚠️  Módulo '{module_name}' no encontrado para rol Registro")
     
-    # Roles básicos (solo perfil)
-    basic_roles_data = [
+    # Definir todos los roles
+    roles_data = [
+        # Roles básicos de jerarquía (solo acceso al perfil)
         {
             'name': 'Ventas',
             'description': 'Rol de vendedor con acceso limitado al perfil de usuario',
-            'modules': [usuarios_module]
+            'modules': [usuarios_module],
+            'is_system': False
         },
         {
             'name': 'Team Leader',
             'description': 'Rol de team leader con acceso limitado al perfil de usuario',
-            'modules': [usuarios_module]
+            'modules': [usuarios_module],
+            'is_system': False
         },
         {
             'name': 'Jefe de Equipo',
             'description': 'Rol de jefe de equipo con acceso limitado al perfil de usuario',
-            'modules': [usuarios_module]
+            'modules': [usuarios_module],
+            'is_system': False
         },
         {
             'name': 'Gerente de Proyecto',
             'description': 'Rol de gerente de proyecto con acceso limitado al perfil de usuario',
-            'modules': [usuarios_module]
+            'modules': [usuarios_module],
+            'is_system': False
+        },
+        # Rol especial Registro
+        {
+            'name': 'Registro',
+            'description': 'Rol de registro con acceso al perfil, gestión de equipos y jerarquía',
+            'modules': registro_modules,
+            'is_system': False
+        },
+        # Super Admin con todos los módulos
+        {
+            'name': 'Super Admin',
+            'description': 'Administrador con acceso completo a todos los módulos del sistema',
+            'modules': all_groups,
+            'is_system': True
         }
     ]
     
-    # Rol especial Registro
-    registro_role_data = {
-        'name': 'Registro',
-        'description': 'Rol de registro con acceso al perfil, gestión de equipos y jerarquía',
-        'modules': registro_modules
-    }
-    
-    # Crear Super Admin con todos los módulos
-    super_admin_data = {
-        'name': 'Super Admin',
-        'description': 'Administrador con acceso completo a todos los módulos del sistema',
-        'modules': all_groups,
-        'is_system': True
-    }
-    
     created_roles = []
     
-    # Crear roles básicos
-    for role_data in basic_roles_data:
+    for role_data in roles_data:
         role, created = Role.objects.get_or_create(
             name=role_data['name'],
             defaults={
                 'description': role_data['description'],
-                'is_system': False,
+                'is_system': role_data['is_system'],
                 'is_active': True
             }
         )
@@ -471,45 +471,7 @@ def create_custom_roles(all_groups):
         status = "✅ Creado" if created else "ℹ️  Actualizado"
         print(f"  {status}: {role.name} ({role.groups.count()} módulos)")
     
-    # Crear rol Registro
-    registro_role, created = Role.objects.get_or_create(
-        name=registro_role_data['name'],
-        defaults={
-            'description': registro_role_data['description'],
-            'is_system': False,
-            'is_active': True
-        }
-    )
-    
-    # Limpiar y asignar módulos para Registro
-    registro_role.groups.clear()
-    for module in registro_role_data['modules']:
-        registro_role.groups.add(module)
-    
-    created_roles.append(registro_role)
-    status = "✅ Creado" if created else "ℹ️  Actualizado"
-    print(f"  {status}: {registro_role.name} ({registro_role.groups.count()} módulos)")
-    
-    # Crear Super Admin
-    super_admin_role, created = Role.objects.get_or_create(
-        name=super_admin_data['name'],
-        defaults={
-            'description': super_admin_data['description'],
-            'is_system': True,
-            'is_active': True
-        }
-    )
-    
-    # Limpiar y asignar TODOS los módulos
-    super_admin_role.groups.clear()
-    for module in super_admin_data['modules']:
-        super_admin_role.groups.add(module)
-    
-    created_roles.append(super_admin_role)
-    status = "✅ Creado" if created else "ℹ️  Actualizado"
-    print(f"  {status}: {super_admin_role.name} ({super_admin_role.groups.count()} módulos)")
-    
-    return created_roles, super_admin_role
+    return created_roles
 
 def assign_permissions_to_roles():
     """Asignar permisos específicos de Django a los roles"""
@@ -573,6 +535,29 @@ def assign_permissions_to_roles():
     except Role.DoesNotExist:
         print("  ⚠️  Rol Registro no encontrado, saltando asignación de permisos")
 
+def assign_admin_role(admin_user):
+    """Asignar rol Super Admin al usuario admin"""
+    print("👑 Asignando rol Super Admin al usuario admin...")
+    
+    from apps.accounts.models import Role
+    
+    try:
+        super_admin_role = Role.objects.get(name='Super Admin')
+        
+        admin_user.role = super_admin_role
+        admin_user.save()
+        
+        # Sincronizar grupos
+        admin_user.groups.clear()
+        for group in super_admin_role.groups.all():
+            admin_user.groups.add(group)
+        
+        print(f"  ✅ Rol {super_admin_role.name} asignado a {admin_user.username}")
+        print(f"  ✅ {admin_user.groups.count()} módulos asignados al usuario")
+        
+    except Role.DoesNotExist:
+        print("  ❌ Rol Super Admin no encontrado")
+
 def sync_role_groups_to_users():
     """Sincronizar grupos de roles con usuarios existentes"""
     print("🔄 Sincronizando grupos de roles con usuarios...")
@@ -600,85 +585,46 @@ def sync_role_groups_to_users():
     
     print(f"  ✅ Usuarios sincronizados: {synced_users}")
 
-def assign_admin_role(admin_user, super_admin_role):
-    """Asignar rol Super Admin al usuario administrador"""
-    print("👑 Asignando rol Super Admin al administrador...")
-    
-    admin_user.role = super_admin_role
-    admin_user.save()
-    
-    # Sincronizar grupos
-    admin_user.groups.clear()
-    for group in super_admin_role.groups.all():
-        admin_user.groups.add(group)
-    
-    print(f"  ✅ Rol {super_admin_role.name} asignado a {admin_user.username}")
-
-def collect_static_files():
-    """Recopilar archivos estáticos para producción"""
-    if os.getenv('PRODUCTION'):
-        print("📁 Recopilando archivos estáticos...")
-        
-        from django.core.management import execute_from_command_line
-        original_argv = sys.argv[:]
-        
-        try:
-            sys.argv = ['manage.py', 'collectstatic', '--noinput']
-            execute_from_command_line(sys.argv)
-            print("✅ Archivos estáticos recopilados")
-        except Exception as e:
-            print(f"⚠️  Error recopilando estáticos: {e}")
-        finally:
-            sys.argv = original_argv
-
 def main():
-    """Función principal del script de configuración"""
-    print("🚀 CONFIGURACIÓN DE PRODUCCIÓN - Django CRM")
-    print("=" * 60)
+    """Función principal del script de configuración completa"""
+    print("🚀 CONFIGURACIÓN COMPLETA DEL SISTEMA - Django CRM")
+    print("=" * 70)
     
     try:
-        # 1. Configurar Django
-        setup_django()
-        print()
-        
-        # 2. Aplicar migraciones
+        # 1. Aplicar migraciones
         apply_migrations()
         print()
         
-        # 3. Crear superusuario
+        # 2. Crear superusuario
         admin_user = create_superuser()
         print()
         
-        # 4. Crear categorías de menú
+        # 3. Crear categorías de menú
         categories = create_menu_categories()
         print()
         
-        # 5. Crear módulos del sistema
+        # 4. Crear módulos del sistema
         all_groups = create_system_modules(categories)
         print()
         
-        # 6. Crear roles personalizados
-        created_roles, super_admin_role = create_custom_roles(all_groups)
+        # 5. Crear todos los roles
+        created_roles = create_all_roles(all_groups)
         print()
         
-        # 7. Asignar permisos específicos
+        # 6. Asignar permisos específicos
         assign_permissions_to_roles()
         print()
         
-        # 8. Asignar rol al administrador
-        assign_admin_role(admin_user, super_admin_role)
+        # 7. Asignar rol al administrador
+        assign_admin_role(admin_user)
         print()
         
-        # 9. Sincronizar grupos de roles con usuarios
+        # 8. Sincronizar grupos de roles con usuarios
         sync_role_groups_to_users()
         print()
         
-        # 10. Recopilar archivos estáticos (solo en producción)
-        collect_static_files()
-        print()
-        
         # Resumen final
-        print("=" * 60)
+        print("=" * 70)
         print("🎉 CONFIGURACIÓN COMPLETADA EXITOSAMENTE")
         print(f"   📂 Categorías creadas: {len(categories)}")
         print(f"   📦 Módulos del sistema: {len(all_groups)}")
@@ -686,21 +632,22 @@ def main():
         print(f"   👤 Administrador configurado: {admin_user.username}")
         print()
         
-        print("📋 ROLES CREADOS:")
+        print("📋 ROLES DISPONIBLES:")
         for role in created_roles:
             print(f"   • {role.name}: {role.groups.count()} módulos")
         print()
         
-        if not os.getenv('PRODUCTION'):
-            print("🔑 CREDENCIALES DE DESARROLLO:")
-            print(f"   Usuario: {admin_user.username}")
-            print("   Contraseña: admin123")
-            print("   URL: http://127.0.0.1:8000/accounts/login/")
-            print()
+        print("🔑 CREDENCIALES DE ACCESO:")
+        print(f"   Usuario: {admin_user.username}")
+        print(f"   Contraseña: admin123")
+        print("   URL: http://192.168.3.33:8000/accounts/login/")
+        print()
         
-        print("✨ ¡Sistema listo para usar!")
-        print("📊 Dashboard con todos los módulos configurados")
+        print("✨ ¡Sistema completamente configurado!")
+        print("📊 Dashboard con todos los módulos disponibles")
         print("🔐 Roles y permisos asignados correctamente")
+        print("🏗️  Jerarquía de equipos lista para usar")
+        print("🔄 Recarga la página para ver los cambios")
         
     except Exception as e:
         print(f"❌ ERROR: {e}")

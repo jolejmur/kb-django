@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Visita - {{ evento.nombre }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="max-w-md mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <div class="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-calendar-alt text-purple-600 text-2xl"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 mb-2">¡Bienvenido!</h1>
+            <p class="text-gray-600">Registra tu visita al evento</p>
+        </div>
+
+        <!-- Event Info Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+            <div class="text-center">
+                <h2 class="text-xl font-semibold text-gray-900 mb-2">{{ evento.nombre }}</h2>
+                <div class="space-y-2 text-sm text-gray-600">
+                    <div class="flex items-center justify-center">
+                        <i class="fas fa-map-marker-alt mr-2 text-purple-600"></i>
+                        {{ evento.ubicacion }}
+                    </div>
+                    <div class="flex items-center justify-center">
+                        <i class="fas fa-calendar mr-2 text-purple-600"></i>
+                        {{ evento.fecha_inicio|date:"d/m/Y H:i" }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vendor Info -->
+        <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+                    <i class="fas fa-user text-purple-600"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-purple-800 font-medium">Tu asesor comercial:</p>
+                    <p class="text-lg font-semibold text-purple-900">{{ vendedor.get_full_name|default:vendedor.username }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Registration Form -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-6 text-center">
+                <i class="fas fa-clipboard-list mr-2 text-purple-600"></i>
+                Datos de Registro
+            </h3>
+            
+            <form method="post" action="{% url 'events:registrar_visita' %}" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="codigo_qr" value="{{ invitacion.codigo_qr }}">
+                
+                <!-- Nombre -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.nombre_cliente.label }}
+                        <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.nombre_cliente }}
+                    {% if form.nombre_cliente.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.nombre_cliente.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Cédula -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.cedula_cliente.label }}
+                        <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.cedula_cliente }}
+                    {% if form.cedula_cliente.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.cedula_cliente.errors.0 }}</p>
+                    {% endif %}
+                    <p class="mt-1 text-xs text-gray-500">Formato: 10 dígitos sin guiones</p>
+                </div>
+
+                <!-- Teléfono -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.telefono_cliente.label }}
+                        <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.telefono_cliente }}
+                    {% if form.telefono_cliente.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.telefono_cliente.errors.0 }}</p>
+                    {% endif %}
+                    <p class="mt-1 text-xs text-gray-500">Ej: 0987654321 o +593987654321</p>
+                </div>
+
+                <!-- Email (opcional) -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.email_cliente.label }}
+                        <span class="text-gray-400">(opcional)</span>
+                    </label>
+                    {{ form.email_cliente }}
+                    {% if form.email_cliente.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.email_cliente.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Observaciones (opcional) -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.observaciones.label }}
+                        <span class="text-gray-400">(opcional)</span>
+                    </label>
+                    {{ form.observaciones }}
+                    {% if form.observaciones.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.observaciones.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Términos -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="flex items-start">
+                        <input type="checkbox" id="acepta_terminos" required 
+                               class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded mt-1">
+                        <label for="acepta_terminos" class="ml-3 text-sm text-gray-700">
+                            Acepto que mis datos sean utilizados para contacto comercial y seguimiento del evento.
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Botón de envío -->
+                <button type="submit" 
+                        class="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 rounded-lg font-semibold text-lg transition-colors flex items-center justify-center">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    Registrar mi Visita
+                </button>
+            </form>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-8">
+            <p class="text-xs text-gray-500">
+                Al registrarte, confirmas tu asistencia al evento y aceptas ser contactado por nuestro equipo comercial.
+            </p>
+        </div>
+    </div>
+
+    <script>
+    // Auto-llenar datos si el usuario ya estuvo registrado antes
+    document.addEventListener('DOMContentLoaded', function() {
+        const cedulaInput = document.querySelector('input[name="cedula_cliente"]');
+        if (cedulaInput) {
+            cedulaInput.addEventListener('blur', function() {
+                const cedula = this.value.trim();
+                if (cedula.length === 10) {
+                    fetch(`/events/ajax/search-client/?cedula=${cedula}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.found) {
+                                document.querySelector('input[name="nombre_cliente"]').value = data.nombre || '';
+                                document.querySelector('input[name="telefono_cliente"]').value = data.telefono || '';
+                                document.querySelector('input[name="email_cliente"]').value = data.email || '';
+                                
+                                // Mostrar mensaje
+                                showMessage('Datos encontrados y pre-llenados automáticamente', 'success');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                        });
+                }
+            });
+        }
+    });
+
+    function showMessage(message, type) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+            type === 'success' ? 'bg-green-100 border border-green-200 text-green-800' : 
+            'bg-red-100 border border-red-200 text-red-800'
+        }`;
+        messageDiv.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} mr-2"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        document.body.appendChild(messageDiv);
+        
+        setTimeout(() => {
+            messageDiv.remove();
+        }, 3000);
+    }
+    </script>
+</body>
+</html>

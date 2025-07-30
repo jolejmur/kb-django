@@ -7,13 +7,14 @@ from .base import *
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'korban.duckdns.org']
+ALLOWED_HOSTS = ['*']
 
 # CSRF trusted origins for HTTPS
 CSRF_TRUSTED_ORIGINS = [
     'https://korban.duckdns.org',
     'http://localhost:8000',
     'http://127.0.0.1:8000',
+    'http://192.168.3.33:8000',
 ]
 
 # Additional development apps

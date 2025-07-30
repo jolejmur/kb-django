@@ -1,0 +1,492 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Escáner QR - Django CRM{% endblock %}
+
+{% block header %}Escáner de Códigos QR{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Escáner de Códigos QR</h1>
+                <p class="text-gray-600 mt-1">Escanea códigos QR para obtener información del evento y vendedor</p>
+            </div>
+            <a href="{% url 'events:scanner_dashboard' %}"
+               class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center">
+                <i class="fas fa-arrow-left mr-2"></i>Volver al Dashboard
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Panel de Escaneo -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-qrcode mr-3 text-green-600"></i>
+                    Escáner QR
+                </h3>
+            </div>
+            <div class="p-6">
+                <!-- Botones de método de escaneo -->
+                <div class="flex space-x-2 mb-4">
+                    <button id="camera-btn" 
+                            class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center">
+                        <i class="fas fa-camera mr-2"></i>
+                        Usar Cámara
+                    </button>
+                    <button id="manual-btn" 
+                            class="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center">
+                        <i class="fas fa-keyboard mr-2"></i>
+                        Entrada Manual
+                    </button>
+                </div>
+
+                <!-- Cámara QR Scanner -->
+                <div id="camera-section" class="space-y-4">
+                    <div id="camera-container" class="relative">
+                        <video id="camera-video" class="w-full rounded-lg border-2 border-green-300" style="display: none;"></video>
+                        <canvas id="camera-canvas" style="display: none;"></canvas>
+                        <div id="camera-placeholder" class="w-full h-64 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center">
+                            <div class="text-center">
+                                <i class="fas fa-camera text-gray-400 text-4xl mb-3"></i>
+                                <p class="text-gray-600">Presiona "Usar Cámara" para iniciar</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <button id="start-camera" 
+                                class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-medium transition-colors">
+                            <i class="fas fa-play mr-2"></i>Iniciar Cámara
+                        </button>
+                        <button id="stop-camera" 
+                                class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg font-medium transition-colors" 
+                                style="display: none;">
+                            <i class="fas fa-stop mr-2"></i>Detener Cámara
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Input manual para código QR -->
+                <div id="manual-section" class="space-y-4" style="display: none;">
+                    <form id="qr-form">
+                        {% csrf_token %}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Código QR
+                            </label>
+                            <input type="text" 
+                                   id="qr-input" 
+                                   name="codigo_qr"
+                                   placeholder="Ingresa el código QR manualmente"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg text-lg font-mono focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                   autocomplete="off">
+                        </div>
+                        <button type="submit" 
+                                class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold text-lg transition-colors flex items-center justify-center">
+                            <i class="fas fa-search mr-2"></i>
+                            Buscar Información
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Estado del escaneo -->
+                <div id="scan-status" class="mt-4 text-center text-sm text-gray-500">
+                    Selecciona un método de escaneo...
+                </div>
+
+                <!-- Botón para limpiar -->
+                <button onclick="clearAll()" 
+                        class="w-full mt-3 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 rounded-lg font-medium transition-colors">
+                    <i class="fas fa-refresh mr-2"></i>Reiniciar
+                </button>
+            </div>
+        </div>
+
+        <!-- Panel de Resultados -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-info-circle mr-3 text-blue-600"></i>
+                    Información del QR
+                </h3>
+            </div>
+            <div id="qr-results" class="p-6">
+                <div class="text-center py-8">
+                    <i class="fas fa-qrcode text-gray-300 text-6xl mb-4"></i>
+                    <p class="text-gray-500">Escanea un código QR para ver la información</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel de ayuda -->
+    <div class="mt-8 bg-blue-50 border border-blue-200 rounded-xl p-6">
+        <h4 class="text-lg font-semibold text-blue-900 mb-4 flex items-center">
+            <i class="fas fa-question-circle mr-2"></i>
+            Instrucciones de Uso
+        </h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
+            <div>
+                <h5 class="font-medium mb-2">Escaneo con Cámara:</h5>
+                <ul class="space-y-1">
+                    <li>• Presiona "Usar Cámara"</li>
+                    <li>• Permite acceso a la cámara</li>
+                    <li>• Apunta la cámara al código QR</li>
+                    <li>• El escaneo es automático</li>
+                </ul>
+            </div>
+            <div>
+                <h5 class="font-medium mb-2">Entrada Manual:</h5>
+                <ul class="space-y-1">
+                    <li>• Presiona "Entrada Manual"</li>
+                    <li>• Ingresa el código UUID</li>
+                    <li>• Presiona "Buscar Información"</li>
+                    <li>• Verifica los datos del evento</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="mt-4 p-3 bg-green-100 border border-green-300 rounded-lg">
+            <h5 class="font-medium text-green-900 mb-1">💡 Consejo:</h5>
+            <p class="text-green-800 text-sm">
+                Para mejores resultados con la cámara, asegúrate de tener buena iluminación y mantén el QR estable frente a la cámara.
+            </p>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('qr-form');
+    const input = document.getElementById('qr-input');
+    const status = document.getElementById('scan-status');
+    const results = document.getElementById('qr-results');
+    
+    // Elementos de la cámara
+    const cameraBtn = document.getElementById('camera-btn');
+    const manualBtn = document.getElementById('manual-btn');
+    const cameraSection = document.getElementById('camera-section');
+    const manualSection = document.getElementById('manual-section');
+    const startCameraBtn = document.getElementById('start-camera');
+    const stopCameraBtn = document.getElementById('stop-camera');
+    const video = document.getElementById('camera-video');
+    const canvas = document.getElementById('camera-canvas');
+    const placeholder = document.getElementById('camera-placeholder');
+    
+    let codeReader = null;
+    let stream = null;
+
+    // Cambiar entre métodos de escaneo
+    cameraBtn.addEventListener('click', function() {
+        cameraSection.style.display = 'block';
+        manualSection.style.display = 'none';
+        cameraBtn.classList.remove('bg-gray-600', 'hover:bg-gray-700');
+        cameraBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+        manualBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+        manualBtn.classList.add('bg-gray-600', 'hover:bg-gray-700');
+        status.textContent = 'Presiona "Iniciar Cámara" para empezar a escanear';
+        status.className = 'mt-4 text-center text-sm text-gray-500';
+    });
+
+    manualBtn.addEventListener('click', function() {
+        cameraSection.style.display = 'none';
+        manualSection.style.display = 'block';
+        manualBtn.classList.remove('bg-gray-600', 'hover:bg-gray-700');
+        manualBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+        cameraBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+        cameraBtn.classList.add('bg-gray-600', 'hover:bg-gray-700');
+        status.textContent = 'Ingresa el código QR manualmente';
+        status.className = 'mt-4 text-center text-sm text-gray-500';
+        stopCamera();
+        input.focus();
+    });
+
+    // Iniciar cámara
+    startCameraBtn.addEventListener('click', async function() {
+        try {
+            status.textContent = 'Iniciando cámara...';
+            status.className = 'mt-4 text-center text-sm text-blue-600';
+
+            // Solicitar permisos de cámara
+            stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    facingMode: 'environment' // Usar cámara trasera si está disponible
+                } 
+            });
+            
+            video.srcObject = stream;
+            video.style.display = 'block';
+            placeholder.style.display = 'none';
+            startCameraBtn.style.display = 'none';
+            stopCameraBtn.style.display = 'block';
+            
+            // Inicializar el lector de códigos QR
+            codeReader = new ZXing.BrowserQRCodeReader();
+            
+            video.addEventListener('loadedmetadata', () => {
+                status.textContent = 'Cámara iniciada. Apunta al código QR...';
+                status.className = 'mt-4 text-center text-sm text-green-600';
+                
+                // Comenzar a escanear
+                codeReader.decodeFromVideoDevice(null, video, (result, err) => {
+                    if (result) {
+                        status.textContent = 'Código QR detectado! Procesando...';
+                        status.className = 'mt-4 text-center text-sm text-blue-600';
+                        
+                        // Extraer solo el UUID del resultado
+                        const qrText = result.text;
+                        let codigo = extractUUID(qrText);
+                        
+                        if (codigo) {
+                            processQRCode(codigo);
+                            stopCamera();
+                        } else {
+                            status.textContent = 'Código QR no válido. Intenta de nuevo...';
+                            status.className = 'mt-4 text-center text-sm text-yellow-600';
+                        }
+                    }
+                    if (err && !(err instanceof ZXing.NotFoundException)) {
+                        console.log('Error escaneando:', err);
+                    }
+                });
+            });
+            
+            video.play();
+            
+        } catch (error) {
+            console.error('Error accediendo a la cámara:', error);
+            status.textContent = 'Error: No se pudo acceder a la cámara';
+            status.className = 'mt-4 text-center text-sm text-red-600';
+            
+            if (error.name === 'NotAllowedError') {
+                status.textContent = 'Error: Permisos de cámara denegados';
+            } else if (error.name === 'NotFoundError') {
+                status.textContent = 'Error: No se encontró cámara disponible';
+            }
+        }
+    });
+
+    // Detener cámara
+    stopCameraBtn.addEventListener('click', stopCamera);
+
+    function stopCamera() {
+        if (codeReader) {
+            codeReader.reset();
+            codeReader = null;
+        }
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+        }
+        video.style.display = 'none';
+        placeholder.style.display = 'flex';
+        startCameraBtn.style.display = 'block';
+        stopCameraBtn.style.display = 'none';
+        status.textContent = 'Cámara detenida';
+        status.className = 'mt-4 text-center text-sm text-gray-500';
+    }
+
+    // Extraer UUID del texto del QR
+    function extractUUID(text) {
+        // Buscar UUID en el texto (formato: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+        const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+        const match = text.match(uuidRegex);
+        return match ? match[0] : null;
+    }
+
+    // Auto-submit para entrada manual
+    if (input) {
+        let submitTimeout;
+        input.addEventListener('input', function() {
+            clearTimeout(submitTimeout);
+            const value = this.value.trim();
+            
+            if (value.length === 36) { // UUID length
+                status.textContent = 'Procesando código QR...';
+                status.className = 'mt-4 text-center text-sm text-blue-600';
+                
+                submitTimeout = setTimeout(() => {
+                    processQRCode(value);
+                }, 500);
+            } else if (value.length > 0) {
+                status.textContent = `Esperando código completo... (${value.length}/36)`;
+                status.className = 'mt-4 text-center text-sm text-yellow-600';
+            } else {
+                status.textContent = 'Ingresa el código QR manualmente';
+                status.className = 'mt-4 text-center text-sm text-gray-500';
+            }
+        });
+    }
+
+    // Manejar envío del formulario manual
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const codigo = input.value.trim();
+            if (!codigo) {
+                showError('Por favor ingresa un código QR');
+                return;
+            }
+
+            processQRCode(codigo);
+        });
+    }
+
+    // Procesar código QR
+    function processQRCode(codigo) {
+        // Mostrar estado de carga
+        status.textContent = 'Buscando información...';
+        status.className = 'mt-4 text-center text-sm text-blue-600';
+        
+        // Hacer petición AJAX
+        fetch('{% url "events:scanner_scan" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: `codigo_qr=${encodeURIComponent(codigo)}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showResults(data);
+                status.textContent = 'Información encontrada correctamente';
+                status.className = 'mt-4 text-center text-sm text-green-600';
+            } else {
+                showError(data.error || 'Error desconocido');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showError('Error de conexión');
+        });
+    }
+
+    function showResults(data) {
+        const html = `
+            <div class="space-y-4">
+                <!-- Evento -->
+                <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                    <h4 class="font-semibold text-purple-900 mb-2 flex items-center">
+                        <i class="fas fa-calendar-alt mr-2"></i>
+                        Evento
+                    </h4>
+                    <div class="space-y-2 text-sm">
+                        <div><span class="font-medium">Nombre:</span> ${data.evento.nombre}</div>
+                        <div><span class="font-medium">Ubicación:</span> ${data.evento.ubicacion}</div>
+                        <div><span class="font-medium">Fecha:</span> ${data.evento.fecha_inicio}</div>
+                    </div>
+                </div>
+
+                <!-- Vendedor -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 class="font-semibold text-blue-900 mb-2 flex items-center">
+                        <i class="fas fa-user-tie mr-2"></i>
+                        Agente Comercial
+                    </h4>
+                    <div class="space-y-2 text-sm">
+                        <div><span class="font-medium">Nombre:</span> ${data.vendedor.nombre}</div>
+                        <div><span class="font-medium">Email:</span> ${data.vendedor.email}</div>
+                    </div>
+                </div>
+
+                <!-- Equipo -->
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h4 class="font-semibold text-green-900 mb-2 flex items-center">
+                        <i class="fas fa-users mr-2"></i>
+                        Equipo de Ventas
+                    </h4>
+                    <div class="text-sm">
+                        <div><span class="font-medium">Equipo:</span> ${data.equipo}</div>
+                    </div>
+                </div>
+
+                <!-- Estado -->
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <h4 class="font-semibold text-gray-900 mb-2 flex items-center">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        Estado del QR
+                    </h4>
+                    <div class="space-y-2 text-sm">
+                        <div>
+                            <span class="font-medium">Estado:</span>
+                            <span class="${data.estado.activo ? 'text-green-600' : 'text-red-600'}">
+                                ${data.estado.activo ? 'Activo' : 'Inactivo'}
+                            </span>
+                        </div>
+                        <div><span class="font-medium">Usos:</span> ${data.estado.usos}</div>
+                        <div><span class="font-medium">Creado:</span> ${data.estado.fecha_creacion}</div>
+                    </div>
+                </div>
+
+                <!-- Acciones -->
+                <div class="flex space-x-2">
+                    <a href="${data.url_registro}" target="_blank"
+                       class="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg text-center font-medium transition-colors">
+                        <i class="fas fa-user-plus mr-2"></i>Registrar Cliente
+                    </a>
+                    <a href="${data.url_info}" target="_blank"
+                       class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-center font-medium transition-colors">
+                        <i class="fas fa-info-circle mr-2"></i>Ver Info
+                    </a>
+                </div>
+            </div>
+        `;
+        results.innerHTML = html;
+    }
+
+    function showError(message) {
+        const html = `
+            <div class="text-center py-8">
+                <i class="fas fa-exclamation-triangle text-red-500 text-6xl mb-4"></i>
+                <h4 class="text-lg font-semibold text-red-900 mb-2">Error</h4>
+                <p class="text-red-700">${message}</p>
+                <button onclick="clearInput()" 
+                        class="mt-4 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg font-medium transition-colors">
+                    Intentar de Nuevo
+                </button>
+            </div>
+        `;
+        results.innerHTML = html;
+        
+        status.textContent = 'Error al procesar código QR';
+        status.className = 'mt-4 text-center text-sm text-red-600';
+    }
+
+    window.clearAll = function() {
+        // Detener cámara si está activa
+        stopCamera();
+        
+        // Limpiar input manual
+        if (input) {
+            input.value = '';
+        }
+        
+        // Resetear estado
+        status.textContent = 'Selecciona un método de escaneo...';
+        status.className = 'mt-4 text-center text-sm text-gray-500';
+        
+        // Limpiar resultados
+        results.innerHTML = `
+            <div class="text-center py-8">
+                <i class="fas fa-qrcode text-gray-300 text-6xl mb-4"></i>
+                <p class="text-gray-500">Escanea un código QR para ver la información</p>
+            </div>
+        `;
+        
+        // Volver al modo cámara por defecto
+        cameraBtn.click();
+    };
+
+    // Inicializar en modo cámara
+    cameraBtn.click();
+});
+</script>
+{% endblock %}

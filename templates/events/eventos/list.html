@@ -1,0 +1,210 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Eventos Comerciales - Django CRM{% endblock %}
+
+{% block header %}Eventos Comerciales{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 space-y-4 sm:space-y-0">
+        <div>
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Eventos Comerciales</h1>
+            <p class="text-gray-600 mt-1 text-sm sm:text-base">Gestiona eventos y genera códigos QR para invitaciones</p>
+        </div>
+        <div class="flex space-x-2">
+            <a href="{% url 'events:scanner_dashboard' %}"
+               class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium flex items-center justify-center transition-colors">
+                <i class="fas fa-qrcode mr-2"></i>
+                <span class="hidden sm:inline">Escáner QR</span>
+                <span class="sm:hidden">Escáner</span>
+            </a>
+            <a href="{% url 'events:evento_create' %}"
+               class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium flex items-center justify-center transition-colors">
+                <i class="fas fa-plus mr-2"></i>
+                <span class="hidden sm:inline">Crear Evento</span>
+                <span class="sm:hidden">Crear</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+        <div class="sm:hidden p-4 border-b border-gray-200">
+            <button id="mobile-filter-toggle" class="w-full flex items-center justify-between text-left text-gray-700 hover:text-gray-900">
+                <span class="font-medium">Filtros de búsqueda</span>
+                <i class="fas fa-chevron-down transition-transform duration-200" id="filter-chevron"></i>
+            </button>
+        </div>
+
+        <div id="filter-content" class="hidden sm:block p-4 sm:p-6">
+            <form method="get" class="space-y-4">
+                <div class="w-full">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Buscar</label>
+                    <input type="text" name="search" value="{{ search }}"
+                           placeholder="Nombre, descripción o ubicación..."
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Estado</label>
+                        <select name="activo" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 appearance-none bg-white">
+                            <option value="">Todos los estados</option>
+                            <option value="true" {% if activo_seleccionado == 'true' %}selected{% endif %}>Activos</option>
+                            <option value="false" {% if activo_seleccionado == 'false' %}selected{% endif %}>Inactivos</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4">
+                    <button type="submit" class="flex-1 sm:flex-initial bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                        <i class="fas fa-search mr-2"></i>Filtrar
+                    </button>
+                    <a href="{% url 'events:eventos_list' %}" class="flex-1 sm:flex-initial bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors text-center">
+                        <i class="fas fa-times mr-2"></i>Limpiar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lista de Eventos -->
+    {% if page_obj %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for evento in page_obj %}
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+                    <div class="p-6">
+                        <!-- Header del evento -->
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="flex-1 min-w-0">
+                                <h3 class="text-lg font-semibold text-gray-900 truncate">{{ evento.nombre }}</h3>
+                                <p class="text-sm text-gray-600 mt-1">{{ evento.ubicacion }}</p>
+                            </div>
+                            <div class="flex-shrink-0 ml-3">
+                                {% if evento.activo %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        <i class="fas fa-circle text-green-400 mr-1"></i>Activo
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                        <i class="fas fa-circle text-gray-400 mr-1"></i>Inactivo
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Fechas -->
+                        <div class="space-y-2 mb-4">
+                            <div class="flex items-center text-sm text-gray-600">
+                                <i class="fas fa-calendar-alt mr-2 text-purple-600"></i>
+                                {{ evento.fecha_inicio|date:"d/m/Y H:i" }}
+                            </div>
+                            <div class="flex items-center text-sm text-gray-600">
+                                <i class="fas fa-clock mr-2 text-gray-400"></i>
+                                hasta {{ evento.fecha_fin|date:"d/m/Y H:i" }}
+                            </div>
+                        </div>
+
+                        <!-- Estadísticas -->
+                        <div class="grid grid-cols-2 gap-4 mb-4 p-3 bg-gray-50 rounded-lg">
+                            <div class="text-center">
+                                <div class="text-lg font-semibold text-purple-600">{{ evento.total_invitaciones }}</div>
+                                <div class="text-xs text-gray-600">Invitaciones</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-lg font-semibold text-green-600">{{ evento.total_visitas }}</div>
+                                <div class="text-xs text-gray-600">Visitas</div>
+                            </div>
+                        </div>
+
+                        <!-- Descripción -->
+                        {% if evento.descripcion %}
+                            <p class="text-sm text-gray-600 mb-4 line-clamp-2">{{ evento.descripcion }}</p>
+                        {% endif %}
+
+                        <!-- Acciones -->
+                        <div class="flex space-x-2">
+                            <a href="{% url 'events:evento_detail' evento.pk %}"
+                               class="flex-1 bg-purple-50 hover:bg-purple-100 text-purple-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-center">
+                                <i class="fas fa-eye mr-1"></i>Ver
+                            </a>
+                            <a href="{% url 'events:generar_qr' evento.pk %}"
+                               class="flex-1 bg-green-50 hover:bg-green-100 text-green-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-center">
+                                <i class="fas fa-qrcode mr-1"></i>Mi QR
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Paginación -->
+        {% if page_obj.has_other_pages %}
+            <div class="mt-8 flex justify-center">
+                <nav class="flex items-center space-x-2">
+                    {% if page_obj.has_previous %}
+                        <a href="?page=1{% if search %}&search={{ search }}{% endif %}{% if activo_seleccionado %}&activo={{ activo_seleccionado }}{% endif %}"
+                           class="p-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+                            <i class="fas fa-angle-double-left"></i>
+                        </a>
+                        <a href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if activo_seleccionado %}&activo={{ activo_seleccionado }}{% endif %}"
+                           class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+                            <i class="fas fa-angle-left"></i> Anterior
+                        </a>
+                    {% endif %}
+
+                    <span class="px-3 py-2 bg-purple-600 text-white rounded-lg text-sm">
+                        {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+                    </span>
+
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if activo_seleccionado %}&activo={{ activo_seleccionado }}{% endif %}"
+                           class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+                            Siguiente <i class="fas fa-angle-right"></i>
+                        </a>
+                        <a href="?page={{ page_obj.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if activo_seleccionado %}&activo={{ activo_seleccionado }}{% endif %}"
+                           class="p-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+                            <i class="fas fa-angle-double-right"></i>
+                        </a>
+                    {% endif %}
+                </nav>
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 text-center py-12">
+            <i class="fas fa-calendar-times text-gray-300 text-6xl mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No hay eventos</h3>
+            <p class="text-gray-500 mb-4">Crea tu primer evento comercial para empezar a generar invitaciones.</p>
+            <a href="{% url 'events:evento_create' %}" 
+               class="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors">
+                <i class="fas fa-plus mr-2"></i>
+                Crear Primer Evento
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+// Mobile filter toggle
+document.addEventListener('DOMContentLoaded', function() {
+    const mobileFilterToggle = document.getElementById('mobile-filter-toggle');
+    const filterContent = document.getElementById('filter-content');
+    const filterChevron = document.getElementById('filter-chevron');
+
+    if (mobileFilterToggle && filterContent && filterChevron) {
+        mobileFilterToggle.addEventListener('click', function() {
+            const isHidden = filterContent.classList.contains('hidden');
+
+            if (isHidden) {
+                filterContent.classList.remove('hidden');
+                filterChevron.classList.add('rotate-180');
+            } else {
+                filterContent.classList.add('hidden');
+                filterChevron.classList.remove('rotate-180');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,272 @@
+{% extends 'base/base.html' %}
+
+{% block title %}{{ evento.nombre }} - Django CRM{% endblock %}
+
+{% block header %}{{ evento.nombre }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <a href="{% url 'events:eventos_list' %}" 
+                   class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fas fa-arrow-left text-xl"></i>
+                </a>
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">{{ evento.nombre }}</h1>
+                    <p class="text-gray-600 mt-1">{{ evento.ubicacion }}</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <a href="{% url 'events:generar_qr' evento.pk %}"
+                   class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center">
+                    <i class="fas fa-qrcode mr-2"></i>Mi QR
+                </a>
+                <a href="{% url 'events:evento_edit' evento.pk %}"
+                   class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center">
+                    <i class="fas fa-edit mr-2"></i>Editar
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-qrcode text-purple-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Invitaciones</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ stats.total_invitaciones }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-users text-green-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Visitas</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ stats.total_visitas }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-check-circle text-blue-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">QRs Activos</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ stats.invitaciones_activas }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-calendar-day text-yellow-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Hoy</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ stats.visitas_hoy }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Información del Evento -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Detalles -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-info-circle mr-3 text-purple-600"></i>
+                        Detalles del Evento
+                    </h2>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500">Descripción</label>
+                        <p class="mt-1 text-gray-900">{{ evento.descripcion|default:"Sin descripción" }}</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500">Fecha de Inicio</label>
+                            <p class="mt-1 text-gray-900">{{ evento.fecha_inicio|date:"d/m/Y H:i" }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500">Fecha de Fin</label>
+                            <p class="mt-1 text-gray-900">{{ evento.fecha_fin|date:"d/m/Y H:i" }}</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500">Estado</label>
+                        <div class="mt-1">
+                            {% if evento.activo %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                    <i class="fas fa-check-circle mr-1"></i>Activo
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+                                    <i class="fas fa-pause-circle mr-1"></i>Inactivo
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500">Permite Invitaciones</label>
+                            <p class="mt-1 text-gray-900">
+                                {% if evento.permite_invitaciones %}
+                                    <i class="fas fa-check text-green-600 mr-1"></i>Sí
+                                {% else %}
+                                    <i class="fas fa-times text-red-600 mr-1"></i>No
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500">Requiere Registro</label>
+                            <p class="mt-1 text-gray-900">
+                                {% if evento.requiere_registro_cliente %}
+                                    <i class="fas fa-check text-green-600 mr-1"></i>Sí
+                                {% else %}
+                                    <i class="fas fa-times text-red-600 mr-1"></i>No
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Últimas Visitas -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                    <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-clock mr-3 text-blue-600"></i>
+                        Últimas Visitas
+                    </h2>
+                    <a href="{% url 'events:evento_reports' evento.pk %}" 
+                       class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                        Ver Todas
+                    </a>
+                </div>
+                <div class="p-6">
+                    {% if ultimas_visitas %}
+                        <div class="space-y-3">
+                            {% for visita in ultimas_visitas %}
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div class="flex-1">
+                                        <div class="font-medium text-gray-900">{{ visita.nombre_cliente }}</div>
+                                        <div class="text-sm text-gray-600">
+                                            {{ visita.cedula_cliente }} • {{ visita.telefono_cliente }}
+                                        </div>
+                                        <div class="text-xs text-gray-500">
+                                            Invitado por: {{ visita.vendedor.get_full_name|default:visita.vendedor.username }}
+                                        </div>
+                                    </div>
+                                    <div class="text-sm text-gray-500">
+                                        {{ visita.fecha_visita|timesince }} ago
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-8">
+                            <i class="fas fa-users text-gray-300 text-4xl mb-4"></i>
+                            <p class="text-gray-500">No hay visitas registradas aún</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Acciones Rápidas -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-bolt mr-3 text-yellow-600"></i>
+                        Acciones Rápidas
+                    </h3>
+                </div>
+                <div class="p-6 space-y-3">
+                    <a href="{% url 'events:generar_qr' evento.pk %}"
+                       class="flex items-center w-full px-4 py-3 bg-green-50 hover:bg-green-100 rounded-lg transition-colors">
+                        <i class="fas fa-qrcode text-green-600 mr-3"></i>
+                        <span class="font-medium text-gray-900">Generar Mi QR</span>
+                        <i class="fas fa-chevron-right ml-auto text-gray-400"></i>
+                    </a>
+                    
+                    <a href="{% url 'events:invitaciones_list' evento.pk %}"
+                       class="flex items-center w-full px-4 py-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+                        <i class="fas fa-list text-blue-600 mr-3"></i>
+                        <span class="font-medium text-gray-900">Ver Invitaciones</span>
+                        <i class="fas fa-chevron-right ml-auto text-gray-400"></i>
+                    </a>
+                    
+                    <a href="{% url 'events:evento_reports' evento.pk %}"
+                       class="flex items-center w-full px-4 py-3 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors">
+                        <i class="fas fa-chart-bar text-purple-600 mr-3"></i>
+                        <span class="font-medium text-gray-900">Ver Reportes</span>
+                        <i class="fas fa-chevron-right ml-auto text-gray-400"></i>
+                    </a>
+                    
+                    <a href="{% url 'events:export_visitas' evento.pk %}"
+                       class="flex items-center w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
+                        <i class="fas fa-download text-gray-600 mr-3"></i>
+                        <span class="font-medium text-gray-900">Exportar Visitas</span>
+                        <i class="fas fa-chevron-right ml-auto text-gray-400"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Información Adicional -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-info mr-3 text-gray-600"></i>
+                        Información
+                    </h3>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500">Creado por</label>
+                        <p class="mt-1 text-gray-900">{{ evento.creado_por.get_full_name|default:evento.creado_por.username }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500">Fecha de creación</label>
+                        <p class="mt-1 text-gray-900">{{ evento.fecha_creacion|date:"d/m/Y H:i" }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500">Última actualización</label>
+                        <p class="mt-1 text-gray-900">{{ evento.fecha_actualizacion|date:"d/m/Y H:i" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

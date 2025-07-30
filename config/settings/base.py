@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'apps.sales_team_management',
     'apps.real_estate_projects',
     'apps.whatsapp_business',
+    'apps.events',
     'apps.security',
 ]
 

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error - Eventos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center">
+    <div class="max-w-md mx-auto px-4 text-center">
+        <!-- Error Icon -->
+        <div class="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <i class="fas fa-times-circle text-red-600 text-4xl"></i>
+        </div>
+
+        <!-- Error Message -->
+        <h1 class="text-3xl font-bold text-gray-900 mb-4">Error</h1>
+        <p class="text-gray-600 mb-6">{{ error_message|default:"Ha ocurrido un error inesperado. Por favor, inténtalo de nuevo." }}</p>
+
+        <!-- Error Details (if provided) -->
+        {% if error_details %}
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 text-left">
+                <h3 class="text-sm font-semibold text-red-900 mb-2">Detalles del error:</h3>
+                <p class="text-sm text-red-700">{{ error_details }}</p>
+            </div>
+        {% endif %}
+
+        <!-- Action Buttons -->
+        <div class="space-y-3">
+            <button onclick="window.location.reload()" 
+                    class="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-lg font-semibold transition-colors flex items-center justify-center">
+                <i class="fas fa-redo mr-2"></i>
+                Intentar de Nuevo
+            </button>
+            
+            <button onclick="window.history.back()" 
+                    class="w-full bg-gray-300 hover:bg-gray-400 text-gray-700 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Volver Atrás
+            </button>
+        </div>
+
+        <!-- Help Message -->
+        <div class="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div class="flex items-start">
+                <i class="fas fa-info-circle text-blue-600 mt-1 mr-2"></i>
+                <div class="text-left">
+                    <p class="text-sm text-blue-800 font-medium mb-1">¿Necesitas ayuda?</p>
+                    <p class="text-xs text-blue-700">
+                        Si el problema persiste, contacta con el organizador del evento o solicita asistencia técnica.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Auto-redirect after 30 seconds if on mobile
+    setTimeout(() => {
+        if (window.innerWidth < 768) {
+            const userConfirmed = confirm('¿Deseas volver a la página anterior automáticamente?');
+            if (userConfirmed) {
+                window.history.back();
+            }
+        }
+    }, 30000);
+    </script>
+</body>
+</html>

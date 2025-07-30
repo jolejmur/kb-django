@@ -630,8 +630,11 @@ def ajax_search_users(request):
 
 
 @login_required
-@permission_required('auth.add_user', raise_exception=True)
 def ajax_create_user(request):
+    # Verificar que el usuario tenga acceso al módulo "Jerarquía de Equipos"
+    if not request.user.has_module_access('Jerarquía de Equipos'):
+        from django.core.exceptions import PermissionDenied
+        raise PermissionDenied
     """Crear nuevo usuario via AJAX"""
     if request.method != 'POST':
         return JsonResponse({'success': False, 'message': 'Método no permitido'})

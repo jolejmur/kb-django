@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Página no encontrada - Eventos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center">
+    <div class="max-w-md mx-auto px-4 text-center">
+        <!-- Error Icon -->
+        <div class="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <i class="fas fa-exclamation-triangle text-red-600 text-4xl"></i>
+        </div>
+
+        <!-- Error Message -->
+        <h1 class="text-3xl font-bold text-gray-900 mb-4">404 - No Encontrado</h1>
+        <p class="text-gray-600 mb-8">Lo sentimos, la página o el código QR que buscas no existe o ha expirado.</p>
+
+        <!-- Possible Reasons -->
+        <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6 text-left">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-info-circle mr-2 text-blue-600"></i>
+                Posibles causas:
+            </h3>
+            <ul class="space-y-2 text-sm text-gray-600">
+                <li class="flex items-start">
+                    <i class="fas fa-circle text-gray-400 text-xs mt-2 mr-2"></i>
+                    El código QR ha expirado o fue desactivado
+                </li>
+                <li class="flex items-start">
+                    <i class="fas fa-circle text-gray-400 text-xs mt-2 mr-2"></i>
+                    El evento ya no está disponible
+                </li>
+                <li class="flex items-start">
+                    <i class="fas fa-circle text-gray-400 text-xs mt-2 mr-2"></i>
+                    La URL fue digitada incorrectamente
+                </li>
+                <li class="flex items-start">
+                    <i class="fas fa-circle text-gray-400 text-xs mt-2 mr-2"></i>
+                    El enlace no es válido
+                </li>
+            </ul>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="space-y-3">
+            <button onclick="window.history.back()" 
+                    class="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-lg font-semibold transition-colors flex items-center justify-center">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Volver Atrás
+            </button>
+            
+            <button onclick="window.close()" 
+                    class="w-full bg-gray-300 hover:bg-gray-400 text-gray-700 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center">
+                <i class="fas fa-times mr-2"></i>
+                Cerrar Ventana
+            </button>
+        </div>
+
+        <!-- Contact Info -->
+        <div class="mt-8 p-4 bg-gray-100 rounded-lg">
+            <p class="text-xs text-gray-500">
+                Si crees que esto es un error, contacta con el organizador del evento o solicita un nuevo código QR.
+            </p>
+        </div>
+    </div>
+
+    <script>
+    // Auto-redirect after 15 seconds if on mobile
+    setTimeout(() => {
+        if (window.innerWidth < 768) {
+            const userConfirmed = confirm('¿Deseas cerrar esta ventana automáticamente?');
+            if (userConfirmed) {
+                window.close();
+            }
+        }
+    }, 15000);
+    </script>
+</body>
+</html>

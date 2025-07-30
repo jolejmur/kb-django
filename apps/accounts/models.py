@@ -173,20 +173,20 @@ class User(AbstractUser):
     # Coordenadas geográficas
     latitud = models.DecimalField(
         max_digits=10,
-        decimal_places=8,
+        decimal_places=7,
         verbose_name='Latitud',
         null=True,
         blank=True,
-        help_text='Latitud de la ubicación del domicilio'
+        help_text='Latitud de la ubicación del domicilio (-90 a +90)'
     )
     
     longitud = models.DecimalField(
-        max_digits=11,
-        decimal_places=8,
+        max_digits=10,
+        decimal_places=7,
         verbose_name='Longitud',
         null=True,
         blank=True,
-        help_text='Longitud de la ubicación del domicilio'
+        help_text='Longitud de la ubicación del domicilio (-180 a +180)'
     )
     
     # Campos existentes

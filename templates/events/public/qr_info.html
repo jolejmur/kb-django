@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ evento.nombre }} - Invitación</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Meta tags para compartir en redes sociales -->
+    <meta property="og:title" content="{{ evento.nombre }}">
+    <meta property="og:description" content="Estás invitado al evento {{ evento.nombre }} en {{ evento.ubicacion }}">
+    <meta property="og:type" content="event">
+    
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-shadow {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body class="min-h-screen gradient-bg">
+    <!-- Header con logo o branding -->
+    <div class="bg-white/10 backdrop-blur-md">
+        <div class="max-w-4xl mx-auto px-4 py-3">
+            <div class="flex items-center justify-center">
+                <i class="fas fa-calendar-alt text-white text-2xl mr-3"></i>
+                <h1 class="text-white text-xl font-bold">Invitación al Evento</h1>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto px-4 py-8">
+        <!-- Tarjeta principal del evento -->
+        <div class="bg-white rounded-2xl card-shadow overflow-hidden mb-6">
+            <!-- Header del evento -->
+            <div class="bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-8 text-white text-center">
+                <div class="mb-4">
+                    <i class="fas fa-calendar-star text-4xl mb-3 pulse-animation"></i>
+                </div>
+                <h1 class="text-3xl font-bold mb-2">{{ evento.nombre }}</h1>
+                <p class="text-blue-100 text-lg">¡Estás invitado!</p>
+            </div>
+
+            <!-- Información del evento -->
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <!-- Fecha y Hora -->
+                    <div class="flex items-start space-x-4">
+                        <div class="flex-shrink-0">
+                            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-calendar text-blue-600 text-xl"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-900 mb-1">Fecha del Evento</h3>
+                            <p class="text-gray-600">{{ evento.fecha_inicio|date:"l, d \d\e F \d\e Y" }}</p>
+                            <p class="text-sm text-gray-500">
+                                {{ evento.fecha_inicio|date:"H:i" }} - {{ evento.fecha_fin|date:"H:i" }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Ubicación -->
+                    <div class="flex items-start space-x-4">
+                        <div class="flex-shrink-0">
+                            <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-map-marker-alt text-green-600 text-xl"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-900 mb-1">Ubicación</h3>
+                            <p class="text-gray-600">{{ evento.ubicacion }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Descripción del evento -->
+                {% if evento.descripcion %}
+                <div class="mb-6">
+                    <h3 class="font-semibold text-gray-900 mb-2">Sobre el Evento</h3>
+                    <p class="text-gray-600 leading-relaxed">{{ evento.descripcion }}</p>
+                </div>
+                {% endif %}
+
+                <!-- Información del agente comercial -->
+                <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                    <h3 class="font-semibold text-gray-900 mb-3 flex items-center">
+                        <i class="fas fa-user-tie text-purple-600 mr-2"></i>
+                        Tu Agente Comercial
+                    </h3>
+                    <div class="flex items-center space-x-4">
+                        <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-purple-600"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-900">
+                                {{ vendedor.get_full_name|default:vendedor.username }}
+                            </p>
+                            <p class="text-sm text-gray-600">{{ equipo }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Instrucciones importantes -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                    <h3 class="font-semibold text-blue-900 mb-2 flex items-center">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        Instrucciones para el Evento
+                    </h3>
+                    <ul class="text-blue-800 text-sm space-y-1">
+                        <li>• Llega puntual al evento</li>
+                        <li>• Presenta este QR al personal de recepción</li>
+                        <li>• El personal registrará tu asistencia</li>
+                        <li>• Tu agente comercial te atenderá en el evento</li>
+                    </ul>
+                </div>
+
+                <!-- Instrucciones para descargar -->
+                <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                    <h3 class="font-semibold text-purple-900 mb-2 flex items-center">
+                        <i class="fas fa-download mr-2"></i>
+                        Descargar tu QR
+                    </h3>
+                    <p class="text-purple-800 text-sm">
+                        Descarga la imagen del código QR para guardarlo en tu teléfono y compartirlo como desees.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botones de acción -->
+        <div class="flex justify-center mb-6">
+            <!-- Descargar QR -->
+            <a href="{{ download_url }}" 
+               download="{{ evento.nombre }}_QR.png"
+               class="bg-purple-600 hover:bg-purple-700 text-white py-3 px-8 rounded-lg font-medium transition-colors flex items-center justify-center card-shadow">
+                <i class="fas fa-download mr-2"></i>
+                Descargar QR
+            </a>
+        </div>
+
+        <!-- Footer con información adicional -->
+        <div class="text-center text-white/80 text-sm">
+            <p>Esta invitación fue generada por {{ vendedor.get_full_name|default:vendedor.username }}</p>
+            <p class="mt-1">¡Te esperamos en el evento!</p>
+        </div>
+    </div>
+
+    <script>
+        // Registrar vista (opcional, para analytics)
+        console.log('QR Code visto:', '{{ invitacion.codigo_qr }}');
+    </script>
+</body>
+</html>

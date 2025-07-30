@@ -360,8 +360,8 @@ class UserForm(forms.ModelForm):
         labels = {
             'username': 'Nombre de Usuario',
             'email': 'Correo Electrónico',
-            'first_name': 'Nombre',
-            'last_name': 'Apellido',
+            'first_name': 'Nombre(s)',
+            'last_name': 'Apellidos',
             'cedula': 'Cédula de Identidad',
             'fecha_nacimiento': 'Fecha de Nacimiento',
             'telefono': 'Teléfono',
@@ -407,17 +407,37 @@ class UserForm(forms.ModelForm):
             'latitud': forms.NumberInput(attrs={
                 'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500',
                 'placeholder': 'Ej: -12.0464',
-                'step': 'any'
+                'step': '0.0000001',
+                'min': '-90',
+                'max': '90'
             }),
             'longitud': forms.NumberInput(attrs={
                 'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500',
                 'placeholder': 'Ej: -77.0428',
-                'step': 'any'
+                'step': '0.0000001',
+                'min': '-180',
+                'max': '180'
             }),
             'is_active': forms.CheckboxInput(attrs={
                 'class': 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
             })
         }
+
+    def clean_latitud(self):
+        """Validar que la latitud esté en el rango correcto"""
+        latitud = self.cleaned_data.get('latitud')
+        if latitud is not None:
+            if latitud < -90 or latitud > 90:
+                raise forms.ValidationError('La latitud debe estar entre -90 y 90 grados.')
+        return latitud
+
+    def clean_longitud(self):
+        """Validar que la longitud esté en el rango correcto"""
+        longitud = self.cleaned_data.get('longitud')
+        if longitud is not None:
+            if longitud < -180 or longitud > 180:
+                raise forms.ValidationError('La longitud debe estar entre -180 y 180 grados.')
+        return longitud
 
 
 class UserCreateForm(UserForm):
