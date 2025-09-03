@@ -13,30 +13,53 @@ class ProfileEditForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'email', 'telefono']
+        fields = ['first_name', 'last_name', 'email', 'telefono', 'foto_perfil', 'domicilio', 'latitud', 'longitud']
         widgets = {
             'first_name': forms.TextInput(attrs={
                 'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-                'placeholder': 'Enter your first name'
+                'placeholder': 'Ingresa tu nombre'
             }),
             'last_name': forms.TextInput(attrs={
                 'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-                'placeholder': 'Enter your last name'
+                'placeholder': 'Ingresa tu apellido'
             }),
             'email': forms.EmailInput(attrs={
                 'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-                'placeholder': 'Enter your email'
+                'placeholder': 'Ingresa tu email'
             }),
             'telefono': forms.TextInput(attrs={
                 'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-                'placeholder': 'Enter your phone number'
+                'placeholder': 'Ingresa tu número de teléfono'
+            }),
+            'foto_perfil': forms.FileInput(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
+                'accept': 'image/*'
+            }),
+            'domicilio': forms.Textarea(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+                'placeholder': 'Dirección completa (calle, número, zona, ciudad)',
+                'rows': 3
+            }),
+            'latitud': forms.NumberInput(attrs={
+                'class': 'w-full px-2 py-1 border border-gray-300 rounded text-sm',
+                'step': '0.0000001',
+                'readonly': True
+            }),
+            'longitud': forms.NumberInput(attrs={
+                'class': 'w-full px-2 py-1 border border-gray-300 rounded text-sm',
+                'step': '0.0000001',
+                'readonly': True
             })
         }
         labels = {
-            'first_name': 'First Name',
-            'last_name': 'Last Name',
-            'email': 'Email Address',
-            'telefono': 'Phone Number'
+            'first_name': 'Nombre',
+            'last_name': 'Apellido',
+            'email': 'Correo Electrónico',
+            'telefono': 'Teléfono',
+            'foto_perfil': 'Foto de Perfil',
+            'domicilio': 'Dirección',
+            'latitud': 'Latitud',
+            'longitud': 'Longitud'
         }
 
 

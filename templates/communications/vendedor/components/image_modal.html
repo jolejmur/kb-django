@@ -1,0 +1,26 @@
+{% comment %}
+    Modal para visualizar imágenes en pantalla completa
+    Incluye: Vista superpuesta, botones cerrar y descargar
+{% endcomment %}
+<div id="imageModal" class="image-modal" style="display: none;">
+    <div class="image-modal-overlay" onclick="closeImageModal()"></div>
+    <div class="image-modal-container">
+        <div class="image-modal-header">
+            <button class="modal-btn modal-close" onclick="closeImageModal()">
+                <i class="fas fa-times"></i>
+                <span>Cerrar</span>
+            </button>
+            <button class="modal-btn modal-download" onclick="downloadCurrentImage()">
+                <i class="fas fa-download"></i>
+                <span>Descargar</span>
+            </button>
+        </div>
+        <div class="image-modal-content">
+            <img id="modalImage" src="" alt="Imagen" />
+            <div class="image-modal-loading">
+                <div class="spinner"></div>
+                <p>Cargando imagen...</p>
+            </div>
+        </div>
+    </div>
+</div>

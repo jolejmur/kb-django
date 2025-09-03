@@ -1,0 +1,905 @@
+{% comment %}
+    JavaScript para la funcionalidad del chat de supervisión
+    Incluye: WebSocket, envío de mensajes, gestión de archivos, audio
+{% endcomment %}
+<!-- Load jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+// Global variables
+let currentConversationId = null;
+let conversations = [];
+let socket = null;
+let pollingInterval = null;
+let selectedFile = null;
+
+$(document).ready(function() {
+    console.log('🚀 Inicializando chat de supervisión...');
+    
+    // Initialize chat
+    initializeChat();
+    
+    // Load initial conversations
+    loadConversations();
+    
+    // Set up event handlers
+    setupEventHandlers();
+    
+    // Initialize WebSocket
+    initializeWebSocket();
+    
+    // Mobile responsiveness
+    setupMobileHandlers();
+});
+
+function initializeChat() {
+    console.log('🔧 Configurando interfaz de chat...');
+    
+    // Hide chat input initially
+    $('#chatInputContainer').hide();
+    
+    // Auto-resize textarea
+    $('#messageInput').on('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+}
+
+function setupEventHandlers() {
+    // Send message on Enter (Shift+Enter for new line)
+    $('#messageInput').keydown(function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+    
+    // Send message on button click
+    $('#sendBtn').click(sendMessage);
+    
+    // File attachment handlers
+    $('#attachBtn').click(function() {
+        $('#fileInput').click();
+    });
+    
+    $('#fileInput').change(function(e) {
+        console.log('📎 File input change event triggered');
+        const file = e.target.files[0];
+        if (file) {
+            console.log('📎 File selected, calling showFilePreview');
+            showFilePreview(file);
+        }
+    });
+}
+
+function setupMobileHandlers() {
+    // Mobile back button
+    $('#mobileBackBtn').click(function() {
+        $('#chatSidebar').removeClass('hidden');
+        $('#chatMain').removeClass('visible');
+        currentConversationId = null;
+        $('#chatHeader').hide();
+        $('#chatInputContainer').hide();
+        $('#chatMessages').html(`
+            <div class="empty-chat">
+                <i class="fas fa-comment-dots"></i>
+                <h3>Selecciona una conversación</h3>
+                <p>Elige un cliente de la lista para comenzar a chatear</p>
+            </div>
+        `);
+    });
+}
+
+function loadConversations() {
+    console.log('🔄 Cargando conversaciones...');
+    
+    $.get('/marketing/api/supervision-chat/conversations/')
+        .done(function(response) {
+            console.log('✅ Conversaciones cargadas:', response);
+            if (response.success && Array.isArray(response.conversations)) {
+                // Solo actualizar si realmente hay datos válidos
+                conversations = response.conversations;
+                renderConversations(conversations);
+                $('#conversationCount').text(response.total || conversations.length);
+            } else if (response.success && response.conversations === null) {
+                // API responde exitoso pero sin conversaciones - mostrar mensaje vacío
+                console.log('ℹ️ No hay conversaciones disponibles');
+                conversations = [];
+                renderConversations([]);
+                $('#conversationCount').text(0);
+            } else {
+                // Error en la respuesta - NO vaciar la lista, mantener lo que había
+                console.error('🚨 Response con error pero manteniendo lista actual:', response);
+                if (conversations.length === 0) {
+                    // Solo mostrar error si no hay conversaciones previas
+                    showError('Error al cargar conversaciones: ' + (response.error || 'Respuesta inválida'));
+                }
+            }
+        })
+        .fail(function(xhr) {
+            console.error('❌ Error cargando conversaciones:', xhr);
+            // En caso de error de red, mantener la lista actual y solo mostrar error si está vacía
+            if (conversations.length === 0) {
+                let errorMsg = `Error ${xhr.status}: ${xhr.statusText}`;
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    errorMsg = response.error || errorMsg;
+                } catch (e) {}
+                showError(errorMsg);
+            } else {
+                console.log('🛡️ Error de red pero manteniendo conversaciones actuales');
+            }
+        });
+}
+
+function renderConversations(conversations) {
+    console.log('🎨 Renderizando conversaciones:', conversations);
+    const $list = $('#conversationsList');
+    
+    if (!conversations || conversations.length === 0) {
+        $list.html(`
+            <div style="padding: 40px 20px; text-align: center; color: #999;">
+                <i class="fas fa-comments" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                <p style="margin: 0;">No tienes conversaciones activas</p>
+                <small>Las conversaciones aparecerán aquí cuando los clientes te escriban</small>
+            </div>
+        `);
+        return;
+    }
+    
+    let html = '';
+    conversations.forEach(conv => {
+        const initials = getInitials(conv.cliente_nombre);
+        const timeAgo = formatTimeAgo(conv.ultimo_mensaje_at);
+        const isOutgoing = conv.ultimo_mensaje_tipo === 'outgoing';
+        const unreadBadge = conv.mensajes_no_leidos > 0 ? 
+            `<span class="conversation-badge">${conv.mensajes_no_leidos}</span>` : '';
+        
+        // Determinar leyenda de asignación
+        let assignmentBadge = '';
+        if (conv.assignment_status === 'assigned' && conv.assigned_salesperson) {
+            const assignmentText = conv.assigned_salesperson.name;
+            const teamText = conv.team_info ? `<small style="display: block; font-size: 0.8em; color: #666;">${conv.team_info.name}</small>` : '';
+            assignmentBadge = `<span class="assignment-status assigned" title="Asignado a: ${assignmentText}">${assignmentText}${teamText}</span>`;
+        } else if (conv.assignment_status === 'unassigned') {
+            assignmentBadge = `<span class="assignment-status unassigned" title="Sin asignar">Sin asignar</span>`;
+        }
+        
+        // Determinar si la conversación está expirada
+        const isExpired = conv.is_expired && !isOutgoing;
+        const expiredClass = isExpired ? ' expired' : '';
+        
+        // Preview del último mensaje
+        let messagePreview = conv.ultimo_mensaje_contenido || '';
+        if (messagePreview.length > 50) {
+            messagePreview = messagePreview.substring(0, 50) + '...';
+        }
+        
+        // Agregar prefijo si es saliente
+        if (isOutgoing) {
+            messagePreview = '✓ ' + messagePreview;
+        }
+        
+        html += `
+            <div class="conversation-item${expiredClass}" data-conversation-id="${conv.id}" onclick="selectConversation(${conv.id})">
+                <div class="conversation-avatar">
+                    ${initials}
+                </div>
+                <div class="conversation-content">
+                    <div class="conversation-name">${escapeHtml(conv.cliente_nombre)}</div>
+                    <div class="conversation-preview">${escapeHtml(messagePreview)}</div>
+                </div>
+                <div class="conversation-meta">
+                    <div class="conversation-time">${timeAgo}</div>
+                    ${unreadBadge}
+                </div>
+                ${assignmentBadge}
+            </div>
+        `;
+    });
+    
+    $list.html(html);
+}
+
+function selectConversation(conversationId) {
+    console.log('👆 Conversación seleccionada:', conversationId);
+    
+    currentConversationId = conversationId;
+    
+    // Update UI
+    $('.conversation-item').removeClass('active');
+    $(`.conversation-item[data-conversation-id="${conversationId}"]`).addClass('active');
+    
+    // Find conversation data
+    const conversation = conversations.find(c => c.id === conversationId);
+    if (!conversation) {
+        console.error('❌ Conversación no encontrada:', conversationId);
+        return;
+    }
+    
+    // Update chat header
+    $('#chatTitle').text(conversation.cliente_nombre);
+    $('#chatSubtitle').text(`${conversation.numero_whatsapp} • Último mensaje: ${formatTimeAgo(conversation.ultimo_mensaje_at)}`);
+    $('#chatAvatar').text(getInitials(conversation.cliente_nombre));
+    
+    // Show chat interface
+    $('#chatHeader').show();
+    $('#chatInputContainer').show();
+    
+    // Mobile: hide sidebar and show chat
+    if (window.innerWidth <= 768) {
+        $('#chatSidebar').addClass('hidden');
+        $('#chatMain').addClass('visible');
+    }
+    
+    // Load messages
+    loadMessages(conversationId);
+    
+    // Mark as read
+    markConversationAsRead(conversationId);
+}
+
+function loadMessages(conversationId) {
+    console.log('💬 Cargando mensajes para conversación:', conversationId);
+    
+    $('#chatMessages').html('<div class="loading-messages"><div class="spinner"></div>Cargando mensajes...</div>');
+    
+    $.get(`/marketing/api/supervision-chat/conversation/${conversationId}/messages/`)
+        .done(function(response) {
+            console.log('✅ Mensajes cargados:', response);
+            if (response.success) {
+                renderMessages(response.messages);
+            } else {
+                showError('Error al cargar mensajes: ' + response.error);
+            }
+        })
+        .fail(function(xhr) {
+            console.error('❌ Error cargando mensajes:', xhr);
+            showError('Error al cargar mensajes');
+        });
+}
+
+function renderMessages(messages) {
+    console.log('🎨 Renderizando mensajes:', messages);
+    const $messages = $('#chatMessages');
+    
+    if (!messages || messages.length === 0) {
+        $messages.html(`
+            <div class="empty-chat">
+                <i class="fas fa-comment-dots"></i>
+                <h3>No hay mensajes</h3>
+                <p>Inicia la conversación enviando un mensaje</p>
+            </div>
+        `);
+        return;
+    }
+    
+    let html = '';
+    messages.forEach(message => {
+        const isOutgoing = message.direccion === 'outgoing';
+        const time = formatMessageTime(message.timestamp_whatsapp || message.created_at);
+        
+        let messageContent = '';
+        
+        // Handle different message types - Priorizar archivo_tipo_mime sobre tipo
+        if ((message.archivo_tipo_mime && message.archivo_tipo_mime.startsWith('image/')) || message.tipo === 'image') {
+            const imageUrl = message.archivo_local || message.media_url;
+            if (imageUrl && imageUrl !== 'null' && imageUrl.trim() !== '') {
+                messageContent += `
+                    <div class="media-container">
+                        <img src="${imageUrl}" alt="Imagen" loading="lazy" 
+                             onclick="openImageModal('${imageUrl}', 'Imagen')"
+                             style="cursor: pointer;"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                        <div style="display: none; padding: 20px; text-align: center; color: #666;">
+                            <i class="fas fa-image" style="font-size: 24px; margin-bottom: 8px;"></i>
+                            <p>Imagen no disponible</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                messageContent += `
+                    <div class="media-container" style="padding: 20px; text-align: center; color: #666; border: 2px dashed #ddd; border-radius: 8px;">
+                        <i class="fas fa-image" style="font-size: 24px; margin-bottom: 8px;"></i>
+                        <p>Imagen en proceso...</p>
+                    </div>
+                `;
+            }
+        } else if ((message.archivo_tipo_mime && message.archivo_tipo_mime.startsWith('video/')) || message.tipo === 'video') {
+            const videoUrl = message.archivo_local || message.media_url;
+            messageContent += `
+                <div class="media-container">
+                    <video controls preload="metadata">
+                        <source src="${videoUrl}" type="${message.archivo_tipo_mime || 'video/mp4'}">
+                        Tu navegador no soporta video.
+                    </video>
+                </div>
+            `;
+        } else if ((message.archivo_tipo_mime && message.archivo_tipo_mime.startsWith('audio/')) || message.tipo === 'audio') {
+            const audioUrl = message.archivo_local || message.media_url;
+            const audioId = `audio_${message.id}`;
+            const iconId = `icon_${audioId}`;
+            
+            messageContent += `
+                <div class="audio-player">
+                    <div class="audio-controls">
+                        <button class="play-btn" onclick="toggleAudioPlayback('${audioId}', '${iconId}')">
+                            <i class="fas fa-play" id="${iconId}"></i>
+                        </button>
+                        <span class="audio-duration">0:00</span>
+                    </div>
+                    <audio id="${audioId}" preload="metadata">
+                        <source src="${audioUrl}" type="${message.archivo_tipo_mime || 'audio/mpeg'}">
+                    </audio>
+                </div>
+            `;
+        } else if (message.archivo_local || message.media_url) {
+            // Document or other file
+            const fileUrl = message.archivo_local || message.media_url;
+            const fileName = message.archivo_nombre || 'Documento';
+            
+            // Determinar icono según tipo de archivo
+            let fileIcon = 'fas fa-file';
+            const mimeType = message.archivo_tipo_mime || '';
+            if (mimeType.includes('pdf')) {
+                fileIcon = 'fas fa-file-pdf';
+            } else if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) {
+                fileIcon = 'fas fa-file-excel';
+            } else if (mimeType.includes('word') || mimeType.includes('document')) {
+                fileIcon = 'fas fa-file-word';
+            } else if (mimeType.includes('zip') || mimeType.includes('rar')) {
+                fileIcon = 'fas fa-file-archive';
+            }
+            
+            messageContent += `
+                <div class="document-file">
+                    <i class="${fileIcon}"></i>
+                    <div class="file-info">
+                        <a href="${fileUrl}" target="_blank" class="file-link">
+                            ${escapeHtml(fileName)}
+                        </a>
+                        <span class="file-size">${formatFileSize(message.archivo_tamaño || 0)}</span>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Add text content if exists (pero no para archivos multimedia que solo dicen "Archivo tipo")
+        const isGenericFileText = message.contenido && message.contenido.match(/^Archivo (image|video|audio|document)$/);
+        
+        if (message.contenido && !isGenericFileText && !message.contenido.match(/^(📸|🎵|🎥|📄)/)) {
+            messageContent += `<div class="text-content">${escapeHtml(message.contenido)}</div>`;
+        } else if (message.contenido && !isGenericFileText && message.contenido.match(/^(📸|🎵|🎥|📄)/)) {
+            messageContent += `<div class="text-content media-description">${escapeHtml(message.contenido)}</div>`;
+        }
+        
+        html += `
+            <div class="message ${isOutgoing ? 'outgoing' : 'incoming'}" style="display: flex !important; ${isOutgoing ? 'justify-content: flex-end !important; margin-left: 60px !important;' : 'justify-content: flex-start !important; margin-right: 60px !important;'}">
+                <div class="message-bubble" style="max-width: 70% !important; padding: 8px 12px !important; border-radius: ${isOutgoing ? '18px 18px 4px 18px' : '18px 18px 18px 4px'} !important; ${isOutgoing ? 'background: #25D366 !important; color: white !important;' : 'background: white !important; border: 1px solid #E0E0E0 !important;'} box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;">
+                    ${messageContent}
+                    <span class="message-time" style="font-size: 11px !important; margin-top: 4px !important; display: block !important; ${isOutgoing ? 'color: rgba(255, 255, 255, 0.8) !important;' : 'color: #667781 !important;'}">${time}</span>
+                </div>
+            </div>
+        `;
+    });
+    
+    $messages.html(html);
+    
+    // Scroll to bottom
+    $messages.scrollTop($messages[0].scrollHeight);
+}
+
+function sendMessage() {
+    // Check if there's a file to send
+    if (selectedFile) {
+        const caption = $('#captionInput').val().trim();
+        sendMediaMessage(selectedFile, caption);
+        return;
+    }
+    
+    const message = $('#messageInput').val().trim();
+    if (!message || !currentConversationId) return;
+    
+    console.log('📤 Enviando mensaje:', message);
+    
+    // Disable input
+    $('#sendBtn').prop('disabled', true);
+    $('#messageInput').prop('disabled', true);
+    
+    // Add message to UI immediately (optimistic update)
+    const time = formatMessageTime(new Date().toISOString());
+    $('#chatMessages').append(`
+        <div class="message outgoing">
+            <div class="message-bubble">
+                ${escapeHtml(message)}
+                <span class="message-time">${time} <i class="fas fa-clock" style="opacity: 0.7;"></i></span>
+            </div>
+        </div>
+    `);
+    
+    // Clear input and scroll
+    $('#messageInput').val('').trigger('input');
+    $('#chatMessages').scrollTop($('#chatMessages')[0].scrollHeight);
+    
+    // Send to server
+    $.ajax({
+        url: '/marketing/api/supervision-chat/send-message/',
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+        },
+        data: JSON.stringify({
+            conversation_id: currentConversationId,
+            message: message
+        }),
+        contentType: 'application/json',
+        success: function(response) {
+            console.log('✅ Mensaje enviado:', response);
+            if (response.success) {
+                // Update conversation list
+                loadConversations();
+            } else {
+                showError('Error al enviar mensaje: ' + response.error);
+            }
+        },
+        error: function(xhr) {
+            console.error('❌ Error enviando mensaje:', xhr);
+            showError('Error al enviar mensaje');
+        },
+        complete: function() {
+            // Re-enable input
+            $('#sendBtn').prop('disabled', false);
+            $('#messageInput').prop('disabled', false);
+            $('#messageInput').focus();
+        }
+    });
+}
+
+function sendMediaMessage(file, caption) {
+    if (!currentConversationId) return;
+    
+    console.log('📎 Enviando archivo:', file.name);
+    
+    const formData = new FormData();
+    formData.append('conversation_id', currentConversationId);
+    formData.append('media_file', file);
+    if (caption) {
+        formData.append('caption', caption);
+    }
+    
+    // Disable interface
+    $('#sendBtn').prop('disabled', true);
+    $('.send-file-btn').prop('disabled', true);
+    
+    $.ajax({
+        url: '/marketing/api/supervision-chat/send-media/',
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+        },
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(response) {
+            console.log('✅ Archivo enviado:', response);
+            if (response.success) {
+                removeFilePreview();
+                loadMessages(currentConversationId);
+                loadConversations();
+            } else {
+                showError('Error al enviar archivo: ' + response.error);
+            }
+        },
+        error: function(xhr) {
+            console.error('❌ Error enviando archivo:', xhr);
+            showError('Error al enviar archivo');
+        },
+        complete: function() {
+            $('#sendBtn').prop('disabled', false);
+            $('.send-file-btn').prop('disabled', false);
+        }
+    });
+}
+
+function showFilePreview(file) {
+    console.log('👀 Mostrando preview de archivo:', file);
+    
+    selectedFile = file;
+    
+    // Update preview info
+    $('.file-name').text(file.name);
+    $('.file-size').text(formatFileSize(file.size));
+    
+    // Show preview container
+    $('#filePreview').show();
+    
+    // Clear file input
+    $('#fileInput').val('');
+    
+    console.log('✅ Preview mostrado para:', file.name);
+}
+
+function removeFilePreview() {
+    selectedFile = null;
+    $('#filePreview').hide();
+    $('#captionInput').val('');
+}
+
+function sendSelectedFile() {
+    if (selectedFile) {
+        const caption = $('#captionInput').val().trim();
+        sendMediaMessage(selectedFile, caption);
+    }
+}
+
+function markConversationAsRead(conversationId) {
+    $.post('/marketing/api/supervision-chat/mark-read/', {
+        conversation_id: conversationId,
+        csrfmiddlewaretoken: $('[name=csrfmiddlewaretoken]').val()
+    });
+}
+
+function initializeWebSocket() {
+    console.log('🔌 WebSocket temporalmente deshabilitado para evitar errores');
+    console.log('ℹ️ Usando polling como alternativa');
+    
+    isWebSocketConnected = false;
+    return;
+    
+    // TODO: Habilitar cuando el servidor WebSocket esté configurado correctamente
+    /* CÓDIGO COMENTADO TEMPORALMENTE
+    console.log('🔌 Inicializando WebSocket...');
+    
+    try {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws/supervision-chat/`;
+        
+        socket = new WebSocket(wsUrl);
+        
+        socket.onopen = function() {
+            console.log('✅ WebSocket conectado');
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+        };
+        
+        socket.onmessage = function(event) {
+            console.log('📨 Mensaje WebSocket recibido:', event.data);
+            const data = JSON.parse(event.data);
+            
+            if (data.type === 'new_message') {
+                handleNewMessage(data.message);
+            } else if (data.type === 'conversation_update') {
+                loadConversations();
+            }
+        };
+        
+        socket.onclose = function() {
+            console.log('🔌 WebSocket desconectado, iniciando polling...');
+            startPolling();
+        };
+        
+        socket.onerror = function(error) {
+            console.error('❌ Error WebSocket:', error);
+            startPolling();
+        };
+        
+    } catch (error) {
+        console.error('❌ Error creando WebSocket:', error);
+        startPolling();
+    }
+    */
+}
+
+function startPolling() {
+    if (pollingInterval) return;
+    
+    console.log('🔄 Iniciando polling cada 15 segundos...');
+    pollingInterval = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+            // Solo recargar conversaciones si no hay una seleccionada
+            if (!currentConversationId) {
+                loadConversations();
+            }
+        }
+    }, 15000);
+}
+
+function handleNewMessage(message) {
+    console.log('📨 Nuevo mensaje recibido:', message);
+    
+    // Update conversation list
+    loadConversations();
+    
+    // If message is for current conversation, reload messages
+    if (currentConversationId && message.conversation_id === currentConversationId) {
+        loadMessages(currentConversationId);
+    }
+}
+
+// Audio playback functions
+function toggleAudioPlayback(audioId, iconId) {
+    const audio = document.getElementById(audioId);
+    const icon = document.getElementById(iconId);
+    
+    if (!audio || !icon) {
+        console.error('❌ Elementos de audio no encontrados:', audioId, iconId);
+        return;
+    }
+    
+    if (audio.paused) {
+        // Stop all other audio elements
+        document.querySelectorAll('audio').forEach(a => {
+            if (a !== audio && !a.paused) {
+                a.pause();
+                a.currentTime = 0;
+            }
+        });
+        
+        // Reset all play icons
+        document.querySelectorAll('i[id^="icon_audio_"]').forEach(i => {
+            i.className = 'fas fa-play';
+        });
+        
+        // Play this audio
+        audio.play();
+        icon.className = 'fas fa-pause';
+    } else {
+        audio.pause();
+        icon.className = 'fas fa-play';
+    }
+}
+
+// Utility functions
+function getInitials(name) {
+    if (!name) return '?';
+    return name.split(' ')
+        .map(word => word.charAt(0).toUpperCase())
+        .slice(0, 2)
+        .join('');
+}
+
+function formatTimeAgo(timestamp) {
+    if (!timestamp) return '';
+    
+    const now = new Date();
+    const time = new Date(timestamp);
+    const diffInMinutes = Math.floor((now - time) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return 'Ahora';
+    if (diffInMinutes < 60) return `${diffInMinutes}m`;
+    
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours}h`;
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 7) return `${diffInDays}d`;
+    
+    return time.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
+}
+
+function formatMessageTime(timestamp) {
+    if (!timestamp) return '';
+    
+    const time = new Date(timestamp);
+    return time.toLocaleTimeString('es-ES', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+    });
+}
+
+function formatFileSize(bytes) {
+    if (!bytes) return '0 B';
+    
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    
+    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function showError(message) {
+    console.error('🚨 Error:', message);
+    
+    // Create error toast
+    const toast = $(`
+        <div class="error-toast" style="
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #f44336;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 10000;
+            max-width: 400px;
+        ">
+            <i class="fas fa-exclamation-triangle"></i> ${message}
+        </div>
+    `);
+    
+    $('body').append(toast);
+    
+    setTimeout(() => {
+        toast.fadeOut(() => toast.remove());
+    }, 5000);
+}
+
+// Audio context fix
+function fixAudioPlayback() {
+    console.log('🔧 Iniciando fix de reproducción de audio...');
+    
+    document.addEventListener('click', enableAudioContext, { once: true });
+    document.addEventListener('touchstart', enableAudioContext, { once: true });
+    
+    function enableAudioContext() {
+        console.log('👆 Usuario interactuó - habilitando contexto de audio');
+        
+        const audio = document.createElement('audio');
+        audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBDN+zPLNeSsFJIDL8dtePAkXarpxMRuODQ=';
+        audio.volume = 0;
+        audio.play().then(() => {
+            console.log('✅ Contexto de audio desbloqueado');
+            audio.remove();
+        }).catch(error => {
+            console.log('⚠️ No se pudo desbloquear audio:', error);
+            audio.remove();
+        });
+    }
+}
+
+// Page visibility and cleanup
+$(window).on('beforeunload', function() {
+    if (socket) {
+        socket.close();
+    }
+    if (pollingInterval) {
+        clearInterval(pollingInterval);
+    }
+});
+
+// Fallback reconnection
+setInterval(function() {
+    if (document.visibilityState === 'visible' && 
+        (!socket || socket.readyState !== WebSocket.OPEN) && 
+        !pollingInterval) {
+        console.log('🔄 Fallback: recargando conversaciones');
+        loadConversations();
+    }
+}, 60000);
+
+// Reset notifications
+if (typeof window.resetNotificationCount === 'function') {
+    window.resetNotificationCount();
+    console.log('🔔 Notificaciones reseteadas al entrar al chat');
+}
+
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden && typeof window.resetNotificationCount === 'function') {
+        window.resetNotificationCount();
+        console.log('🔔 Notificaciones reseteadas - página visible');
+    }
+});
+
+// Initialize audio fix
+document.addEventListener('DOMContentLoaded', fixAudioPlayback);
+
+// ========== IMAGE MODAL FUNCTIONS ==========
+let currentImageUrl = '';
+
+function openImageModal(imageUrl, imageName = 'Imagen') {
+    console.log('🖼️ Abriendo modal de imagen:', imageUrl);
+    
+    currentImageUrl = imageUrl;
+    const modal = document.getElementById('imageModal');
+    const modalImage = document.getElementById('modalImage');
+    const loading = modal.querySelector('.image-modal-loading');
+    
+    // Mostrar modal y loading
+    modal.style.display = 'flex';
+    loading.style.display = 'flex';
+    modalImage.style.display = 'none';
+    
+    // Precargar imagen
+    const img = new Image();
+    img.onload = function() {
+        modalImage.src = imageUrl;
+        modalImage.alt = imageName;
+        modalImage.style.display = 'block';
+        loading.style.display = 'none';
+        console.log('✅ Imagen cargada exitosamente');
+    };
+    
+    img.onerror = function() {
+        loading.innerHTML = `
+            <i class="fas fa-exclamation-triangle" style="font-size: 32px; color: #dc3545; margin-bottom: 16px;"></i>
+            <p>Error al cargar la imagen</p>
+        `;
+        console.error('❌ Error cargando imagen');
+    };
+    
+    img.src = imageUrl;
+    
+    // Prevenir scroll del body
+    document.body.style.overflow = 'hidden';
+}
+
+function closeImageModal() {
+    console.log('❌ Cerrando modal de imagen');
+    
+    const modal = document.getElementById('imageModal');
+    modal.style.display = 'none';
+    
+    // Restaurar scroll del body
+    document.body.style.overflow = 'auto';
+    
+    // Limpiar imagen
+    const modalImage = document.getElementById('modalImage');
+    modalImage.src = '';
+    currentImageUrl = '';
+}
+
+function downloadCurrentImage() {
+    if (!currentImageUrl) {
+        console.error('❌ No hay imagen para descargar');
+        return;
+    }
+    
+    console.log('💾 Descargando imagen:', currentImageUrl);
+    
+    // Crear enlace temporal para descarga
+    const link = document.createElement('a');
+    link.href = currentImageUrl;
+    link.download = `imagen_${new Date().getTime()}.jpg`;
+    link.target = '_blank';
+    
+    // Agregar al DOM temporalmente y hacer click
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    console.log('✅ Descarga iniciada');
+}
+
+// Cerrar modal con ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('imageModal');
+        if (modal && modal.style.display === 'flex') {
+            closeImageModal();
+        }
+    }
+});
+
+// ========== MOBILE RESPONSIVE CHAT BEHAVIOR ==========
+$(document).ready(function() {
+    // Setup mobile responsiveness
+    setupMobileResponsive();
+});
+
+function setupMobileResponsive() {
+    // En mobile, manejar la navegación entre sidebar y chat
+    if (window.innerWidth <= 768) {
+        console.log('📱 Mobile detected - setting up chat responsive behavior');
+        
+        const chatSidebar = $('#chatSidebar');
+        const chatMain = $('#chatMain');
+        
+        // Estado inicial: sidebar visible, chat oculto
+        chatSidebar.removeClass('hidden');
+        chatMain.removeClass('visible');
+        
+        // NO interferir con el botón hamburguesa principal - ese controla el sidebar general
+        // El botón mobileBackBtn ya maneja el regreso del chat al sidebar
+    }
+}
+</script>

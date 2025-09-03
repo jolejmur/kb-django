@@ -1,0 +1,44 @@
+{% comment %}
+    Header component para la configuración de WhatsApp Business
+    Incluye: Breadcrumbs, título, subtítulo y estado de configuración
+{% endcomment %}
+<div class="header-section">
+    <div class="header-content">
+        <!-- Breadcrumbs -->
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb">
+                {% for breadcrumb in breadcrumbs %}
+                    {% if breadcrumb.url %}
+                        <li class="breadcrumb-item"><a href="{{ breadcrumb.url }}">{{ breadcrumb.name }}</a></li>
+                    {% else %}
+                        <li class="breadcrumb-item active" aria-current="page">{{ breadcrumb.name }}</li>
+                    {% endif %}
+                {% endfor %}
+            </ol>
+        </nav>
+
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+            <div>
+                <h1 class="page-title">
+                    <i class="fab fa-meta me-2"></i>
+                    {{ page_title }}
+                </h1>
+                <p class="page-subtitle">Gestiona tu configuración de Meta Business API para WhatsApp</p>
+            </div>
+            <div class="mt-2 mt-md-0">
+                {% if has_active_config %}
+                    <div class="status-badge active">
+                        <i class="fas fa-check-circle"></i>
+                        Configuración Activa
+                    </div>
+                {% else %}
+                    <div class="status-badge inactive">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Sin Configuración
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>

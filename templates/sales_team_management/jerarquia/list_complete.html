@@ -1,7 +1,7 @@
 <!-- templates/sales/jerarquia/list.html -->
 {% extends 'base/base.html' %}
 
-{% block title %}Jerarquía de Equipos - Django CRM{% endblock %}
+{% block title %}Jerarquía de Equipos - Korban{% endblock %}
 
 {% block header %}Jerarquía de Equipos{% endblock %}
 
@@ -151,7 +151,7 @@ select option {
             <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Jerarquía de Equipos</h1>
             <p class="text-gray-600 mt-1 text-sm sm:text-base">Vista completa de la estructura organizacional de ventas</p>
         </div>
-        <a href="{% url 'sales:jerarquia_create_member' %}"
+        <a href="{% url 'sales_team_management:jerarquia_create_member' %}"
            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center justify-center transition-colors">
             <i class="fas fa-plus mr-2"></i>
             <span class="hidden sm:inline">Asignar Usuario</span>
@@ -223,7 +223,7 @@ select option {
                     <button type="submit" class="flex-1 sm:flex-initial bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
                         <i class="fas fa-search mr-2"></i>Filtrar
                     </button>
-                    <a href="{% url 'sales:jerarquia_list' %}" class="flex-1 sm:flex-initial bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors text-center">
+                    <a href="{% url 'sales_team_management:jerarquia_list' %}" class="flex-1 sm:flex-initial bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors text-center">
                         <i class="fas fa-times mr-2"></i>Limpiar
                     </a>
                 </div>
@@ -402,13 +402,13 @@ select option {
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     <div class="flex space-x-2">
                                         <!-- Ver -->
-                                        <a href="{% url 'sales:jerarquia_member_detail' miembro.objeto.id miembro.rol_key %}"
+                                        <a href="{% url 'sales_team_management:jerarquia_member_detail' miembro.objeto.id miembro.rol_key %}"
                                            class="bg-blue-50 hover:bg-blue-100 text-blue-700 p-2 rounded-lg transition-colors"
                                            title="Ver Datos del Usuario">
                                             <i class="fas fa-eye text-sm"></i>
                                         </a>
                                         <!-- Editar -->
-                                        <a href="{% url 'sales:jerarquia_member_edit' miembro.objeto.id miembro.rol_key %}"
+                                        <a href="{% url 'sales_team_management:jerarquia_member_edit' miembro.objeto.id miembro.rol_key %}"
                                            class="bg-yellow-50 hover:bg-yellow-100 text-yellow-700 p-2 rounded-lg transition-colors"
                                            title="Editar Usuario">
                                             <i class="fas fa-edit text-sm"></i>
@@ -468,11 +468,11 @@ select option {
                                 
                                 <!-- Acciones -->
                                 <div class="flex items-center space-x-2 ml-4">
-                                    <a href="{% url 'sales:jerarquia_member_detail' miembro.objeto.id miembro.rol_key %}" 
+                                    <a href="{% url 'sales_team_management:jerarquia_member_detail' miembro.objeto.id miembro.rol_key %}" 
                                        class="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    <a href="{% url 'sales:jerarquia_member_edit' miembro.objeto.id miembro.rol_key %}" 
+                                    <a href="{% url 'sales_team_management:jerarquia_member_edit' miembro.objeto.id miembro.rol_key %}" 
                                        class="text-yellow-600 hover:text-yellow-900 p-2 rounded-lg hover:bg-yellow-50 transition-colors">
                                         <i class="fas fa-edit"></i>
                                     </a>
@@ -551,11 +551,11 @@ select option {
                         
                         <!-- Acciones -->
                         <div class="flex items-center space-x-1 ml-2">
-                            <a href="{% url 'sales:jerarquia_member_detail' miembro.objeto.id miembro.rol_key %}" 
+                            <a href="{% url 'sales_team_management:jerarquia_member_detail' miembro.objeto.id miembro.rol_key %}" 
                                class="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded">
                                 <i class="fas fa-eye text-xs"></i>
                             </a>
-                            <a href="{% url 'sales:jerarquia_member_edit' miembro.objeto.id miembro.rol_key %}" 
+                            <a href="{% url 'sales_team_management:jerarquia_member_edit' miembro.objeto.id miembro.rol_key %}" 
                                class="p-1.5 text-yellow-600 hover:text-yellow-800 hover:bg-yellow-50 rounded">
                                 <i class="fas fa-edit text-xs"></i>
                             </a>

@@ -1,0 +1,100 @@
+{% comment %}
+    Modales para la configuración de WhatsApp Business
+    Incluye: Modal de edición y modal de creación de configuración
+{% endcomment %}
+
+<!-- Modal para Editar Campo -->
+<div class="modal" id="editFieldModal" style="display: none;">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>
+                    <span id="modal_field_title">Editar Campo</span>
+                </h5>
+                <button type="button" class="btn-close" onclick="hideModal('editFieldModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="editFieldForm">
+                    <div class="form-group">
+                        <label for="modal_field_value" class="form-label" id="modal_field_label">Valor</label>
+                        <div id="modal_field_container">
+                            <!-- Este contenido se llenará dinámicamente -->
+                        </div>
+                        <div class="form-text" id="modal_field_help">
+                            <!-- Texto de ayuda dinámico -->
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="hideModal('editFieldModal')">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="saveFieldBtn">
+                    <i class="fas fa-save me-2"></i>
+                    Guardar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Crear Nueva Configuración -->
+<div class="modal" id="createConfigModal" style="display: none;">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>
+                    Crear Nueva Configuración
+                </h5>
+                <button type="button" class="btn-close" onclick="hideModal('createConfigModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="createConfigForm">
+                    <div class="form-group">
+                        <label for="new_phone_number_id" class="form-label">ID del Número de Teléfono</label>
+                        <input type="text" id="new_phone_number_id" class="form-control" 
+                               placeholder="Ej: 553105714563165">
+                    </div>
+                    <div class="form-group">
+                        <label for="new_business_account_id" class="form-label">ID de la Cuenta Comercial</label>
+                        <input type="text" id="new_business_account_id" class="form-control" 
+                               placeholder="Ej: 1234567890123456">
+                    </div>
+                    <div class="form-group">
+                        <label for="new_whatsapp_business_account_id" class="form-label">ID de la Cuenta de WhatsApp Business</label>
+                        <input type="text" id="new_whatsapp_business_account_id" class="form-control" 
+                               placeholder="Ej: 1234567890123456">
+                        <div class="form-text">Este es diferente del ID de la Cuenta Comercial</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="new_access_token" class="form-label">Token de Acceso (Meta Token)</label>
+                        <textarea id="new_access_token" class="form-control" rows="3" 
+                                  placeholder="Token de acceso de Meta"></textarea>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Nota:</strong> El secreto de la aplicación se generará automáticamente por seguridad.
+                    </div>
+                    <div class="form-group">
+                        <label for="new_webhook_verify_token" class="form-label">Token de Verificación Webhook</label>
+                        <input type="text" id="new_webhook_verify_token" class="form-control" 
+                               placeholder="Token de verificación">
+                    </div>
+                    <div class="form-group">
+                        <label for="new_webhook_url" class="form-label">URL del Webhook</label>
+                        <input type="url" id="new_webhook_url" class="form-control" 
+                               placeholder="https://tu-dominio.com/webhook/">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="hideModal('createConfigModal')">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="createConfigBtn">
+                    <i class="fas fa-plus me-2"></i>
+                    Crear Configuración
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

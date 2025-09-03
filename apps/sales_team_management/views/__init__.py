@@ -2,26 +2,29 @@
 
 # Import all views from their respective modules to maintain compatibility with urls.py
 from .dashboard import sales_dashboard
-from .helpers import get_member_by_role
 from .equipos import (
-    equipos_venta_list,
-    equipos_venta_detail,
-    equipos_venta_create,
-    equipos_venta_edit,
-    equipos_venta_delete,
-    equipos_manage_hierarchy,
-    equipos_add_gerente,
-    equipos_add_member,
+    equipos_list,
+    equipo_detail,
+    crear_equipo,
+    agregar_miembro,
+    editar_miembro,
+    remover_miembro,
+    get_team_members_json,
+    get_available_positions,
 )
 from .jerarquia import (
-    jerarquia_equipos_list,
-    jerarquia_create_member,
-    jerarquia_member_detail,
-    jerarquia_member_edit,
-    jerarquia_member_delete,
-    jerarquia_member_reassign,
-    jerarquia_member_deactivate,
-    jerarquia_member_toggle_status,
+    jerarquia_list,
+    jerarquia_detail,
+    jerarquia_toggle,
+    jerarquia_equipo,
+    crear_relacion_jerarquica,
+    crear_relacion_jerarquica_equipo,
+    editar_relacion_jerarquica,
+    eliminar_relacion_jerarquica,
+    analisis_jerarquia,
+    get_hierarchy_json,
+    get_available_supervisors,
+    asignar_supervisor,
 )
 from .proyectos import (
     proyectos_list,
@@ -40,19 +43,20 @@ from .inmuebles import (
 from .comisiones import (
     comisiones_equipos_list,
     comisiones_proyectos_list,
-    comisiones_venta_config,
+    comisiones_equipo_config,
     comisiones_desarrollo_config,
+    comision_structure_detail,
+    get_commission_structure_json,
 )
 from .ajax_views import (
     ajax_equipos_search,
     ajax_proyectos_search,
     ajax_inmuebles_by_proyecto,
-    ajax_cambiar_estado_miembro,
-    ajax_migrar_miembro,
-    ajax_verificar_subordinados,
-    ajax_get_supervisores,
     ajax_search_users,
     ajax_create_user,
+    ajax_search_hierarchy,
+    ajax_toggle_public_registration,
+    ajax_generate_username,
 )
 from .supervision_directa import (
     supervision_directa_list,
@@ -63,35 +67,44 @@ from .supervision_directa import (
     supervision_directa_delete,
     ajax_supervisores_disponibles,
     ajax_subordinados_disponibles,
-    ajax_validar_tipo_supervision,
+    ajax_validar_supervision_relation,
+)
+from .permission_views import (
+    permission_denied_view,
+)
+from .public_registration import (
+    public_register_form,
+    public_register_submit,
+    public_register_success,
 )
 
 __all__ = [
     # Dashboard
     'sales_dashboard',
     
-    # Helpers
-    'get_member_by_role',
-    
     # Equipos
-    'equipos_venta_list',
-    'equipos_venta_detail',
-    'equipos_venta_create',
-    'equipos_venta_edit',
-    'equipos_venta_delete',
-    'equipos_manage_hierarchy',
-    'equipos_add_gerente',
-    'equipos_add_member',
+    'equipos_list',
+    'equipo_detail',
+    'crear_equipo',
+    'agregar_miembro',
+    'editar_miembro',
+    'remover_miembro',
+    'get_team_members_json',
+    'get_available_positions',
     
     # Jerarquía
-    'jerarquia_equipos_list',
-    'jerarquia_create_member',
-    'jerarquia_member_detail',
-    'jerarquia_member_edit',
-    'jerarquia_member_delete',
-    'jerarquia_member_reassign',
-    'jerarquia_member_deactivate',
-    'jerarquia_member_toggle_status',
+    'jerarquia_list',
+    'jerarquia_detail',
+    'jerarquia_toggle',
+    'jerarquia_equipo',
+    'crear_relacion_jerarquica',
+    'crear_relacion_jerarquica_equipo',
+    'editar_relacion_jerarquica',
+    'eliminar_relacion_jerarquica',
+    'analisis_jerarquia',
+    'get_hierarchy_json',
+    'get_available_supervisors',
+    'asignar_supervisor',
     
     # Proyectos
     'proyectos_list',
@@ -110,19 +123,20 @@ __all__ = [
     # Comisiones
     'comisiones_equipos_list',
     'comisiones_proyectos_list',
-    'comisiones_venta_config',
+    'comisiones_equipo_config',
     'comisiones_desarrollo_config',
+    'comision_structure_detail',
+    'get_commission_structure_json',
     
     # AJAX
     'ajax_equipos_search',
     'ajax_proyectos_search',
     'ajax_inmuebles_by_proyecto',
-    'ajax_cambiar_estado_miembro',
-    'ajax_migrar_miembro',
-    'ajax_verificar_subordinados',
-    'ajax_get_supervisores',
     'ajax_search_users',
     'ajax_create_user',
+    'ajax_search_hierarchy',
+    'ajax_toggle_public_registration',
+    'ajax_generate_username',
     
     # Supervisión Directa
     'supervision_directa_list',
@@ -133,5 +147,13 @@ __all__ = [
     'supervision_directa_delete',
     'ajax_supervisores_disponibles',
     'ajax_subordinados_disponibles',
-    'ajax_validar_tipo_supervision',
+    'ajax_validar_supervision_relation',
+    
+    # Permission views
+    'permission_denied_view',
+    
+    # Public registration views
+    'public_register_form',
+    'public_register_submit', 
+    'public_register_success',
 ]

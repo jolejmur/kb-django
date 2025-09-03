@@ -1,0 +1,40 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Chat - Mis Leads{% endblock %}
+
+{% block extra_css %}
+    <!-- Meta optimizado para navegación móvil -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#25D366">
+    
+    {% include 'communications/vendedor/partials/styles.html' %}
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+
+<div class="chat-app">
+    <!-- Sidebar -->
+    {% include 'communications/vendedor/components/sidebar.html' with user_team=user_team accessible_leads_count=accessible_leads_count %}
+    
+    <!-- Chat Main -->
+    {% include 'communications/vendedor/components/main_area.html' %}
+</div>
+
+<!-- Image Modal -->
+{% include 'communications/vendedor/components/image_modal.html' %}
+
+<!-- Video Modal -->
+{% include 'communications/vendedor/components/video_modal.html' %}
+
+<!-- File Send Confirmation Modal -->
+{% include 'communications/vendedor/components/file_send_modal.html' %}
+
+{% endblock %}
+
+{% block extra_js %}
+    {% include 'communications/vendedor/partials/scripts.html' %}
+{% endblock %}

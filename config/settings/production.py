@@ -9,10 +9,10 @@ import os
 DEBUG = os.getenv('DEBUG', 'false').lower() == 'true'
 
 # Hosts permitidos desde variables de entorno
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,korban.duckdns.org,tmkorban.duckdns.org').split(',')
 
 # CSRF trusted origins
-CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if os.getenv('CSRF_TRUSTED_ORIGINS') else []
+CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'https://korban.duckdns.org,https://tmkorban.duckdns.org').split(',') if os.getenv('CSRF_TRUSTED_ORIGINS') else ['https://korban.duckdns.org', 'https://tmkorban.duckdns.org']
 
 # Security settings
 SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'true').lower() == 'true'

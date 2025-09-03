@@ -2,7 +2,7 @@
 {% extends 'base/base.html' %}
 
 {% block title %}
-    Agregar Gerente - {{ equipo.nombre }} - Django CRM
+    Agregar Miembro - {{ unit.name }} - Korban
 {% endblock %}
 
 {% block header %}
@@ -15,7 +15,7 @@
     <nav class="flex mb-6" aria-label="Breadcrumb">
         <ol class="inline-flex items-center space-x-1 md:space-x-3">
             <li class="inline-flex items-center">
-                <a href="{% url 'sales:equipos_list' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                <a href="{% url 'sales_team_management:equipos_list' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
                     <i class="fas fa-users mr-2"></i>
                     Equipos de Venta
                 </a>
@@ -23,8 +23,8 @@
             <li>
                 <div class="flex items-center">
                     <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
-                    <a href="{% url 'sales:equipos_detail' equipo.pk %}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
-                        {{ equipo.nombre }}
+                    <a href="{% url 'sales_team_management:equipo_detail' unit.pk %}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
+                        {{ unit.name }}
                     </a>
                 </div>
             </li>
@@ -42,8 +42,8 @@
         <div class="flex items-center">
             <i class="fas fa-users text-blue-600 text-xl mr-3"></i>
             <div>
-                <h3 class="text-lg font-semibold text-blue-900">{{ equipo.nombre }}</h3>
-                <p class="text-sm text-blue-700">{{ equipo.descripcion|default:"Sin descripción" }}</p>
+                <h3 class="text-lg font-semibold text-blue-900">{{ unit.name }}</h3>
+                <p class="text-sm text-blue-700">{{ unit.description|default:"Sin descripción" }}</p>
             </div>
         </div>
     </div>
@@ -145,7 +145,7 @@
 
             <!-- Botones de acción -->
             <div class="mt-8 flex items-center justify-between pt-6 border-t border-gray-200">
-                <a href="{% url 'sales:jerarquia_list' %}" 
+                <a href="{% url 'sales_team_management:jerarquia_list' %}" 
                    class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors">
                     <i class="fas fa-times mr-2"></i>Cancelar
                 </a>

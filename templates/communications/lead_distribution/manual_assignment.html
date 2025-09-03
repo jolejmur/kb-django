@@ -1,0 +1,808 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Asignación Manual de Leads - Korban{% endblock %}
+
+{% block header %}Asignación Manual de Leads{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Variables CSS */
+:root {
+    --primary-color: #3B82F6;
+    --success-color: #10B981;
+    --warning-color: #F59E0B;
+    --error-color: #EF4444;
+    --gray-50: #F9FAFB;
+    --gray-100: #F3F4F6;
+    --gray-200: #E5E7EB;
+    --gray-300: #D1D5DB;
+    --gray-400: #9CA3AF;
+    --gray-500: #6B7280;
+    --gray-600: #4B5563;
+    --gray-700: #374151;
+    --gray-800: #1F2937;
+    --gray-900: #111827;
+}
+
+/* Layout principal */
+.main-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    padding: 1.5rem;
+}
+
+@media (min-width: 1280px) {
+    .main-container {
+        grid-template-columns: 2fr 1fr;
+    }
+}
+
+/* Cards de leads */
+.leads-section {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid var(--gray-200);
+    overflow: hidden;
+}
+
+.leads-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--gray-200);
+    background: var(--gray-50);
+}
+
+.leads-content {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.lead-item {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--gray-100);
+    transition: background-color 0.2s ease;
+    cursor: pointer;
+}
+
+.lead-item:hover {
+    background-color: var(--gray-50);
+}
+
+.lead-item.selected {
+    background-color: #EBF4FF;
+    border-left: 4px solid var(--primary-color);
+}
+
+.lead-header {
+    display: flex;
+    justify-content: between;
+    align-items: start;
+    margin-bottom: 0.5rem;
+}
+
+.lead-title {
+    font-weight: 600;
+    color: var(--gray-900);
+    margin: 0;
+}
+
+.lead-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--gray-600);
+}
+
+.lead-actions {
+    margin-top: 0.75rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: #2563EB;
+}
+
+.btn-secondary {
+    background: var(--gray-200);
+    color: var(--gray-700);
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: var(--gray-300);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Panel de asignación */
+.assignment-panel {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid var(--gray-200);
+    height: fit-content;
+    position: sticky;
+    top: 2rem;
+}
+
+.panel-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--gray-200);
+    background: var(--gray-50);
+}
+
+.panel-content {
+    padding: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    display: block;
+    font-weight: 500;
+    color: var(--gray-700);
+    margin-bottom: 0.5rem;
+}
+
+.form-select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--gray-300);
+    border-radius: 6px;
+    font-size: 0.875rem;
+    transition: border-color 0.2s ease;
+}
+
+.form-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.salesperson-option {
+    padding: 0.75rem;
+    border: 1px solid var(--gray-200);
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.salesperson-option:hover {
+    border-color: var(--primary-color);
+    background-color: var(--gray-50);
+}
+
+.salesperson-option.selected {
+    border-color: var(--primary-color);
+    background-color: #EBF4FF;
+}
+
+.salesperson-name {
+    font-weight: 600;
+    color: var(--gray-900);
+}
+
+.salesperson-position {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+}
+
+/* Estados y badges */
+.status-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.status-pending {
+    background: #FEF3C7;
+    color: #92400E;
+}
+
+.status-assigned {
+    background: #DBEAFE;
+    color: #1E40AF;
+}
+
+.status-overdue {
+    background: #FEE2E2;
+    color: #991B1B;
+}
+
+/* Mensaje de lead seleccionado */
+.selected-lead-info {
+    background: #F0F9FF;
+    border: 1px solid #0EA5E9;
+    border-radius: 6px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.selected-lead-info h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--gray-900);
+}
+
+/* Loading states */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.spinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid transparent;
+    border-top: 2px solid currentColor;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Mensajes de estado */
+.alert {
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+}
+
+.alert-success {
+    background: #D1FAE5;
+    color: #065F46;
+    border: 1px solid #34D399;
+}
+
+.alert-error {
+    background: #FEE2E2;
+    color: #991B1B;
+    border: 1px solid #F87171;
+}
+
+.alert-info {
+    background: #DBEAFE;
+    color: #1E40AF;
+    border: 1px solid #60A5FA;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .main-container {
+        padding: 1rem;
+        gap: 1rem;
+    }
+    
+    .lead-meta {
+        grid-template-columns: 1fr;
+    }
+    
+    .assignment-panel {
+        position: static;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto">
+    <!-- Header con estadísticas -->
+    <div class="mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 mb-2">Asignación Manual de Leads</h1>
+                <p class="text-gray-600">Asigna leads específicos a vendedores de tu equipo de ventas</p>
+            </div>
+            <div class="mt-4 sm:mt-0 flex gap-2">
+                <a href="{% url 'communications:lead_distribution_config' %}" class="btn btn-secondary">
+                    <i class="fas fa-cog"></i>
+                    Configuración
+                </a>
+                <a href="{% url 'communications:lead_assignments_history' %}" class="btn btn-secondary">
+                    <i class="fas fa-history"></i>
+                    Historial
+                </a>
+            </div>
+        </div>
+
+        <!-- Estadísticas rápidas -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div class="bg-white p-4 rounded-lg border border-gray-200">
+                <div class="text-2xl font-bold text-red-600">{{ total_unassigned }}</div>
+                <div class="text-sm text-gray-600">Sin Asignar</div>
+            </div>
+            <div class="bg-white p-4 rounded-lg border border-gray-200">
+                <div class="text-2xl font-bold text-yellow-600">{{ total_pending }}</div>
+                <div class="text-sm text-gray-600">Pendientes</div>
+            </div>
+            <div class="bg-white p-4 rounded-lg border border-gray-200">
+                <div class="text-2xl font-bold text-blue-600">{{ sales_units.count }}</div>
+                <div class="text-sm text-gray-600">Fuerzas de Venta</div>
+            </div>
+            <div class="bg-white p-4 rounded-lg border border-gray-200">
+                <div class="text-2xl font-bold text-green-600" id="assigned-today">0</div>
+                <div class="text-sm text-gray-600">Asignados Hoy</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grid principal -->
+    <div class="main-container">
+        <!-- Panel de leads -->
+        <div class="space-y-6">
+            <!-- Leads sin asignar -->
+            <div class="leads-section">
+                <div class="leads-header">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Leads Sin Asignar</h3>
+                    <p class="text-sm text-gray-600">{{ total_unassigned }} leads esperando asignación</p>
+                </div>
+                <div class="leads-content">
+                    {% for lead in unassigned_leads %}
+                    <div class="lead-item" data-lead-id="{{ lead.id }}" data-lead-type="unassigned">
+                        <div class="lead-header">
+                            <h4 class="lead-title">{{ lead.cliente.nombre_completo }}</h4>
+                            <span class="status-badge status-pending">Sin Asignar</span>
+                        </div>
+                        <div class="lead-meta">
+                            <span><i class="fas fa-phone"></i> {{ lead.cliente.numero_whatsapp }}</span>
+                            <span><i class="fas fa-comment"></i> {{ lead.estado|capfirst }}</span>
+                            <span><i class="fas fa-clock"></i> {{ lead.fecha_primera_interaccion|timesince }} ago</span>
+                            <span><i class="fas fa-tag"></i> {{ lead.get_prioridad_display }}</span>
+                        </div>
+                        <div class="text-sm text-gray-600 mt-2">
+                            <strong>Interés:</strong> {{ lead.interes_inicial|truncatechars:100|default:"Sin descripción" }}
+                        </div>
+                        <div class="lead-actions">
+                            <button class="btn btn-primary btn-sm select-lead-btn">
+                                <i class="fas fa-user-plus"></i>
+                                Seleccionar para Asignar
+                            </button>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="p-8 text-center text-gray-500">
+                        <i class="fas fa-check-circle text-4xl mb-4"></i>
+                        <p>¡Excelente! No hay leads sin asignar.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Leads pendientes -->
+            {% if pending_leads %}
+            <div class="leads-section">
+                <div class="leads-header">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Leads Pendientes de Aceptación</h3>
+                    <p class="text-sm text-gray-600">{{ total_pending }} leads asignados hace más de 2 horas</p>
+                </div>
+                <div class="leads-content">
+                    {% for lead in pending_leads %}
+                    {% with assignment=lead.assignments.first %}
+                    <div class="lead-item" data-lead-id="{{ lead.id }}" data-lead-type="pending">
+                        <div class="lead-header">
+                            <h4 class="lead-title">{{ lead.cliente.nombre_completo }}</h4>
+                            <span class="status-badge status-overdue">Vencido</span>
+                        </div>
+                        <div class="lead-meta">
+                            <span><i class="fas fa-phone"></i> {{ lead.cliente.numero_whatsapp }}</span>
+                            <span><i class="fas fa-comment"></i> {{ lead.estado|capfirst }}</span>
+                            <span><i class="fas fa-users"></i> {{ assignment.organizational_unit.name }}</span>
+                            <span><i class="fas fa-clock"></i> {{ assignment.assigned_date|timesince }} ago</span>
+                        </div>
+                        <div class="text-sm text-gray-600 mt-2">
+                            <strong>Asignado a:</strong> {{ assignment.organizational_unit.name }}
+                            {% if assignment.assigned_to_user %}
+                                → {{ assignment.assigned_to_user.get_full_name }}
+                            {% endif %}
+                        </div>
+                        <div class="lead-actions">
+                            <button class="btn btn-primary btn-sm select-lead-btn">
+                                <i class="fas fa-user-edit"></i>
+                                Reasignar
+                            </button>
+                        </div>
+                    </div>
+                    {% endwith %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Panel de asignación -->
+        <div class="assignment-panel">
+            <div class="panel-header">
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Asignar Lead</h3>
+                <p class="text-sm text-gray-600">Selecciona un lead y luego un vendedor</p>
+            </div>
+            <div class="panel-content">
+                <div id="no-selection" class="text-center text-gray-500 py-8">
+                    <i class="fas fa-mouse-pointer text-4xl mb-4"></i>
+                    <p>Selecciona un lead para comenzar la asignación</p>
+                </div>
+
+                <div id="assignment-form" style="display: none;">
+                    <!-- Info del lead seleccionado -->
+                    <div class="selected-lead-info">
+                        <h4 id="selected-lead-title"></h4>
+                        <div id="selected-lead-details" class="text-sm text-gray-600"></div>
+                    </div>
+
+                    <!-- Selección de fuerza de venta -->
+                    <div class="form-group">
+                        <label class="form-label">Fuerza de Venta</label>
+                        <select id="unit-select" class="form-select">
+                            <option value="">Selecciona una fuerza de venta...</option>
+                            {% for unit in sales_units %}
+                            <option value="{{ unit.id }}">{{ unit.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Lista de vendedores -->
+                    <div class="form-group">
+                        <label class="form-label">Vendedor</label>
+                        <div id="salespeople-list" class="space-y-2">
+                            <div class="text-sm text-gray-500 text-center py-4">
+                                Selecciona primero una fuerza de venta
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notas adicionales -->
+                    <div class="form-group">
+                        <label class="form-label">Notas (Opcional)</label>
+                        <textarea id="assignment-notes" class="form-select" rows="3" 
+                                  placeholder="Notas adicionales para la asignación..."></textarea>
+                    </div>
+
+                    <!-- Botones de acción -->
+                    <div class="flex gap-2">
+                        <button id="assign-btn" class="btn btn-primary flex-1" disabled>
+                            <i class="fas fa-user-plus"></i>
+                            Asignar Lead
+                        </button>
+                        <button id="cancel-btn" class="btn btn-secondary">
+                            <i class="fas fa-times"></i>
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mensajes -->
+                <div id="messages-container"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast notifications -->
+<div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Variables globales
+let selectedLead = null;
+let selectedSalesperson = null;
+let isLoading = false;
+
+// DOM Ready
+document.addEventListener('DOMContentLoaded', function() {
+    initializeEventListeners();
+});
+
+function initializeEventListeners() {
+    // Selección de leads
+    document.querySelectorAll('.select-lead-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const leadItem = this.closest('.lead-item');
+            selectLead(leadItem);
+        });
+    });
+
+    // Cambio de unidad organizacional
+    document.getElementById('unit-select').addEventListener('change', function() {
+        loadSalespeopleForUnit(this.value);
+    });
+
+    // Botón de asignación
+    document.getElementById('assign-btn').addEventListener('click', assignLead);
+    
+    // Botón de cancelar
+    document.getElementById('cancel-btn').addEventListener('click', clearSelection);
+}
+
+function selectLead(leadElement) {
+    // Limpiar selecciones anteriores
+    document.querySelectorAll('.lead-item').forEach(item => {
+        item.classList.remove('selected');
+    });
+    
+    // Marcar como seleccionado
+    leadElement.classList.add('selected');
+    
+    // Obtener datos del lead
+    selectedLead = {
+        id: leadElement.dataset.leadId,
+        type: leadElement.dataset.leadType,
+        title: leadElement.querySelector('.lead-title').textContent,
+        phone: leadElement.querySelector('.fa-phone').parentElement.textContent.trim(),
+        property: leadElement.querySelector('.fa-building').parentElement.textContent.trim()
+    };
+    
+    // Mostrar formulario
+    showAssignmentForm();
+}
+
+function showAssignmentForm() {
+    document.getElementById('no-selection').style.display = 'none';
+    document.getElementById('assignment-form').style.display = 'block';
+    
+    // Rellenar información del lead
+    document.getElementById('selected-lead-title').textContent = selectedLead.title;
+    document.getElementById('selected-lead-details').innerHTML = `
+        <div class="grid grid-cols-1 gap-1">
+            <span><i class="fas fa-phone text-gray-400"></i> ${selectedLead.phone}</span>
+            <span><i class="fas fa-building text-gray-400"></i> ${selectedLead.property}</span>
+        </div>
+    `;
+}
+
+async function loadSalespeopleForUnit(unitId) {
+    if (!unitId) {
+        document.getElementById('salespeople-list').innerHTML = `
+            <div class="text-sm text-gray-500 text-center py-4">
+                Selecciona primero una fuerza de venta
+            </div>
+        `;
+        updateAssignButtonState();
+        return;
+    }
+    
+    try {
+        document.getElementById('salespeople-list').innerHTML = `
+            <div class="text-sm text-gray-500 text-center py-4">
+                <div class="spinner mr-2"></div>
+                Cargando vendedores...
+            </div>
+        `;
+        
+        const response = await fetch(`/marketing/api/sales-team/${unitId}/members/`);
+        const data = await response.json();
+        
+        if (data.success) {
+            renderSalespeople(data.salespeople);
+        } else {
+            throw new Error(data.error || 'Error al cargar vendedores');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showMessage('Error al cargar vendedores: ' + error.message, 'error');
+        document.getElementById('salespeople-list').innerHTML = `
+            <div class="text-sm text-red-600 text-center py-4">
+                Error al cargar vendedores
+            </div>
+        `;
+    }
+}
+
+function renderSalespeople(salespeople) {
+    const container = document.getElementById('salespeople-list');
+    
+    if (salespeople.length === 0) {
+        container.innerHTML = `
+            <div class="text-sm text-gray-500 text-center py-4">
+                No hay vendedores disponibles en esta fuerza de venta
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = salespeople.map(person => `
+        <div class="salesperson-option" data-salesperson-id="${person.id}" data-salesperson-name="${person.name}">
+            <div class="salesperson-name">${person.name}</div>
+            <div class="salesperson-position">${person.position}</div>
+            <div class="text-xs text-gray-500">${person.email}</div>
+        </div>
+    `).join('');
+    
+    // Añadir event listeners
+    container.querySelectorAll('.salesperson-option').forEach(option => {
+        option.addEventListener('click', function() {
+            selectSalesperson(this);
+        });
+    });
+}
+
+function selectSalesperson(element) {
+    // Limpiar selecciones anteriores
+    document.querySelectorAll('.salesperson-option').forEach(opt => {
+        opt.classList.remove('selected');
+    });
+    
+    // Marcar como seleccionado
+    element.classList.add('selected');
+    
+    selectedSalesperson = {
+        id: element.dataset.salespersonId,
+        name: element.dataset.salespersonName
+    };
+    
+    updateAssignButtonState();
+}
+
+function updateAssignButtonState() {
+    const assignBtn = document.getElementById('assign-btn');
+    const canAssign = selectedLead && selectedSalesperson && !isLoading;
+    
+    assignBtn.disabled = !canAssign;
+    assignBtn.textContent = isLoading ? 'Asignando...' : 'Asignar Lead';
+}
+
+async function assignLead() {
+    if (!selectedLead || !selectedSalesperson || isLoading) return;
+    
+    isLoading = true;
+    updateAssignButtonState();
+    
+    try {
+        const notes = document.getElementById('assignment-notes').value;
+        
+        const response = await fetch('/marketing/api/lead-distribution/assign/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                lead_id: selectedLead.id,
+                salesperson_id: selectedSalesperson.id,
+                assignment_type: 'MANUAL',
+                notes: notes
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast(data.message, 'success');
+            
+            // Remover el lead de la lista
+            const leadElement = document.querySelector(`[data-lead-id="${selectedLead.id}"]`);
+            if (leadElement) {
+                leadElement.remove();
+            }
+            
+            // Actualizar contador
+            updateAssignedTodayCounter();
+            
+            // Limpiar selección
+            clearSelection();
+            
+        } else {
+            throw new Error(data.error || 'Error al asignar lead');
+        }
+        
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('Error al asignar lead: ' + error.message, 'error');
+    } finally {
+        isLoading = false;
+        updateAssignButtonState();
+    }
+}
+
+function clearSelection() {
+    selectedLead = null;
+    selectedSalesperson = null;
+    
+    // Limpiar UI
+    document.querySelectorAll('.lead-item').forEach(item => {
+        item.classList.remove('selected');
+    });
+    
+    document.getElementById('assignment-form').style.display = 'none';
+    document.getElementById('no-selection').style.display = 'block';
+    
+    // Reset form
+    document.getElementById('unit-select').value = '';
+    document.getElementById('assignment-notes').value = '';
+    document.getElementById('salespeople-list').innerHTML = `
+        <div class="text-sm text-gray-500 text-center py-4">
+            Selecciona primero una fuerza de venta
+        </div>
+    `;
+    
+    updateAssignButtonState();
+}
+
+function updateAssignedTodayCounter() {
+    const counter = document.getElementById('assigned-today');
+    const current = parseInt(counter.textContent);
+    counter.textContent = current + 1;
+}
+
+function showMessage(message, type) {
+    const container = document.getElementById('messages-container');
+    const alertClass = type === 'error' ? 'alert-error' : 
+                     type === 'success' ? 'alert-success' : 'alert-info';
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `alert ${alertClass}`;
+    messageDiv.textContent = message;
+    
+    container.appendChild(messageDiv);
+    
+    setTimeout(() => {
+        messageDiv.remove();
+    }, 5000);
+}
+
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    
+    const bgColor = {
+        'success': 'bg-green-500',
+        'error': 'bg-red-500', 
+        'warning': 'bg-yellow-500',
+        'info': 'bg-blue-500'
+    }[type] || 'bg-gray-500';
+    
+    toast.className = `${bgColor} text-white p-4 rounded-lg shadow-lg transform transition-transform duration-300 translate-x-full`;
+    toast.innerHTML = `
+        <div class="flex items-center justify-between">
+            <span>${message}</span>
+            <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-white hover:text-gray-200">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    
+    container.appendChild(toast);
+    
+    // Animar entrada
+    setTimeout(() => toast.classList.remove('translate-x-full'), 100);
+    
+    // Auto eliminar después de 5 segundos
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.classList.add('translate-x-full');
+            setTimeout(() => toast.remove(), 300);
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

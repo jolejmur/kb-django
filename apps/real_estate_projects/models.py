@@ -92,8 +92,8 @@ class Proyecto(models.Model):
     )
 
     # Equipos de venta asignados (relación con la otra app)
-    equipos_venta = models.ManyToManyField(
-        'sales_team_management.EquipoVenta',
+    organizational_units = models.ManyToManyField(
+        'sales_team_management.OrganizationalUnit',
         through='AsignacionEquipoProyecto',
         related_name='proyectos'
     )
@@ -158,17 +158,17 @@ class AsignacionEquipoProyecto(models.Model):
     Permite tener información adicional sobre la asignación.
     """
     proyecto = models.ForeignKey(Proyecto, on_delete=models.CASCADE)
-    equipo_venta = models.ForeignKey('sales_team_management.EquipoVenta', on_delete=models.CASCADE)
+    organizational_unit = models.ForeignKey('sales_team_management.OrganizationalUnit', on_delete=models.CASCADE)
     fecha_asignacion = models.DateTimeField(auto_now_add=True)
     activo = models.BooleanField(default=True)
 
     class Meta:
         verbose_name = 'Asignación Equipo-Proyecto'
         verbose_name_plural = 'Asignaciones Equipo-Proyecto'
-        unique_together = ['proyecto', 'equipo_venta']
+        unique_together = ['proyecto', 'organizational_unit']
 
     def __str__(self):
-        return f"{self.equipo_venta.nombre} - {self.proyecto.nombre}"
+        return f"{self.organizational_unit.name} - {self.proyecto.nombre}"
 
 
 # ============================================================

@@ -1,4 +1,118 @@
-<button class="relative p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
-    <i class="fas fa-bell text-lg"></i>
-    <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">3</span>
+<button id="notification-bell" class="relative p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors" onclick="redirectToChat()">
+    <i class="fas fa-bell text-lg" id="bell-icon"></i>
+    <span id="notification-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center" style="display: none;">0</span>
 </button>
+
+<!-- Audio para notificaciones -->
+<audio id="notification-sound" preload="auto">
+    <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBDN+zPLNeSsFJIDL8dtePAkXarpxMRuODQ=" type="audio/wav">
+    <source src="data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAAC9iaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURklUAAAABgAAADI5MjMAAAAsUElDVAAAABMAAAD/////////AAAASW1hZ2VBIUVHTQAAQU5NEUQkAAAAAALAAAAAAAAAVFJDS01AAAAL" type="audio/mpeg">
+</audio>
+
+<script>
+// Variables globales para notificaciones
+let notificationCount = 0;
+let lastNotificationTime = 0;
+const NOTIFICATION_SOUND_COOLDOWN = 2000; // 2 segundos entre sonidos
+
+// Función para redirigir al chat
+function redirectToChat() {
+    window.location.href = '/marketing/chat/';
+}
+
+// Función para reproducir sonido de notificación
+function playNotificationSound() {
+    try {
+        const now = Date.now();
+        if (now - lastNotificationTime < NOTIFICATION_SOUND_COOLDOWN) {
+            console.log('🔇 Sonido de notificación en cooldown');
+            return;
+        }
+        
+        const audio = document.getElementById('notification-sound');
+        if (audio) {
+            audio.currentTime = 0;
+            audio.volume = 0.5;
+            audio.play().catch(error => {
+                console.log('🔇 No se pudo reproducir el sonido de notificación:', error);
+                // Fallback: vibración si está disponible
+                if ('vibrate' in navigator) {
+                    navigator.vibrate([200, 100, 200]);
+                }
+            });
+            lastNotificationTime = now;
+            console.log('🔊 Sonido de notificación reproducido');
+        }
+    } catch (error) {
+        console.error('Error reproduciendo sonido:', error);
+    }
+}
+
+// Función para actualizar el contador de notificaciones
+function updateNotificationCount(count) {
+    const countElement = document.getElementById('notification-count');
+    const bellIcon = document.getElementById('bell-icon');
+    
+    if (countElement) {
+        if (count > 0) {
+            countElement.textContent = count > 99 ? '99+' : count.toString();
+            countElement.style.display = 'flex';
+            
+            // Animar la campana
+            if (bellIcon) {
+                bellIcon.classList.add('animate-pulse');
+                setTimeout(() => {
+                    bellIcon.classList.remove('animate-pulse');
+                }, 2000);
+            }
+            
+            // Reproducir sonido solo si el contador aumentó
+            if (count > notificationCount) {
+                playNotificationSound();
+            }
+        } else {
+            countElement.style.display = 'none';
+            if (bellIcon) {
+                bellIcon.classList.remove('animate-pulse');
+            }
+        }
+        notificationCount = count;
+    }
+}
+
+// Función para incrementar notificaciones (llamada desde otros lugares)
+function incrementNotificationCount() {
+    updateNotificationCount(notificationCount + 1);
+}
+
+// Función para resetear notificaciones cuando el usuario ve el chat
+function resetNotificationCount() {
+    updateNotificationCount(0);
+}
+
+// Escuchar mensajes desde WebSocket o polling
+window.addEventListener('new-chat-message', function(event) {
+    const messageData = event.detail;
+    console.log('🔔 Nueva notificación de chat:', messageData);
+    
+    // Solo notificar si no estamos en la página de chat
+    if (!window.location.pathname.includes('/marketing/chat/')) {
+        incrementNotificationCount();
+    }
+});
+
+// Función para manejar nuevos mensajes (se puede llamar desde cualquier parte)
+function handleNewChatNotification(messageData) {
+    // Disparar evento personalizado
+    const event = new CustomEvent('new-chat-message', { 
+        detail: messageData 
+    });
+    window.dispatchEvent(event);
+}
+
+// Hacer las funciones disponibles globalmente
+window.handleNewChatNotification = handleNewChatNotification;
+window.updateNotificationCount = updateNotificationCount;
+window.resetNotificationCount = resetNotificationCount;
+window.incrementNotificationCount = incrementNotificationCount;
+</script>

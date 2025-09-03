@@ -1,0 +1,171 @@
+<!-- templates/sales_team_management/public/success.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro Completado - Korban</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,line-clamp"></script>
+</head>
+<body class="bg-gradient-to-br from-green-50 via-blue-50 to-indigo-50 min-h-screen">
+    <div class="min-h-screen flex items-center justify-center px-4">
+        <div class="max-w-2xl w-full">
+            <!-- Icono de éxito -->
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
+                    <i class="fas fa-check-circle text-3xl text-green-600"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">¡Registro Completado!</h1>
+                <p class="text-lg text-gray-600">Tu solicitud ha sido procesada exitosamente</p>
+            </div>
+
+            <!-- Información del registro -->
+            <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden mb-8">
+                <div class="px-6 py-4 bg-gradient-to-r from-green-600 to-blue-600 text-white">
+                    <h2 class="text-xl font-semibold">Información de tu Registro</h2>
+                </div>
+
+                <div class="p-6 space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Nombre Completo</label>
+                            <p class="text-lg font-semibold text-gray-900">{{ user.get_full_name }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Usuario (generado automáticamente)</label>
+                            <p class="text-lg font-semibold text-gray-900">{{ user.username }}</p>
+                            <p class="text-xs text-gray-500">Se generó como: primera letra del nombre + primer apellido</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Email</label>
+                            <p class="text-lg font-semibold text-gray-900">{{ user.email }}</p>
+                        </div>
+                        {% if membership %}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Equipo</label>
+                            <p class="text-lg font-semibold text-gray-900">{{ membership.organizational_unit.name }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Rol Inicial Asignado</label>
+                            <p class="text-lg font-semibold text-gray-900">{{ membership.position_type.name }}</p>
+                            <p class="text-xs text-gray-500">Tu supervisor podrá ajustar tu rol según sea necesario</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Estado actual -->
+            <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden mb-8">
+                <div class="px-6 py-4 bg-yellow-50 border-b border-yellow-200">
+                    <div class="flex items-center">
+                        <i class="fas fa-clock text-yellow-600 text-xl mr-3"></i>
+                        <div>
+                            <h3 class="text-lg font-semibold text-yellow-800">Pendiente de Aprobación</h3>
+                            <p class="text-sm text-yellow-700">Tu cuenta está siendo revisada</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-6">
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <div class="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full mr-4 mt-0.5">
+                                <i class="fas fa-check text-green-600 text-sm"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-900">Registro Completado</h4>
+                                <p class="text-sm text-gray-600">Tu información ha sido guardada correctamente</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start">
+                            <div class="flex items-center justify-center w-8 h-8 bg-yellow-100 rounded-full mr-4 mt-0.5">
+                                <i class="fas fa-hourglass-half text-yellow-600 text-sm"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-900">Revisión por Supervisor</h4>
+                                <p class="text-sm text-gray-600">Un supervisor revisará tu solicitud y activará tu cuenta</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start">
+                            <div class="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full mr-4 mt-0.5">
+                                <i class="fas fa-envelope text-gray-400 text-sm"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-500">Notificación de Activación</h4>
+                                <p class="text-sm text-gray-400">Recibirás un email cuando tu cuenta esté lista</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Información adicional -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+                <div class="flex items-start">
+                    <i class="fas fa-info-circle text-blue-600 text-xl mr-3 mt-0.5"></i>
+                    <div>
+                        <h3 class="font-semibold text-blue-900 mb-2">¿Qué pasa ahora?</h3>
+                        <ul class="text-sm text-blue-800 space-y-2">
+                            <li class="flex items-start">
+                                <span class="inline-block w-2 h-2 bg-blue-600 rounded-full mr-2 mt-2"></span>
+                                Tu cuenta ha sido creada pero está temporalmente inactiva
+                            </li>
+                            <li class="flex items-start">
+                                <span class="inline-block w-2 h-2 bg-blue-600 rounded-full mr-2 mt-2"></span>
+                                Un supervisor del equipo revisará tu información
+                            </li>
+                            <li class="flex items-start">
+                                <span class="inline-block w-2 h-2 bg-blue-600 rounded-full mr-2 mt-2"></span>
+                                Recibirás una notificación por email cuando tu cuenta esté activa
+                            </li>
+                            <li class="flex items-start">
+                                <span class="inline-block w-2 h-2 bg-blue-600 rounded-full mr-2 mt-2"></span>
+                                Podrás iniciar sesión usando tu usuario y contraseña
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contacto -->
+            <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                <div class="p-6 text-center">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">¿Necesitas ayuda?</h3>
+                    <p class="text-gray-600 mb-4">
+                        Si tienes alguna pregunta o no recibes la notificación de activación en las próximas 24-48 horas,
+                        no dudes en contactar al equipo.
+                    </p>
+                    <div class="flex items-center justify-center text-sm text-gray-500">
+                        <i class="fas fa-envelope mr-2"></i>
+                        <span>Revisa tu bandeja de entrada y spam periódicamente</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botón para cerrar -->
+            <div class="text-center mt-8">
+                <button onclick="window.close()" 
+                        class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                    <i class="fas fa-times mr-2"></i>
+                    Cerrar Ventana
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+    // Auto cerrar ventana después de 60 segundos si fue abierta como popup
+    if (window.opener) {
+        setTimeout(() => {
+            window.close();
+        }, 60000);
+    }
+    </script>
+</body>
+</html>

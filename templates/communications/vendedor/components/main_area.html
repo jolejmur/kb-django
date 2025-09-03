@@ -1,0 +1,108 @@
+{% comment %}
+    Área principal del chat para supervisión
+    Incluye: Header del chat, área de mensajes, input de mensajes
+{% endcomment %}
+<div class="chat-main" id="chatMain">
+    <!-- Chat Header -->
+    <div class="chat-header" id="chatHeader" style="display: none;">
+        <button class="mobile-back-btn" id="mobileBackBtn">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <div class="chat-header-avatar" id="chatAvatar">
+            <i class="fas fa-user"></i>
+        </div>
+        <div class="chat-header-info">
+            <h3 id="chatTitle">Cliente</h3>
+            <p id="chatSubtitle">En línea</p>
+        </div>
+    </div>
+
+    <!-- Messages -->
+    <div class="chat-messages" id="chatMessages">
+        <div class="empty-chat">
+            <i class="fas fa-comment-dots"></i>
+            <h3>Selecciona una conversación</h3>
+            <p>Elige un cliente de la lista para comenzar a chatear</p>
+            <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin-top: 20px; text-align: left; max-width: 400px;">
+                <p style="margin: 0 0 8px 0; font-weight: 600; color: #333;">💡 ¿Cómo funciona?</p>
+                <ul style="margin: 0; padding-left: 20px; color: #666; font-size: 14px; line-height: 1.6;">
+                    <li>Solo ves conversaciones de tus leads asignados</li>
+                    <li>Los mensajes llegan automáticamente vía WhatsApp</li>
+                    <li>Puedes responder en tiempo real</li>
+                    <li>Las conversaciones se actualizan automáticamente</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Input -->
+    <div class="chat-input-container" id="chatInputContainer">
+        <div class="chat-input-wrapper">
+            <!-- Botón para adjuntar archivos con dropdown -->
+            <div class="attach-dropdown">
+                <button class="attach-btn" id="attachBtn" type="button">
+                    <i class="fas fa-paperclip"></i>
+                </button>
+                
+                <!-- Dropdown menu para móviles -->
+                <div class="attach-menu" id="attachMenu" style="display: none;">
+                    <button class="attach-option" onclick="selectFileType('image')">
+                        <i class="fas fa-image"></i> Imagen
+                    </button>
+                    <button class="attach-option" onclick="selectFileType('video')">
+                        <i class="fas fa-video"></i> Video  
+                    </button>
+                    <button class="attach-option" onclick="selectFileType('audio')">
+                        <i class="fas fa-microphone"></i> Audio
+                    </button>
+                    <button class="attach-option" onclick="selectFileType('document')">
+                        <i class="fas fa-file-pdf"></i> Documento
+                    </button>
+                    <button class="attach-option" onclick="selectFileType('all')">
+                        <i class="fas fa-folder-open"></i> Todos los archivos
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Inputs de archivo especializados -->
+            <input type="file" id="fileInputImage" accept="image/*" style="display: none;">
+            <input type="file" id="fileInputVideo" accept="video/*" style="display: none;">
+            <input type="file" id="fileInputAudio" accept="audio/*,audio/mpeg,audio/mp3,audio/mp4,audio/m4a,audio/x-m4a,audio/wav,audio/ogg,audio/aac" style="display: none;">
+            <input type="file" id="fileInputDocument" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display: none;">
+            <input type="file" id="fileInputAll" accept="*/*" style="display: none;">
+            
+            <textarea 
+                class="chat-input" 
+                id="messageInput" 
+                placeholder="Escribe un mensaje..."
+                rows="1"
+            ></textarea>
+            <button class="chat-send-btn" id="sendBtn">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+        
+        <!-- Área para vista previa de archivos -->
+        <div class="file-preview" id="filePreview" style="display: none;">
+            <div class="preview-header" style="margin-bottom: 12px; color: #1976d2; font-weight: 600; font-size: 14px;">
+                ✅ Archivo seleccionado y listo para enviar:
+            </div>
+            <div class="preview-content">
+                <div class="preview-info">
+                    <span class="file-name"></span>
+                    <span class="file-size"></span>
+                </div>
+                <button class="remove-file" onclick="removeFilePreview()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <input type="text" class="caption-input" placeholder="Agregar descripción opcional..." id="captionInput">
+            <div class="preview-actions">
+                <button class="send-file-btn" onclick="sendSelectedFile()">
+                    <i class="fas fa-paper-plane"></i>
+                    Enviar Archivo
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

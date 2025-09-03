@@ -1,35 +1,27 @@
-<!-- templates/sales/jerarquia/edit.html -->
+<!-- templates/sales_team_management/jerarquia/edit.html -->
 {% extends 'base/base.html' %}
 {% load static %}
 
-{% block title %}Editar {{ rol_display }} - Django CRM{% endblock %}
+{% block title %}Editar Relación Jerárquica - Korban{% endblock %}
 
-{% block extra_css %}
-<!-- Leaflet CSS -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
-      crossorigin="" />
-<link rel="stylesheet" href="{% static 'css/user-search-widget.css' %}">
-{% endblock %}
-
-{% block header %}Editar {{ rol_display }}{% endblock %}
+{% block header %}Editar Relación Jerárquica{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto">
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
     <!-- Breadcrumb -->
     <nav class="flex mb-6" aria-label="Breadcrumb">
         <ol class="inline-flex items-center space-x-1 md:space-x-3">
             <li class="inline-flex items-center">
-                <a href="{% url 'sales:jerarquia_list' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                <a href="{% url 'sales_team_management:jerarquia_list' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
                     <i class="fas fa-sitemap mr-2"></i>
-                    Jerarquía de Equipos
+                    Jerarquía Organizacional
                 </a>
             </li>
             <li>
                 <div class="flex items-center">
                     <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
-                    <a href="{% url 'sales:jerarquia_member_detail' miembro.id rol %}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
-                        {{ miembro.usuario.get_full_name|default:miembro.usuario.username }}
+                    <a href="{% url 'sales_team_management:jerarquia_detail' form.instance.pk %}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
+                        Detalle de Relación
                     </a>
                 </div>
             </li>
@@ -46,53 +38,86 @@
         <div class="px-6 py-4 border-b border-gray-200">
             <h2 class="text-lg font-semibold text-gray-900">
                 <i class="fas fa-edit mr-2 text-yellow-600"></i>
-                Editar {{ rol_display }}
+                Editar Relación Jerárquica
             </h2>
             <p class="text-sm text-gray-600 mt-1">
-                Modifica la información del miembro, incluyendo cambio de equipo si es necesario
+                Modifica los detalles de la relación jerárquica entre supervisor y subordinado
             </p>
         </div>
 
         <!-- Información actual -->
-        <div class="px-6 py-4 {% if not miembro.activo %}bg-red-50{% else %}bg-blue-50{% endif %} border-b border-gray-200">
-            <div class="flex items-center">
-                <div class="h-12 w-12 rounded-full flex items-center justify-center
-                    {% if rol == 'gerente' %}bg-blue-100{% elif rol == 'jefe' %}bg-green-100{% elif rol == 'team_leader' %}bg-yellow-100{% else %}bg-purple-100{% endif %}">
-                    {% if rol == 'gerente' %}
-                        <i class="fas fa-user-tie text-blue-600"></i>
-                    {% elif rol == 'jefe' %}
-                        <i class="fas fa-user-cog text-green-600"></i>
-                    {% elif rol == 'team_leader' %}
-                        <i class="fas fa-users text-yellow-600"></i>
-                    {% else %}
-                        <i class="fas fa-user text-purple-600"></i>
-                    {% endif %}
+        <div class="px-6 py-4 {% if not form.instance.is_active %}bg-red-50{% else %}bg-blue-50{% endif %} border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-6">
+                    <!-- Supervisor -->
+                    <div class="flex items-center">
+                        <div class="h-12 w-12 rounded-full flex items-center justify-center
+                            {% if form.instance.supervisor_membership.position_type.code == 'MANAGER' %}bg-blue-100{% elif form.instance.supervisor_membership.position_type.code == 'SUPERVISOR' %}bg-green-100{% elif form.instance.supervisor_membership.position_type.code == 'TEAM_LEAD' %}bg-yellow-100{% else %}bg-purple-100{% endif %}">
+                            {% if form.instance.supervisor_membership.position_type.code == 'MANAGER' %}
+                                <i class="fas fa-user-tie text-blue-600"></i>
+                            {% elif form.instance.supervisor_membership.position_type.code == 'SUPERVISOR' %}
+                                <i class="fas fa-user-cog text-green-600"></i>
+                            {% elif form.instance.supervisor_membership.position_type.code == 'TEAM_LEAD' %}
+                                <i class="fas fa-users text-yellow-600"></i>
+                            {% else %}
+                                <i class="fas fa-handshake text-purple-600"></i>
+                            {% endif %}
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-gray-900">
+                                {{ form.instance.supervisor_membership.user.get_full_name|default:form.instance.supervisor_membership.user.username }}
+                            </h3>
+                            <p class="text-xs text-gray-600">{{ form.instance.supervisor_membership.position_type.name }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Flecha -->
+                    <div class="flex items-center">
+                        <i class="fas fa-arrow-right text-gray-400"></i>
+                    </div>
+
+                    <!-- Subordinado -->
+                    <div class="flex items-center">
+                        <div class="h-12 w-12 rounded-full flex items-center justify-center
+                            {% if form.instance.subordinate_membership.position_type.code == 'MANAGER' %}bg-blue-100{% elif form.instance.subordinate_membership.position_type.code == 'SUPERVISOR' %}bg-green-100{% elif form.instance.subordinate_membership.position_type.code == 'TEAM_LEAD' %}bg-yellow-100{% else %}bg-purple-100{% endif %}">
+                            {% if form.instance.subordinate_membership.position_type.code == 'MANAGER' %}
+                                <i class="fas fa-user-tie text-blue-600"></i>
+                            {% elif form.instance.subordinate_membership.position_type.code == 'SUPERVISOR' %}
+                                <i class="fas fa-user-cog text-green-600"></i>
+                            {% elif form.instance.subordinate_membership.position_type.code == 'TEAM_LEAD' %}
+                                <i class="fas fa-users text-yellow-600"></i>
+                            {% else %}
+                                <i class="fas fa-handshake text-purple-600"></i>
+                            {% endif %}
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-gray-900">
+                                {{ form.instance.subordinate_membership.user.get_full_name|default:form.instance.subordinate_membership.user.username }}
+                            </h3>
+                            <p class="text-xs text-gray-600">{{ form.instance.subordinate_membership.position_type.name }}</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="ml-4">
-                    <h3 class="text-lg font-medium text-gray-900">
-                        {{ miembro.usuario.get_full_name|default:miembro.usuario.username }}
-                        {% if not miembro.activo %}
-                            <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                <i class="fas fa-times-circle mr-1"></i>
-                                Inactivo
-                            </span>
-                        {% endif %}
-                    </h3>
-                    <p class="text-sm text-gray-600">{{ miembro.usuario.email }}</p>
-                    <p class="text-sm {% if not miembro.activo %}text-red-600{% else %}text-blue-600{% endif %}">
-                        Equipo actual: {{ equipo_actual.nombre }}
-                    </p>
-                </div>
+
+                {% if not form.instance.is_active %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                        <i class="fas fa-times-circle mr-1"></i>
+                        Inactiva
+                    </span>
+                {% else %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <i class="fas fa-check-circle mr-1"></i>
+                        Activa
+                    </span>
+                {% endif %}
             </div>
-            {% if not miembro.activo %}
+
+            {% if not form.instance.is_active %}
                 <div class="mt-3 p-3 bg-red-100 rounded-lg border border-red-200">
                     <p class="text-sm text-red-800">
                         <i class="fas fa-info-circle mr-1"></i>
-                        <strong>Usuario inactivo:</strong> Puedes reactivarlo en el mismo rol activando el checkbox "Activo"
-                        {% if rol == 'gerente' %}
-                            (se verificará si el equipo ya tiene un gerente activo)
-                        {% endif %}
-                        o usar "Cambiar Rol" para asignar un rol diferente.
+                        <strong>Relación inactiva:</strong> Esta relación jerárquica está desactivada. 
+                        Puedes activarla marcando el checkbox "Activa" o eliminarla completamente.
                     </p>
                 </div>
             {% endif %}
@@ -101,266 +126,151 @@
         <form method="post" class="p-6" id="editForm">
             {% csrf_token %}
             
+            <!-- Mostrar errores generales -->
+            {% if form.non_field_errors %}
+                <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <div class="flex">
+                        <i class="fas fa-exclamation-circle text-red-400 mt-0.5 mr-2"></i>
+                        <div>
+                            <h3 class="text-sm font-medium text-red-800">Error en el formulario</h3>
+                            <ul class="mt-1 text-sm text-red-600">
+                                {% for error in form.non_field_errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Equipo -->
-                <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Equipo <span class="text-red-500">*</span>
-                    </label>
-                    <select name="equipo" id="equipo" required onchange="loadSupervisors()"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        {% for equipo in equipos %}
-                            <option value="{{ equipo.id }}" {% if equipo.id == equipo_actual.id %}selected{% endif %}>
-                                {{ equipo.nombre }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                    <p class="mt-1 text-sm text-gray-500">
-                        Cambiar de equipo requiere que no tenga subalternos asignados
-                    </p>
-                </div>
-
-                <!-- Toggle de Supervisión Directa -->
-                {% if rol != 'gerente' %}
-                <div class="md:col-span-2" id="supervisionDirectaToggle">
-                    <div class="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border border-purple-200">
-                        <div class="flex-1">
-                            <label class="flex items-center cursor-pointer">
-                                <input type="checkbox" id="supervisionDirecta" name="supervision_directa" value="1"
-                                       class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded" 
-                                       onchange="toggleSupervisionDirecta()" {% if es_supervision_directa %}checked{% endif %}>
-                                <div class="ml-3">
-                                    <span class="text-sm font-medium text-gray-900">🎯 Supervisión Directa</span>
-                                    <p class="text-xs text-gray-600">Permite asignar supervisores de niveles superiores (ej: Gerente → Vendedor)</p>
-                                </div>
-                            </label>
-                        </div>
-                        <div class="text-purple-600">
-                            <i class="fas fa-magic text-lg"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Supervisor (solo visible para roles que lo requieren) -->
-                <div class="md:col-span-2" id="supervisorField">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        <span id="supervisorLabel">{% if es_supervision_directa %}Supervisor Directo{% else %}Jefe Directo{% endif %}</span> <span class="text-red-500">*</span>
-                    </label>
-                    <select name="supervisor" id="supervisor" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="">Cargando supervisores...</option>
-                    </select>
-                    <p class="mt-1 text-sm text-gray-500" id="supervisorHelp">
-                        {% if es_supervision_directa %}
-                            Selecciona cualquier supervisor de nivel superior en la jerarquía del equipo
-                        {% else %}
-                            {% if rol == 'jefe' %}
-                                Selecciona el gerente de equipo que supervisará a este jefe de venta
-                            {% elif rol == 'team_leader' %}
-                                Selecciona el jefe de venta que supervisará a este team leader
-                            {% elif rol == 'vendedor' %}
-                                Selecciona el team leader que supervisará a este vendedor
-                            {% endif %}
-                        {% endif %}
-                    </p>
-                    
-                    <!-- Información sobre supervisión directa -->
-                    <div id="supervisionDirectaInfo" class="mt-2 p-3 bg-purple-50 rounded-lg border border-purple-200" style="display: {% if es_supervision_directa %}block{% else %}none{% endif %};">
-                        <div class="flex items-start">
-                            <i class="fas fa-info-circle text-purple-600 mt-0.5 mr-2"></i>
-                            <div>
-                                <p class="text-sm font-medium text-purple-900 mb-1">Supervisión Directa Activada</p>
-                                <p class="text-xs text-purple-800">
-                                    Ahora puedes seleccionar supervisores de cualquier nivel jerárquico superior. 
-                                    Esta asignación se guardará como una excepción especial a la jerarquía normal.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
-
-                <!-- Estado Activo -->
+                <!-- Supervisor -->
                 <div>
-                    <label class="flex items-center">
-                        <input type="checkbox" name="activo" id="activoCheckbox" {% if miembro.activo %}checked{% endif %}
-                               class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                               onchange="toggleReplacementField()">
-                        <span class="ml-2 text-sm font-medium text-gray-700">Activo</span>
+                    <label for="{{ form.supervisor_membership.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.supervisor_membership.label }} <span class="text-red-500">*</span>
                     </label>
-                    <p class="mt-1 text-sm text-gray-500">
-                        Los miembros inactivos no aparecerán en reportes ni tendrán permisos
-                    </p>
-                </div>
-
-                <!-- Campo de Reemplazo (oculto por defecto) -->
-                <div id="replacementField" class="hidden">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Seleccionar Reemplazo <span class="text-red-500">*</span>
-                    </label>
-                    <select name="reemplazo" id="reemplazoSelect"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="">Selecciona un usuario para reemplazar a {{ miembro.usuario.get_full_name|default:miembro.usuario.username }}</option>
-                    </select>
-                    <div id="replacementInfo" class="mt-2 p-3 bg-orange-50 rounded-lg border border-orange-200">
-                        <p class="text-sm text-orange-800">
-                            <i class="fas fa-info-circle mr-1"></i>
-                            <strong>Atención:</strong> Este usuario tiene subordinados asignados que serán transferidos al reemplazo seleccionado.
-                        </p>
-                        <div id="subordinatesList" class="mt-2 text-sm text-orange-700">
-                            <!-- Lista de subordinados se cargará dinámicamente -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Información de Usuario -->
-            <div class="mt-8 pt-6 border-t border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">
-                    <i class="fas fa-user mr-2 text-blue-600"></i>
-                    Información de Usuario
-                </h3>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Información básica -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Nombre
-                        </label>
-                        <input type="text" name="first_name" value="{{ miembro.usuario.first_name }}"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Apellido
-                        </label>
-                        <input type="text" name="last_name" value="{{ miembro.usuario.last_name }}"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Email
-                        </label>
-                        <input type="email" name="email" value="{{ miembro.usuario.email }}"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Cédula de Identidad
-                        </label>
-                        <input type="text" name="cedula" value="{{ miembro.usuario.cedula }}"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                               placeholder="Ej: 12345678-9">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Fecha de Nacimiento
-                        </label>
-                        <input type="date" name="fecha_nacimiento" value="{{ miembro.usuario.fecha_nacimiento|date:'Y-m-d' }}"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Usuario
-                        </label>
-                        <input type="text" name="username" value="{{ miembro.usuario.username }}"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50"
-                               readonly>
-                        <p class="mt-1 text-xs text-gray-500">El nombre de usuario no se puede cambiar</p>
-                    </div>
-                    
-                    <!-- Domicilio -->
-                    <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Domicilio
-                        </label>
-                        <input type="text" name="domicilio" value="{{ miembro.usuario.domicilio }}"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                               placeholder="Dirección completa del domicilio">
-                    </div>
-                    
-                    <!-- Ubicación geográfica -->
-                    <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Ubicación Geográfica
-                        </label>
-                        <div class="space-y-2">
-                            <div class="relative">
-                                <button type="button" id="editLocationBtn" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-left focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:bg-gray-50">
-                                    <i class="fas fa-map-marker-alt mr-2 text-blue-600"></i>
-                                    <span id="editLocationText">
-                                        {% if miembro.usuario.has_coordenadas %}
-                                            Ubicación seleccionada ({{ miembro.usuario.latitud }}, {{ miembro.usuario.longitud }})
-                                        {% else %}
-                                            Seleccionar ubicación en el mapa
-                                        {% endif %}
-                                    </span>
-                                </button>
-                                <input type="hidden" name="latitud" id="editLatitud" value="{{ miembro.usuario.latitud }}">
-                                <input type="hidden" name="longitud" id="editLongitud" value="{{ miembro.usuario.longitud }}">
-                            </div>
-                            {% if miembro.usuario.has_coordenadas %}
-                                <div class="coordinates-display bg-blue-50 p-2 rounded text-sm text-blue-700">
-                                    <i class="fas fa-map-marker-alt mr-1"></i>
-                                    <span id="editCoordinatesText">Lat: {{ miembro.usuario.latitud }}, Lng: {{ miembro.usuario.longitud }}</span>
-                                </div>
-                            {% else %}
-                                <div class="coordinates-display hidden bg-blue-50 p-2 rounded text-sm text-blue-700">
-                                    <i class="fas fa-map-marker-alt mr-1"></i>
-                                    <span id="editCoordinatesText"></span>
-                                </div>
-                            {% endif %}
-                        </div>
-                        <p class="text-xs text-gray-500 mt-1">Opcional: Selecciona la ubicación del domicilio</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Validaciones importantes -->
-            <div class="mt-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                <h4 class="text-sm font-medium text-yellow-900 mb-2">
-                    <i class="fas fa-exclamation-triangle mr-1"></i>
-                    Validaciones para Cambio de Equipo
-                </h4>
-                <ul class="text-sm text-yellow-800 space-y-1">
-                    {% if rol == 'gerente' %}
-                        <li>• El gerente no debe tener jefes de venta asignados</li>
-                    {% elif rol == 'jefe' %}
-                        <li>• El jefe no debe tener team leaders asignados</li>
-                    {% elif rol == 'team_leader' %}
-                        <li>• El team leader no debe tener vendedores asignados</li>
-                    {% elif rol == 'vendedor' %}
-                        <li>• El vendedor no debe tener procesos de venta vigentes</li>
+                    {{ form.supervisor_membership }}
+                    {% if form.supervisor_membership.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.supervisor_membership.errors.0 }}</p>
                     {% endif %}
-                    <li>• El nuevo equipo debe tener supervisores disponibles del tipo requerido</li>
-                </ul>
+                    {% if form.supervisor_membership.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ form.supervisor_membership.help_text }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Subordinado -->
+                <div>
+                    <label for="{{ form.subordinate_membership.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.subordinate_membership.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.subordinate_membership }}
+                    {% if form.subordinate_membership.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.subordinate_membership.errors.0 }}</p>
+                    {% endif %}
+                    {% if form.subordinate_membership.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ form.subordinate_membership.help_text }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Tipo de Relación -->
+                <div>
+                    <label for="{{ form.relation_type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.relation_type.label }} <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.relation_type }}
+                    {% if form.relation_type.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.relation_type.errors.0 }}</p>
+                    {% endif %}
+                    {% if form.relation_type.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ form.relation_type.help_text }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Nivel de Autoridad -->
+                <div>
+                    <label for="{{ form.authority_level.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.authority_level.label }}
+                    </label>
+                    {{ form.authority_level }}
+                    {% if form.authority_level.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.authority_level.errors.0 }}</p>
+                    {% endif %}
+                    {% if form.authority_level.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ form.authority_level.help_text }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Justificación -->
+                <div class="md:col-span-2">
+                    <label for="{{ form.justification.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.justification.label }}
+                    </label>
+                    {{ form.justification }}
+                    {% if form.justification.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.justification.errors.0 }}</p>
+                    {% endif %}
+                    {% if form.justification.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ form.justification.help_text }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Opciones adicionales -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:col-span-2">
+                    <!-- Relación Primaria -->
+                    <div>
+                        <label class="flex items-center">
+                            {{ form.is_primary }}
+                            <span class="ml-2 text-sm font-medium text-gray-700">{{ form.is_primary.label }}</span>
+                        </label>
+                        {% if form.is_primary.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.is_primary.errors.0 }}</p>
+                        {% endif %}
+                        <p class="mt-1 text-sm text-gray-500">Marcar si esta es la relación de supervisión principal</p>
+                    </div>
+
+                    <!-- Estado Activo -->
+                    <div>
+                        <label class="flex items-center">
+                            {{ form.is_active }}
+                            <span class="ml-2 text-sm font-medium text-gray-700">{{ form.is_active.label }}</span>
+                        </label>
+                        {% if form.is_active.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.is_active.errors.0 }}</p>
+                        {% endif %}
+                        <p class="mt-1 text-sm text-gray-500">La relación estará activa inmediatamente</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Información sobre tipos de relación -->
+            <div class="mt-6 bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
+                <div class="flex items-start">
+                    <i class="fas fa-info-circle text-blue-400 mt-0.5 mr-3"></i>
+                    <div>
+                        <h3 class="text-sm font-medium text-blue-900">Tipos de Relación Jerárquica</h3>
+                        <div class="mt-2 text-sm text-blue-700">
+                            <ul class="space-y-1">
+                                <li><strong>Normal:</strong> Supervisión directa entre niveles consecutivos</li>
+                                <li><strong>Directa:</strong> Supervisión especial saltando niveles jerárquicos</li>
+                                <li><strong>Funcional:</strong> Supervisión por función específica o proyecto</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Botones de acción -->
             <div class="mt-8 flex items-center justify-between pt-6 border-t border-gray-200">
                 <div class="flex items-center space-x-3">
-                    <a href="{% url 'sales:jerarquia_list' %}" 
+                    <a href="{% url 'sales_team_management:jerarquia_list' %}" 
                        class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors">
                         <i class="fas fa-times mr-2"></i>Cancelar
                     </a>
                     
-                    {% if not miembro.activo %}
-                        <a href="{% url 'sales:jerarquia_member_reassign' miembro.id rol %}" 
-                           class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-                            <i class="fas fa-exchange-alt mr-2"></i>Cambiar Rol
-                        </a>
-                    {% else %}
-                        <button type="button" 
-                                onclick="alert('Este usuario debe estar inactivo para usar cambio de rol de ventas.')"
-                                class="bg-gray-300 text-gray-500 px-4 py-2 rounded-lg font-medium cursor-not-allowed">
-                            <i class="fas fa-exchange-alt mr-2"></i>Cambiar Rol
-                        </button>
-                    {% endif %}
+                    <a href="{% url 'sales_team_management:jerarquia_detail' form.instance.pk %}" 
+                       class="bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-2 rounded-lg font-medium transition-colors">
+                        <i class="fas fa-eye mr-2"></i>Ver Detalles
+                    </a>
                 </div>
                 
                 <button type="submit" 
@@ -371,232 +281,54 @@
             </div>
         </form>
     </div>
+
+    <!-- Información de ayuda -->
+    <div class="mt-6 bg-gray-50 rounded-xl border border-gray-200 p-4">
+        <h3 class="text-sm font-medium text-gray-900 mb-3">Consideraciones Importantes</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div class="flex items-start space-x-2">
+                <i class="fas fa-shield-alt text-green-600 mt-0.5"></i>
+                <div>
+                    <p class="font-medium text-gray-900">Validaciones Automáticas</p>
+                    <p class="text-gray-600">El sistema valida automáticamente niveles jerárquicos y previene auto-supervisión</p>
+                </div>
+            </div>
+            <div class="flex items-start space-x-2">
+                <i class="fas fa-exclamation-triangle text-yellow-600 mt-0.5"></i>
+                <div>
+                    <p class="font-medium text-gray-900">Relaciones Únicas</p>
+                    <p class="text-gray-600">No se pueden crear relaciones duplicadas del mismo tipo entre los mismos usuarios</p>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-<script>
-function toggleSupervisionDirecta() {
-    const checkbox = document.getElementById('supervisionDirecta');
-    const isDirectSupervision = checkbox.checked;
-    const supervisionDirectaInfo = document.getElementById('supervisionDirectaInfo');
-    const supervisorLabel = document.getElementById('supervisorLabel');
-    
-    // Mostrar/ocultar información
-    supervisionDirectaInfo.style.display = isDirectSupervision ? 'block' : 'none';
-    
-    // Cambiar etiqueta del supervisor
-    supervisorLabel.textContent = isDirectSupervision ? 'Supervisor Directo' : 'Jefe Directo';
-    
-    // Recargar supervisores con la nueva lógica
-    loadSupervisors();
+<style>
+/* Estilos para los campos del formulario */
+input[type="text"], textarea, select {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
 }
 
-function loadSupervisors() {
-    const equipoId = document.getElementById('equipo').value;
-    const rol = '{{ rol }}';
-    const supervisorSelect = document.getElementById('supervisor');
-    const supervisionDirectaCheckbox = document.getElementById('supervisionDirecta');
-    const isDirectSupervision = supervisionDirectaCheckbox.checked;
-    
-    if (!equipoId || rol === 'gerente') {
-        return;
-    }
-    
-    // Limpiar opciones
-    supervisorSelect.innerHTML = '<option value="">Cargando...</option>';
-    supervisorSelect.disabled = true;
-    
-    // URL con parámetro de supervisión directa
-    let url = `/sales/ajax/supervisores/?equipo=${equipoId}&rol=${rol}`;
-    if (isDirectSupervision) {
-        url += '&supervision_directa=1';
-    }
-    
-    // Hacer petición AJAX para obtener supervisores disponibles
-    fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            const labelText = isDirectSupervision ? 'supervisor directo' : 'jefe directo';
-            supervisorSelect.innerHTML = `<option value="">Selecciona un ${labelText}</option>`;
-            
-            if (data.advertencia) {
-                supervisorSelect.innerHTML = `<option value="" disabled>${data.advertencia}</option>`;
-                supervisorSelect.disabled = true;
-            } else {
-                supervisorSelect.disabled = false;
-                data.supervisores.forEach(supervisor => {
-                    const option = document.createElement('option');
-                    option.value = supervisor.id;
-                    
-                    // Mostrar rol del supervisor en supervisión directa
-                    if (isDirectSupervision && supervisor.rol) {
-                        option.textContent = `${supervisor.nombre} (${supervisor.rol})`;
-                    } else {
-                        option.textContent = supervisor.nombre;
-                    }
-                    
-                    // Seleccionar el supervisor actual si existe
-                    {% if supervisor_actual_id %}
-                        if (supervisor.id == {{ supervisor_actual_id }}) {
-                            option.selected = true;
-                        }
-                    {% endif %}
-                    
-                    supervisorSelect.appendChild(option);
-                });
-            }
-        })
-        .catch(error => {
-            supervisorSelect.innerHTML = '<option value="">Error al cargar supervisores</option>';
-            supervisorSelect.disabled = false;
-        });
+textarea {
+    @apply min-h-[80px] resize-y;
 }
 
-// Función para mostrar/ocultar el campo de reemplazo
-function toggleReplacementField() {
-    const activoCheckbox = document.getElementById('activoCheckbox');
-    const replacementField = document.getElementById('replacementField');
-    const reemplazoSelect = document.getElementById('reemplazoSelect');
-    
-    // Si el usuario era activo y ahora se desmarca (se va a inactivar)
-    if (!activoCheckbox.checked && {{ miembro.activo|yesno:"true,false" }}) {
-        // Verificar si tiene subordinados
-        checkSubordinates();
-    } else {
-        // Ocultar el campo de reemplazo
-        replacementField.classList.add('hidden');
-        reemplazoSelect.removeAttribute('required');
-    }
+input[type="checkbox"] {
+    @apply h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500;
 }
 
-// Función para verificar subordinados
-function checkSubordinates() {
-    const memberId = {{ miembro.id }};
-    const rol = '{{ rol }}';
-    
-    // Solo verificar para roles que pueden tener subordinados
-    if (rol === 'vendedor') {
-        return; // Los vendedores no tienen subordinados
+/* Mobile optimizations */
+@media (max-width: 768px) {
+    select {
+        font-size: 16px !important; /* Prevent zoom on iOS */
+        min-height: 44px !important;
     }
     
-    // Hacer petición AJAX para verificar subordinados
-    fetch(`/sales/ajax/miembros/verificar-subordinados/?member_id=${memberId}&rol=${rol}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.has_subordinados) {
-                showReplacementField(data.subordinados, data.replacements);
-            } else {
-                showNoSubordinatesInfo();
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            // En caso de error, mostrar el campo por si acaso
-            showReplacementField([], []);
-        });
-}
-
-// Función para mostrar el campo de reemplazo cuando hay subordinados
-function showReplacementField(subordinados, replacements) {
-    const replacementField = document.getElementById('replacementField');
-    const reemplazoSelect = document.getElementById('reemplazoSelect');
-    const subordinatesList = document.getElementById('subordinatesList');
-    
-    // Limpiar opciones anteriores
-    reemplazoSelect.innerHTML = '<option value="">Selecciona un usuario para reemplazar a {{ miembro.usuario.get_full_name|default:miembro.usuario.username }}</option>';
-    
-    // Agregar opciones de reemplazo
-    replacements.forEach(replacement => {
-        const option = document.createElement('option');
-        option.value = replacement.id;
-        option.textContent = `${replacement.nombre} (${replacement.email}) - ${replacement.tipo}`;
-        reemplazoSelect.appendChild(option);
-    });
-    
-    // Mostrar lista de subordinados
-    if (subordinados.length > 0) {
-        subordinatesList.innerHTML = '<strong>Subordinados que serán transferidos:</strong><ul class="mt-1 space-y-1">' +
-            subordinados.map(sub => `<li>• ${sub.nombre} (${sub.rol})</li>`).join('') +
-            '</ul>';
-    }
-    
-    // Mostrar el campo y hacerlo requerido
-    replacementField.classList.remove('hidden');
-    reemplazoSelect.setAttribute('required', 'required');
-}
-
-// Función para mostrar información cuando no hay subordinados
-function showNoSubordinatesInfo() {
-    const replacementField = document.getElementById('replacementField');
-    const reemplazoSelect = document.getElementById('reemplazoSelect');
-    
-    // Ocultar el campo de reemplazo
-    replacementField.classList.add('hidden');
-    reemplazoSelect.removeAttribute('required');
-    
-    // Mostrar mensaje informativo
-    if (!document.getElementById('noSubordinatesInfo')) {
-        const infoDiv = document.createElement('div');
-        infoDiv.id = 'noSubordinatesInfo';
-        infoDiv.className = 'mt-2 p-3 bg-green-50 rounded-lg border border-green-200';
-        infoDiv.innerHTML = `
-            <p class="text-sm text-green-800">
-                <i class="fas fa-check-circle mr-1"></i>
-                <strong>Listo para inactivar:</strong> Este usuario no tiene subordinados asignados. 
-                Puedes proceder a guardar los cambios para inactivarlo.
-            </p>
-        `;
-        
-        // Insertar después del checkbox de activo
-        const activoDiv = document.getElementById('activoCheckbox').closest('div');
-        activoDiv.parentNode.insertBefore(infoDiv, activoDiv.nextSibling);
-        
-        // Remover el mensaje después de 5 segundos
-        setTimeout(() => {
-            const existingInfo = document.getElementById('noSubordinatesInfo');
-            if (existingInfo) {
-                existingInfo.remove();
-            }
-        }, 5000);
+    select option {
+        font-size: 16px !important;
+        padding: 12px 16px !important;
     }
 }
-
-// Cargar supervisores al inicio
-document.addEventListener('DOMContentLoaded', function() {
-    loadSupervisors();
-    
-    // Inicializar selector de ubicación
-    const editLocationBtn = document.getElementById('editLocationBtn');
-    if (editLocationBtn && typeof LocationSelectorModal !== 'undefined') {
-        editLocationBtn.addEventListener('click', function() {
-            try {
-                const locationModal = new LocationSelectorModal({
-                    onLocationSelected: (lat, lng) => {
-                        document.getElementById('editLatitud').value = lat;
-                        document.getElementById('editLongitud').value = lng;
-                        document.getElementById('editLocationText').textContent = `Ubicación seleccionada (${lat.toFixed(6)}, ${lng.toFixed(6)})`;
-                        document.getElementById('editCoordinatesText').textContent = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
-                        document.querySelector('.coordinates-display').classList.remove('hidden');
-                    }
-                });
-                locationModal.show();
-            } catch (error) {
-                console.error('Error al abrir selector de ubicación:', error);
-                alert('Error al abrir el selector de ubicación. Inténtalo de nuevo.');
-            }
-        });
-    } else if (editLocationBtn) {
-        // Si LocationSelectorModal no está disponible, deshabilitar el botón
-        editLocationBtn.addEventListener('click', function() {
-            alert('Selector de ubicación no disponible en este momento.');
-        });
-    }
-});
-</script>
-
-<!-- Scripts necesarios -->
-<!-- Leaflet JavaScript -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
-        crossorigin=""></script>
-<script src="{% static 'js/user-search-widget.js' %}"></script>
+</style>
 {% endblock %}

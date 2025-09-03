@@ -1,0 +1,65 @@
+{% comment %}
+    Panel de historial de mensajes para debug de WhatsApp Business
+    Incluye: Lista de mensajes, auto-refresh, y filtros por tipo
+{% endcomment %}
+<div class="form-card">
+    <div class="form-card-header d-flex justify-content-between align-items-center">
+        <h5 class="form-card-title mb-0">
+            <i class="fas fa-comments"></i>
+            Historial de Mensajes
+        </h5>
+        <button type="button" id="btn_actualizar_debug" class="btn btn-outline-info btn-sm">
+            <i class="fas fa-sync"></i>
+            Actualizar
+        </button>
+        <span id="live_indicator" class="badge bg-info ms-2">
+            <i class="fas fa-sync"></i>
+            Polling (3s)
+        </span>
+    </div>
+    <div class="form-card-body p-0">
+        <div id="debug_messages_container">
+            {% if debug_messages %}
+                <div class="message-list">
+                    {% for message in debug_messages %}
+                        {% if message.tipo != 'webhook_event' %}
+                        <div class="message-item {% if message.tipo == 'incoming' %}incoming{% elif message.tipo == 'outgoing' or message.tipo == 'test_message' %}outgoing{% else %}system{% endif %}">
+                            <div class="message-header">
+                                <div class="message-type">
+                                    {% if message.tipo == 'incoming' %}
+                                        <i class="fas fa-arrow-down" style="color: #4caf50;"></i>
+                                        <span class="badge" style="background-color: #4caf50; color: white;">📱 Recibido</span>
+                                    {% elif message.tipo == 'outgoing' %}
+                                        <i class="fas fa-arrow-up" style="color: #2196f3;"></i>
+                                        <span class="badge" style="background-color: #2196f3; color: white;">📤 Enviado</span>
+                                    {% elif message.tipo == 'test_message' %}
+                                        <i class="fas fa-vial" style="color: #ff9800;"></i>
+                                        <span class="badge" style="background-color: #ff9800; color: white;">🧪 Prueba</span>
+                                    {% elif message.tipo == 'webhook_event' %}
+                                        <i class="fas fa-exchange-alt" style="color: #6c757d;"></i>
+                                        <span class="badge" style="background-color: #6c757d; color: white;">📡 Estado</span>
+                                    {% else %}
+                                        <i class="fas fa-cog text-secondary"></i>
+                                        <span class="badge bg-secondary">Sistema</span>
+                                    {% endif %}
+                                </div>
+                                <div class="message-phone">{{ message.numero_telefono }}</div>
+                                <div class="message-time">{{ message.created_at|date:"d/m H:i:s" }}</div>
+                            </div>
+                            <div class="message-content">
+                                {{ message.contenido }}
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center text-muted py-5">
+                    <i class="fas fa-inbox fa-3x mb-3"></i>
+                    <h5>No hay mensajes aún</h5>
+                    <p>Los mensajes enviados y recibidos aparecerán aquí</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>

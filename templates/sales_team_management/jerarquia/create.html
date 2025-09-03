@@ -1,810 +1,843 @@
-<!-- templates/sales/jerarquia/create.html -->
+<!-- templates/sales_team_management/jerarquia/create.html -->
 {% extends 'base/base.html' %}
-{% load static %}
 
-{% block title %}Asignar Usuario a Equipo - Django CRM{% endblock %}
+{% block title %}Agregar Miembro al Equipo - Korban{% endblock %}
+
+{% block header %}Agregar Miembro al Equipo{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/user-search-widget.css' %}">
-<!-- Leaflet CSS -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
-      crossorigin="" />
-
-<style>
-/* Custom dropdown para móviles - Sistema mejorado */
-@media (max-width: 768px) {
-    /* Fix para selectores que aparecen diminutos */
-    select {
-        font-size: 16px !important; /* iOS zoom fix */
-        min-height: 44px !important; /* Altura mínima para touch */
-        height: 44px !important;
-        line-height: 1.2 !important;
-        padding: 10px 40px 10px 12px !important;
-        touch-action: manipulation !important;
-        -webkit-appearance: none !important;
-        -moz-appearance: none !important;
-        appearance: none !important;
-        transform: none !important;
-        top: auto !important;
-        left: auto !important;
-        right: auto !important;
-        bottom: auto !important;
-        position: relative !important;
-        display: block !important;
-        border: 1px solid #d1d5db !important;
-        border-radius: 8px !important;
-        background-color: white !important;
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
-        background-position: right 12px center !important;
-        background-repeat: no-repeat !important;
-        background-size: 16px 16px !important;
-        color: #111827 !important;
-        font-weight: 400 !important;
-    }
-
-    /* Asegurar que los dropdown options se vean correctos */
-    select option {
-        font-size: 16px !important;
-        line-height: 1.4 !important;
-        padding: 12px 16px !important;
-        min-height: 44px !important;
-        color: #111827 !important;
-        background-color: white !important;
-        border: none !important;
-        display: block !important;
-        position: relative !important;
-        font-weight: 400 !important;
-    }
-
-    /* Force normal positioning */
-    select, select:focus, select:active, select:hover {
-        position: relative !important;
-        transform: none !important;
-        top: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        bottom: 0 !important;
-        width: 100% !important;
-        margin: 0 !important;
-        z-index: 1 !important;
-    }
-    
-    /* Forzar que el dropdown aparezca en la posición correcta */
-    select:focus {
-        outline: 2px solid #3b82f6 !important;
-        outline-offset: 2px !important;
-        border-color: #3b82f6 !important;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
-    }
-    
-    /* Reset para webkit en mobile */
-    select::-webkit-appearance {
-        -webkit-appearance: none !important;
-    }
-
-    /* Custom dropdown para móviles */
-    .custom-select-wrapper {
-        position: relative;
-        display: block;
-    }
-    
-    .custom-select {
-        position: relative;
-        background: white;
-        border: 1px solid #d1d5db;
-        border-radius: 8px;
-        font-size: 16px;
-        min-height: 44px;
-        padding: 10px 40px 10px 12px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-    
-    .custom-select:after {
-        content: '▼';
-        position: absolute;
-        right: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        font-size: 12px;
-        color: #6b7280;
-        pointer-events: none;
-    }
-    
-    .custom-select.active:after {
-        transform: translateY(-50%) rotate(180deg);
-    }
-    
-    .custom-options {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        background: white;
-        border: 1px solid #d1d5db;
-        border-top: none;
-        border-radius: 0 0 8px 8px;
-        max-height: 200px;
-        overflow-y: auto;
-        z-index: 1000;
-        display: none;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    }
-    
-    .custom-options.show {
-        display: block;
-    }
-    
-    .custom-option {
-        padding: 12px 16px;
-        font-size: 16px;
-        line-height: 1.4;
-        color: #111827;
-        cursor: pointer;
-        border-bottom: 1px solid #f3f4f6;
-    }
-    
-    .custom-option:hover {
-        background-color: #f9fafb;
-    }
-    
-    .custom-option.selected {
-        background-color: #eff6ff;
-        color: #1d4ed8;
-        font-weight: 500;
-    }
-    
-    .custom-option:last-child {
-        border-bottom: none;
-    }
-    
-    /* Ocultar el select nativo en móviles */
-    .mobile-filter-select {
-        display: none !important;
-    }
-}
-
-/* Desktop: mostrar selects nativos, ocultar custom */
-@media (min-width: 768px) {
-    .mobile-filter-select {
-        display: block !important;
-    }
-    
-    .custom-select-wrapper {
-        display: none !important;
-    }
-}
-</style>
+<!-- Leaflet CSS para el mapa -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 {% endblock %}
 
-{% block header %}Asignar Usuario a Equipo{% endblock %}
+{% block extra_js %}
+<!-- Leaflet JavaScript para el mapa -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
     <!-- Breadcrumb -->
-    <nav class="flex mb-4 sm:mb-6" aria-label="Breadcrumb">
-        <ol class="inline-flex items-center space-x-1 text-xs sm:text-sm md:space-x-3">
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
             <li class="inline-flex items-center">
-                <a href="{% url 'sales:jerarquia_list' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
-                    <i class="fas fa-sitemap mr-1 sm:mr-2"></i>
-                    <span class="hidden sm:inline">Jerarquía de Equipos</span>
-                    <span class="sm:hidden">Jerarquía</span>
+                <a href="{% url 'sales_team_management:jerarquia_list' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    <i class="fas fa-sitemap mr-2"></i>
+                    Jerarquía Organizacional
                 </a>
             </li>
             <li>
                 <div class="flex items-center">
-                    <i class="fas fa-chevron-right text-gray-400 mx-1 sm:mx-2"></i>
-                    <span class="text-sm font-medium text-gray-500">
-                        <span class="hidden sm:inline">Asignar Usuario</span>
-                        <span class="sm:hidden">Asignar</span>
-                    </span>
+                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <span class="text-sm font-medium text-gray-500">Agregar Miembro</span>
                 </div>
             </li>
         </ol>
     </nav>
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
-        <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
-            <h2 class="text-base sm:text-lg font-semibold text-gray-900">
-                <i class="fas fa-user-plus mr-2 text-blue-600"></i>
-                <span class="hidden sm:inline">Asignar Usuario a Equipo</span>
-                <span class="sm:hidden">Asignar Usuario</span>
-            </h2>
-            <p class="text-xs sm:text-sm text-gray-600 mt-1">
-                Selecciona el usuario, equipo y rol para crear una nueva asignación
-            </p>
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 space-y-4 sm:space-y-0">
+        <div>
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Agregar Miembro al Equipo</h1>
+            <p class="text-gray-600">Busca un usuario existente o crea uno nuevo y asígnalo a un equipo con su rol correspondiente</p>
+        </div>
+        <a href="{% url 'sales_team_management:jerarquia_list' %}" 
+           class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors">
+            <i class="fas fa-arrow-left mr-2"></i>Cancelar
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Paso 1: Buscar o Crear Usuario -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Paso 1: Seleccionar Usuario</h2>
+                </div>
+
+                <div class="p-4 sm:p-6 space-y-6">
+                    <!-- Buscador de Usuarios -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Buscar Usuario Existente
+                        </label>
+                        <div class="relative">
+                            <input type="text" 
+                                   id="user-search" 
+                                   placeholder="Escribe nombre, apellido o username..."
+                                   class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <i class="fas fa-search absolute right-3 top-3.5 text-gray-400"></i>
+                        </div>
+                        
+                        <!-- Resultados de búsqueda -->
+                        <div id="search-results" class="mt-3 hidden">
+                            <div class="border border-gray-200 rounded-lg max-h-60 overflow-y-auto">
+                                <!-- Los resultados se llenan con JavaScript -->
+                            </div>
+                        </div>
+                        
+                        <!-- Usuario seleccionado -->
+                        <div id="selected-user" class="mt-3 hidden">
+                            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-user text-green-600 mr-3"></i>
+                                        <div>
+                                            <p class="font-medium text-green-900" id="selected-user-name"></p>
+                                            <p class="text-sm text-green-700" id="selected-user-info"></p>
+                                        </div>
+                                    </div>
+                                    <button type="button" id="clear-selection" class="text-green-600 hover:text-green-800">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-center">
+                        <div class="relative">
+                            <div class="absolute inset-0 flex items-center">
+                                <div class="w-full border-t border-gray-300"></div>
+                            </div>
+                            <div class="relative flex justify-center text-sm">
+                                <span class="px-2 bg-white text-gray-500">O</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Crear Nuevo Usuario -->
+                    <div>
+                        <button type="button" 
+                                id="create-user-btn" 
+                                class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg font-medium transition-colors">
+                            <i class="fas fa-user-plus mr-2"></i>Crear Nuevo Usuario
+                        </button>
+                    </div>
+
+                    <!-- Sin Usuario Seleccionado -->
+                    <div id="no-user-selected" class="text-center py-8">
+                        <i class="fas fa-user-slash text-gray-300 text-4xl mb-3"></i>
+                        <p class="text-gray-500">Busca un usuario existente o crea uno nuevo</p>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <form method="post" class="p-4 sm:p-6" id="assignForm">
-            {% csrf_token %}
-            
-            <div class="grid grid-cols-1 gap-4 sm:gap-6">
-                <!-- Usuario con buscador interactivo -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Usuario <span class="text-red-500">*</span>
-                    </label>
-                    <div id="userSearchWidget"></div>
-                    <p class="mt-1 text-xs sm:text-sm text-gray-500">
-                        <i class="fas fa-search mr-1"></i>
-                        Escribe para buscar usuarios disponibles o crea uno nuevo
-                    </p>
+        <!-- Paso 2: Asignar Equipo y Rol -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Paso 2: Asignación</h2>
                 </div>
 
-                <!-- Equipo y Rol en grid responsive -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Equipo <span class="text-red-500">*</span>
-                        </label>
-                        <!-- Select nativo (oculto en móviles) -->
-                        <select name="equipo" id="equipo" required 
-                                class="mobile-filter-select w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option value="">Selecciona un equipo</option>
-                            {% for equipo in equipos %}
-                                <option value="{{ equipo.id }}">{{ equipo.nombre }}</option>
-                            {% endfor %}
-                        </select>
-                        <!-- Custom select para móviles -->
-                        <div class="custom-select-wrapper block sm:hidden">
-                            <div class="custom-select" data-target="equipo">
-                                <span class="custom-select-text">Selecciona un equipo</span>
-                            </div>
-                            <div class="custom-options">
-                                <div class="custom-option selected" data-value="">Selecciona un equipo</div>
-                                {% for equipo in equipos %}
-                                    <div class="custom-option" data-value="{{ equipo.id }}">{{ equipo.nombre }}</div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Rol <span class="text-red-500">*</span>
-                        </label>
-                        <!-- Select nativo (oculto en móviles) -->
-                        <select name="rol" id="rol" required 
-                                class="mobile-filter-select w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            <option value="">Selecciona un rol</option>
-                            <option value="gerente">Gerente de Equipo</option>
-                            <option value="jefe">Jefe de Venta</option>
-                            <option value="team_leader">Team Leader</option>
-                            <option value="vendedor">Vendedor</option>
-                        </select>
-                        <!-- Custom select para móviles -->
-                        <div class="custom-select-wrapper block sm:hidden">
-                            <div class="custom-select" data-target="rol">
-                                <span class="custom-select-text">Selecciona un rol</span>
-                            </div>
-                            <div class="custom-options">
-                                <div class="custom-option selected" data-value="">Selecciona un rol</div>
-                                <div class="custom-option" data-value="gerente">Gerente de Equipo</div>
-                                <div class="custom-option" data-value="jefe">Jefe de Venta</div>
-                                <div class="custom-option" data-value="team_leader">Team Leader</div>
-                                <div class="custom-option" data-value="vendedor">Vendedor</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Toggle de Supervisión Directa -->
-                <div id="supervisionDirectaToggle" style="display: none;">
-                    <div class="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border border-purple-200">
-                        <div class="flex-1">
-                            <label class="flex items-center cursor-pointer">
-                                <input type="checkbox" id="supervisionDirecta" name="supervision_directa" value="1"
-                                       class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded" 
-                                       onchange="toggleSupervisionDirecta()">
-                                <div class="ml-3">
-                                    <span class="text-sm font-medium text-gray-900">🎯 Supervisión Directa</span>
-                                    <p class="text-xs text-gray-600">Permite asignar supervisores de niveles superiores (ej: Gerente → Vendedor)</p>
-                                </div>
+                <div class="p-4 sm:p-6">
+                    <form id="assignment-form" class="space-y-4">
+                        {% csrf_token %}
+                        <input type="hidden" id="selected-user-id" name="user_id" value="">
+                        
+                        <!-- Seleccionar Equipo -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Equipo <span class="text-red-500">*</span>
                             </label>
+                            <select id="team-select" name="team_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                                <option value="">Seleccionar equipo...</option>
+                                {% for equipo in equipos %}
+                                <option value="{{ equipo.id }}">{{ equipo.name }} ({{ equipo.get_unit_type_display }})</option>
+                                {% endfor %}
+                            </select>
                         </div>
-                        <div class="text-purple-600">
-                            <i class="fas fa-magic text-lg"></i>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Jefe Directo (solo visible para roles que lo requieren) -->
-                <div id="supervisorField" style="display: none;">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        <span id="supervisorLabel">Jefe Directo</span> <span class="text-red-500">*</span>
-                    </label>
-                    <!-- Select nativo (oculto en móviles) -->
-                    <select name="supervisor" id="supervisor"
-                            class="mobile-filter-select w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="">Selecciona un supervisor</option>
-                    </select>
-                    <!-- Custom select para móviles -->
-                    <div class="custom-select-wrapper block sm:hidden">
-                        <div class="custom-select" data-target="supervisor">
-                            <span class="custom-select-text">Selecciona un supervisor</span>
+                        <!-- Seleccionar Rol -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Rol en el Equipo <span class="text-red-500">*</span>
+                            </label>
+                            <select id="role-select" name="position_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                                <option value="">Seleccionar rol...</option>
+                                <!-- Se llena dinámicamente con JavaScript -->
+                            </select>
                         </div>
-                        <div class="custom-options">
-                            <div class="custom-option selected" data-value="">Selecciona un supervisor</div>
-                        </div>
-                    </div>
-                    <p class="mt-1 text-sm text-gray-500" id="supervisorHelp"></p>
-                    
-                    <!-- Información sobre supervisión directa -->
-                    <div id="supervisionDirectaInfo" class="mt-2 p-3 bg-purple-50 rounded-lg border border-purple-200" style="display: none;">
-                        <div class="flex items-start">
-                            <i class="fas fa-info-circle text-purple-600 mt-0.5 mr-2"></i>
-                            <div>
-                                <p class="text-sm font-medium text-purple-900 mb-1">Supervisión Directa Activada</p>
-                                <p class="text-xs text-purple-800">
-                                    Ahora puedes seleccionar supervisores de cualquier nivel jerárquico superior. 
-                                    Esta asignación se guardará como una excepción especial a la jerarquía normal.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Información sobre roles -->
-            <div class="mt-4 sm:mt-6 p-3 sm:p-4 bg-blue-50 rounded-lg">
-                <h4 class="text-xs sm:text-sm font-medium text-blue-900 mb-2">
-                    <i class="fas fa-info-circle mr-1"></i>
-                    Jerarquía de Roles y Jefes Directos
-                </h4>
-                <ul class="text-xs sm:text-sm text-blue-800 space-y-1" id="jerarquiaInfo">
-                    <li><strong>Gerente de Equipo:</strong> Máximo nivel jerárquico, no tiene jefe directo</li>
-                    <li><strong>Jefe de Venta:</strong> Su jefe directo es un Gerente de Equipo</li>
-                    <li><strong>Team Leader:</strong> Su jefe directo es un Jefe de Venta</li>
-                    <li><strong>Vendedor:</strong> Su jefe directo es un Team Leader</li>
-                </ul>
-                
-                <!-- Información especial para supervisión directa -->
-                <div id="supervisionDirectaExplanation" style="display: none;" class="mt-3 pt-3 border-t border-blue-200">
-                    <h5 class="text-sm font-medium text-purple-900 mb-2">
-                        <i class="fas fa-magic mr-1"></i>
-                        Supervisión Directa Activada
-                    </h5>
-                    <div class="text-xs sm:text-sm text-purple-800 space-y-1">
-                        <p>• <strong>Flexibilidad total:</strong> Puedes asignar cualquier supervisor de nivel superior</p>
-                        <p>• <strong>Ejemplos válidos:</strong> Gerente → Vendedor, Gerente → Team Leader, Jefe → Vendedor</p>
-                        <p>• <strong>Se guarda como excepción:</strong> No afecta la jerarquía normal del equipo</p>
-                    </div>
+                        <!-- Tipo de Asignación -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Tipo de Asignación
+                            </label>
+                            <select name="assignment_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="PERMANENT">Permanente</option>
+                                <option value="TEMPORARY">Temporal</option>
+                                <option value="PROJECT">Por Proyecto</option>
+                            </select>
+                        </div>
+
+                        <!-- Supervisión Directa -->
+                        <div>
+                            <label class="flex items-center">
+                                <input type="checkbox" name="direct_supervision" id="direct-supervision" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <span class="ml-2 text-sm font-medium text-gray-700">Supervisión Directa</span>
+                            </label>
+                            <p class="mt-1 text-xs text-gray-500">Marcar si este miembro tendrá supervisión directa sobre otros</p>
+                        </div>
+
+                        <!-- Supervisor (si aplica) -->
+                        <div id="supervisor-selection" class="hidden">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Supervisor
+                            </label>
+                            <select name="supervisor_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">Sin supervisor directo</option>
+                                <!-- Se llena dinámicamente con JavaScript -->
+                            </select>
+                        </div>
+
+                        <!-- Notas -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Notas (Opcional)
+                            </label>
+                            <textarea name="notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Información adicional sobre la asignación..."></textarea>
+                        </div>
+
+                        <!-- Botón de Crear -->
+                        <button type="submit" 
+                                id="create-assignment-btn"
+                                disabled
+                                class="w-full bg-gray-300 text-gray-500 px-4 py-3 rounded-lg font-medium cursor-not-allowed">
+                            <i class="fas fa-plus mr-2"></i>Agregar al Equipo
+                        </button>
+                    </form>
                 </div>
-            </div>
-            
-            <!-- Información adicional -->
-            <div class="mt-4 p-3 sm:p-4 bg-green-50 rounded-lg">
-                <h4 class="text-xs sm:text-sm font-medium text-green-900 mb-2">
-                    <i class="fas fa-user-check mr-1"></i>
-                    Búsqueda y Creación de Usuarios
-                </h4>
-                <p class="text-xs sm:text-sm text-green-800">
-                    • Busca usuarios escribiendo su nombre, apellido, email o usuario<br>
-                    • Solo se muestran usuarios <strong>sin asignación activa</strong> en equipos<br>
-                    • Puedes crear un nuevo usuario si no encuentras el que necesitas
-                </p>
-            </div>
-            
-            <!-- Advertencia sobre gerentes -->
-            <div class="mt-4 p-3 sm:p-4 bg-amber-50 rounded-lg border border-amber-200" id="gerenteWarning" style="display: none;">
-                <h4 class="text-xs sm:text-sm font-medium text-amber-900 mb-2">
-                    <i class="fas fa-exclamation-triangle mr-1"></i>
-                    Importante: Solo un gerente por equipo
-                </h4>
-                <p class="text-xs sm:text-sm text-amber-800">
-                    Si el equipo ya tiene un gerente activo, se te pedirá confirmación para reemplazarlo. 
-                    El gerente anterior será <strong>desactivado automáticamente</strong>.
-                </p>
             </div>
 
-            <!-- Botones de acción -->
-            <div class="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-between pt-4 sm:pt-6 border-t border-gray-200 space-y-3 sm:space-y-0">
-                <a href="{% url 'sales:jerarquia_list' %}" 
-                   class="w-full sm:w-auto bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors text-center">
-                    <i class="fas fa-times mr-2"></i>Cancelar
-                </a>
-                
-                <button type="submit" 
-                        class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-                    <i class="fas fa-user-plus mr-2"></i>
-                    <span class="hidden sm:inline">Asignar Usuario</span>
-                    <span class="sm:hidden">Asignar</span>
-                </button>
+            <!-- Resumen de la Asignación -->
+            <div id="assignment-summary" class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4 hidden">
+                <h3 class="text-sm font-medium text-blue-900 mb-2">Resumen de Asignación</h3>
+                <div class="text-sm text-blue-700 space-y-1">
+                    <p><strong>Usuario:</strong> <span id="summary-user"></span></p>
+                    <p><strong>Equipo:</strong> <span id="summary-team"></span></p>
+                    <p><strong>Rol:</strong> <span id="summary-role"></span></p>
+                    <p><strong>Supervisión:</strong> <span id="summary-supervision"></span></p>
+                </div>
             </div>
-        </form>
+        </div>
     </div>
 </div>
 
-<!-- Scripts necesarios -->
-<!-- Leaflet JavaScript -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
-        crossorigin=""></script>
-<script src="{% static 'js/user-search-widget.js' %}"></script>
+<!-- Modal para Crear Usuario -->
+<div id="create-user-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden">
+    <div class="relative top-10 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Crear Nuevo Usuario</h3>
+                <button type="button" id="close-modal" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <form id="create-user-form" class="space-y-6">
+                {% csrf_token %}
+                
+                <!-- Información Básica -->
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h4 class="text-md font-medium text-gray-900 mb-3">Información Básica</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Nombre <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" name="first_name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Apellido <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" name="last_name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Username <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" name="username" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Email <span class="text-red-500">*</span>
+                            </label>
+                            <input type="email" name="email" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Cédula de Identidad
+                            </label>
+                            <input type="text" name="cedula" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Teléfono
+                            </label>
+                            <input type="tel" name="telefono" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Fecha de Nacimiento
+                            </label>
+                            <input type="date" name="fecha_nacimiento" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Contraseña Temporal <span class="text-red-500">*</span>
+                            </label>
+                            <input type="password" name="password" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <p class="text-xs text-gray-500 mt-1">El usuario deberá cambiar esta contraseña en su primer acceso</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Información de Dirección -->
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h4 class="text-md font-medium text-gray-900 mb-3">Dirección y Ubicación</h4>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Dirección Completa
+                            </label>
+                            <textarea name="domicilio" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Dirección completa del domicilio"></textarea>
+                        </div>
+                        
+                        <!-- Mapa para seleccionar ubicación -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Ubicación Geográfica (Opcional)
+                            </label>
+                            <div class="border border-gray-300 rounded-lg overflow-hidden">
+                                <div id="user-location-map" style="height: 300px; width: 100%;"></div>
+                            </div>
+                            <div class="mt-2 grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500 mb-1">Latitud</label>
+                                    <input type="number" name="latitud" id="user-latitude" step="0.0000001" class="w-full px-2 py-1 border border-gray-300 rounded text-sm" readonly>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500 mb-1">Longitud</label>
+                                    <input type="number" name="longitud" id="user-longitude" step="0.0000001" class="w-full px-2 py-1 border border-gray-300 rounded text-sm" readonly>
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Haz clic en el mapa para seleccionar la ubicación</p>
+                        </div>
+
+                        <!-- Foto de Perfil -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Foto de Perfil (Opcional)
+                            </label>
+                            <input type="file" name="foto_perfil" accept="image/*" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <div id="photo-preview" class="mt-2 hidden">
+                                <img id="preview-image" src="" alt="Vista previa" class="h-20 w-20 object-cover rounded-lg border border-gray-300">
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Selecciona una imagen JPG, PNG o GIF (máximo 5MB)</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3 pt-4 border-t">
+                    <button type="button" id="cancel-create-user" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-6 py-2 rounded-lg font-medium transition-colors">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                        <i class="fas fa-user-plus mr-2"></i>Crear Usuario
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <script>
 // Variables globales
-let userSearchWidget;
+let selectedUser = null;
+let availablePositions = [];
+let userLocationMap = null;
+let userLocationMarker = null;
 
-// Inicializar cuando la página cargue
+// Inicialización
 document.addEventListener('DOMContentLoaded', function() {
-    // Inicializar el widget de búsqueda de usuarios
-    userSearchWidget = new UserSearchWidget('userSearchWidget', {
-        placeholder: 'Buscar usuario por nombre, email o usuario...',
-        searchUrl: "{% url 'sales:ajax_search_users' %}",
-        createUserUrl: "{% url 'sales:ajax_create_user' %}",
-        noResultsText: 'No se encontraron usuarios disponibles',
-        createUserText: '+ Crear nuevo usuario',
-        minChars: 1,
-        delay: 300
-    });
-    
-    // Escuchar cuando se seleccione un usuario
-    document.getElementById('userSearchWidget').addEventListener('userSelected', function(event) {
-        validateForm();
-    });
-    
-    // Agregar listener al selector de rol
-    const rolSelect = document.getElementById('rol');
-    if (rolSelect) {
-        rolSelect.addEventListener('change', function() {
-            showSupervisorField();
-        });
-    }
-    
-    // Agregar listener al selector de equipo
-    const equipoSelect = document.getElementById('equipo');
-    if (equipoSelect) {
-        equipoSelect.addEventListener('change', function() {
-            // Solo cargar supervisores si también hay rol seleccionado
-            const rol = document.getElementById('rol').value;
-            if (rol && rol !== '' && rol !== 'gerente') {
-                loadSupervisors();
-            }
-        });
-    }
-    
-    // Inicializar selectores personalizados para móviles
-    initCustomSelects();
+    initializeUserSearch();
+    initializeModalHandlers();
+    initializeFormHandlers();
+    initializePhotoPreview();
 });
 
-// Función para validar el formulario
-function validateForm() {
-    const usuario = userSearchWidget.getValue();
-    const equipo = document.getElementById('equipo').value;
-    const rol = document.getElementById('rol').value;
-    const supervisor = document.getElementById('supervisor').value;
+// Funciones de búsqueda de usuarios
+function initializeUserSearch() {
+    const searchInput = document.getElementById('user-search');
+    const searchResults = document.getElementById('search-results');
     
-    const submitBtn = document.querySelector('button[type="submit"]');
-    
-    // Validaciones básicas
-    if (!usuario || !equipo || !rol) {
-        submitBtn.disabled = true;
-        return false;
-    }
-    
-    // Validar supervisor para roles que lo requieren
-    if (['jefe', 'team_leader', 'vendedor'].includes(rol) && !supervisor) {
-        submitBtn.disabled = true;
-        return false;
-    }
-    
-    submitBtn.disabled = false;
-    return true;
-}
-
-// Interceptar el envío del formulario para incluir el usuario seleccionado
-document.getElementById('assignForm').addEventListener('submit', function(e) {
-    const usuarioId = userSearchWidget.getValue();
-    
-    if (!usuarioId) {
-        e.preventDefault();
-        alert('Debes seleccionar un usuario');
-        return false;
-    }
-    
-    // El valor ya está en el input hidden del widget, el formulario puede enviarse normalmente
-    return true;
-});
-
-// Función para alternar supervisión directa
-function toggleSupervisionDirecta() {
-    const checkbox = document.getElementById('supervisionDirecta');
-    const isDirectSupervision = checkbox.checked;
-    const supervisionDirectaInfo = document.getElementById('supervisionDirectaInfo');
-    const supervisionDirectaExplanation = document.getElementById('supervisionDirectaExplanation');
-    const supervisorLabel = document.getElementById('supervisorLabel');
-    
-    // Mostrar/ocultar información
-    supervisionDirectaInfo.style.display = isDirectSupervision ? 'block' : 'none';
-    supervisionDirectaExplanation.style.display = isDirectSupervision ? 'block' : 'none';
-    
-    // Cambiar etiqueta del supervisor
-    supervisorLabel.textContent = isDirectSupervision ? 'Supervisor Directo' : 'Jefe Directo';
-    
-    // Recargar supervisores con la nueva lógica
-    loadSupervisors();
-    
-    // Validar formulario
-    validateForm();
-}
-
-// Función original para mostrar/ocultar campo supervisor
-function showSupervisorField() {
-    const rol = document.getElementById('rol').value;
-    const supervisorField = document.getElementById('supervisorField');
-    const supervisorSelect = document.getElementById('supervisor');
-    const supervisorHelp = document.getElementById('supervisorHelp');
-    const gerenteWarning = document.getElementById('gerenteWarning');
-    const supervisionDirectaToggle = document.getElementById('supervisionDirectaToggle');
-    
-    if (rol === 'gerente') {
-        supervisorField.style.display = 'none';
-        supervisorSelect.required = false;
-        supervisionDirectaToggle.style.display = 'none';
-        gerenteWarning.style.display = 'block';
-    } else if (rol && rol !== '') {
-        supervisorField.style.display = 'block';
-        supervisorSelect.required = true;
-        supervisionDirectaToggle.style.display = 'block';
-        gerenteWarning.style.display = 'none';
-        
-        // Texto de ayuda estándar (se actualizará en loadSupervisors si es supervisión directa)
-        if (rol === 'jefe') {
-            supervisorHelp.textContent = 'Selecciona el gerente de equipo que será el jefe directo de este jefe de venta';
-        } else if (rol === 'team_leader') {
-            supervisorHelp.textContent = 'Selecciona el jefe de venta que será el jefe directo de este team leader';
-        } else if (rol === 'vendedor') {
-            supervisorHelp.textContent = 'Selecciona el team leader que será el jefe directo de este vendedor';
-        }
-        
-        // Solo cargar supervisores si también hay equipo seleccionado
-        const equipoId = document.getElementById('equipo').value;
-        if (equipoId) {
-            loadSupervisors();
-        } else {
-            supervisorSelect.innerHTML = '<option value="">Selecciona un supervisor</option>';
-        }
-    } else {
-        // No hay rol seleccionado
-        supervisorField.style.display = 'none';
-        supervisorSelect.required = false;
-        supervisionDirectaToggle.style.display = 'none';
-        gerenteWarning.style.display = 'none';
-    }
-    
-    // Validar formulario cuando cambie el rol
-    validateForm();
-}
-
-function loadSupervisors() {
-    const equipoId = document.getElementById('equipo').value;
-    const rol = document.getElementById('rol').value;
-    const supervisorSelect = document.getElementById('supervisor');
-    const supervisorHelp = document.getElementById('supervisorHelp');
-    const supervisionDirectaCheckbox = document.getElementById('supervisionDirecta');
-    const isDirectSupervision = supervisionDirectaCheckbox.checked;
-    
-    if (!equipoId || !rol || rol === 'gerente') {
+    if (!searchInput) {
+        console.error('Search input not found!');
         return;
     }
     
-    // Limpiar opciones
-    supervisorSelect.innerHTML = '<option value="">Cargando...</option>';
-    supervisorSelect.disabled = true;
-    
-    // URL diferente según si es supervisión directa o normal
-    let url = `{% url 'sales:ajax_get_supervisores' %}?equipo=${equipoId}&rol=${rol}`;
-    if (isDirectSupervision) {
-        url += '&supervision_directa=1';
+    if (!searchResults) {
+        console.error('Search results container not found!');
+        return;
     }
     
-    // Hacer petición AJAX para obtener supervisores disponibles
-    fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            const labelText = isDirectSupervision ? 'supervisor directo' : 'jefe directo';
-            supervisorSelect.innerHTML = `<option value="">Selecciona un ${labelText}</option>`;
-            
-            if (data.advertencia) {
-                supervisorSelect.innerHTML = `<option value="" disabled>${data.advertencia}</option>`;
-                supervisorSelect.disabled = true;
-                // Actualizar custom select para móviles también
-                updateCustomSelectOptions('supervisor', []);
-            } else {
-                supervisorSelect.disabled = false;
-                const customOptions = [];
-                
-                data.supervisores.forEach(supervisor => {
-                    const option = document.createElement('option');
-                    option.value = supervisor.id;
-                    // Mostrar rol del supervisor en supervisión directa
-                    if (isDirectSupervision && supervisor.rol) {
-                        option.textContent = `${supervisor.nombre} (${supervisor.rol})`;
-                    } else {
-                        option.textContent = supervisor.nombre;
-                    }
-                    supervisorSelect.appendChild(option);
-                    
-                    // Agregar opción para custom select también
-                    customOptions.push({
-                        value: supervisor.id,
-                        text: isDirectSupervision && supervisor.rol ? `${supervisor.nombre} (${supervisor.rol})` : supervisor.nombre
-                    });
-                });
-                
-                // Actualizar custom select para móviles
-                updateCustomSelectOptions('supervisor', customOptions);
-                
-                // Actualizar texto de ayuda para supervisión directa
-                if (isDirectSupervision) {
-                    supervisorHelp.textContent = 'Selecciona cualquier supervisor de nivel superior en la jerarquía del equipo';
-                }
-            }
-            
-            // Validar formulario después de cargar supervisores
-            validateForm();
-        })
-        .catch(error => {
-            supervisorSelect.innerHTML = '<option value="">Error al cargar supervisores</option>';
-            supervisorSelect.disabled = false;
-        });
-}
+    console.log('User search initialized successfully');
+    let searchTimeout;
 
-// Agregar listeners adicionales después de la inicialización
-setTimeout(function() {
-    // Listeners para los campos del formulario
-    ['equipo', 'rol', 'supervisor'].forEach(fieldId => {
-        const field = document.getElementById(fieldId);
-        if (field) {
-            field.addEventListener('change', validateForm);
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        const query = this.value.trim();
+        console.log('Input changed, query:', query);
+        
+        if (query.length < 1) {
+            searchResults.classList.add('hidden');
+            return;
         }
+
+        searchTimeout = setTimeout(() => {
+            searchUsers(query);
+        }, 150);
     });
-}, 100);
+}
 
-// Función para inicializar selectores personalizados en móviles
-function initCustomSelects() {
-    // Solo en móviles (menos de 768px)
-    if (window.innerWidth < 768) {
-        const customSelects = document.querySelectorAll('.custom-select');
+async function searchUsers(query) {
+    console.log('Searching users with query:', query);
+    try {
+        const url = `{% url 'sales_team_management:ajax_search_users' %}?q=${encodeURIComponent(query)}`;
+        console.log('Fetching URL:', url);
         
-        customSelects.forEach(select => {
-            const targetId = select.getAttribute('data-target');
-            const targetSelect = document.getElementById(targetId);
-            const optionsContainer = select.nextElementSibling;
-            const selectText = select.querySelector('.custom-select-text');
-            
-            // Inicializar texto seleccionado
-            const selectedOption = targetSelect.querySelector('option[selected]');
-            if (selectedOption) {
-                selectText.textContent = selectedOption.textContent;
-                // Marcar opción como seleccionada en custom select
-                const customOption = optionsContainer.querySelector(`[data-value="${selectedOption.value}"]`);
-                if (customOption) {
-                    optionsContainer.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
-                    customOption.classList.add('selected');
+        const response = await fetch(url);
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+            console.error('Response not OK:', response.status, response.statusText);
+            const errorText = await response.text();
+            console.error('Error response body:', errorText);
+            return;
+        }
+        
+        const data = await response.json();
+        console.log('Response data:', data);
+        
+        if (data.success) {
+            console.log('Found users:', data.users);
+            displaySearchResults(data.users);
+        } else {
+            console.error('Search failed:', data);
+        }
+    } catch (error) {
+        console.error('Error searching users:', error);
+    }
+}
+
+function displaySearchResults(users) {
+    const searchResults = document.getElementById('search-results');
+    const resultsContainer = searchResults.querySelector('div') || searchResults.appendChild(document.createElement('div'));
+    resultsContainer.className = 'border border-gray-200 rounded-lg max-h-60 overflow-y-auto';
+    
+    if (users.length === 0) {
+        resultsContainer.innerHTML = '<div class="p-4 text-center text-gray-500">No se encontraron usuarios</div>';
+    } else {
+        resultsContainer.innerHTML = users.map(user => `
+            <div class="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0" onclick="selectUser(${user.id}, '${user.full_name}', '${user.username}', '${user.email}')">
+                <div class="flex items-center">
+                    <i class="fas fa-user text-gray-400 mr-3"></i>
+                    <div>
+                        <p class="font-medium text-gray-900">${user.full_name}</p>
+                        <p class="text-sm text-gray-500">@${user.username} • ${user.email}</p>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    searchResults.classList.remove('hidden');
+}
+
+function selectUser(userId, fullName, username, email) {
+    selectedUser = { id: userId, fullName, username, email };
+    
+    // Mostrar usuario seleccionado
+    document.getElementById('selected-user-name').textContent = fullName;
+    document.getElementById('selected-user-info').textContent = `@${username} • ${email}`;
+    document.getElementById('selected-user').classList.remove('hidden');
+    document.getElementById('no-user-selected').classList.add('hidden');
+    
+    // Ocultar resultados de búsqueda
+    document.getElementById('search-results').classList.add('hidden');
+    document.getElementById('user-search').value = '';
+    
+    // Actualizar formulario
+    document.getElementById('selected-user-id').value = userId;
+    enableAssignmentForm();
+    updateAssignmentSummary();
+    
+    // Limpiar selección
+    document.getElementById('clear-selection').addEventListener('click', clearUserSelection);
+}
+
+function clearUserSelection() {
+    selectedUser = null;
+    document.getElementById('selected-user').classList.add('hidden');
+    document.getElementById('no-user-selected').classList.remove('hidden');
+    document.getElementById('selected-user-id').value = '';
+    document.getElementById('assignment-summary').classList.add('hidden');
+    disableAssignmentForm();
+}
+
+// Funciones del modal
+function initializeModalHandlers() {
+    document.getElementById('create-user-btn').addEventListener('click', () => {
+        document.getElementById('create-user-modal').classList.remove('hidden');
+        // Inicializar el mapa cuando se abre el modal
+        setTimeout(() => {
+            initializeUserLocationMap();
+        }, 100);
+    });
+    
+    document.getElementById('close-modal').addEventListener('click', closeModal);
+    document.getElementById('cancel-create-user').addEventListener('click', closeModal);
+    
+    document.getElementById('create-user-form').addEventListener('submit', handleCreateUser);
+}
+
+// Inicializar vista previa de foto
+function initializePhotoPreview() {
+    const photoInput = document.querySelector('input[name="foto_perfil"]');
+    const photoPreview = document.getElementById('photo-preview');
+    const previewImage = document.getElementById('preview-image');
+    
+    if (photoInput) {
+        photoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Validar tamaño (5MB máximo)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('La imagen no puede ser mayor a 5MB');
+                    e.target.value = '';
+                    photoPreview.classList.add('hidden');
+                    return;
                 }
+                
+                // Validar tipo de archivo
+                if (!file.type.startsWith('image/')) {
+                    alert('Solo se permiten archivos de imagen');
+                    e.target.value = '';
+                    photoPreview.classList.add('hidden');
+                    return;
+                }
+                
+                // Mostrar vista previa
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImage.src = e.target.result;
+                    photoPreview.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            } else {
+                photoPreview.classList.add('hidden');
             }
-            
-            // Click en el selector personalizado
-            select.addEventListener('click', function(e) {
-                e.stopPropagation();
-                
-                // Cerrar otros selects abiertos
-                document.querySelectorAll('.custom-options.show').forEach(other => {
-                    if (other !== optionsContainer) {
-                        other.classList.remove('show');
-                        other.previousElementSibling.classList.remove('active');
-                    }
-                });
-                
-                // Toggle el select actual
-                optionsContainer.classList.toggle('show');
-                select.classList.toggle('active');
-            });
-            
-            // Click en las opciones
-            const options = optionsContainer.querySelectorAll('.custom-option');
-            options.forEach(option => {
-                option.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    
-                    const value = this.getAttribute('data-value');
-                    const text = this.textContent;
-                    
-                    // Actualizar el select nativo
-                    targetSelect.value = value;
-                    
-                    // Disparar evento change en el select nativo para que las funciones existentes funcionen
-                    const changeEvent = new Event('change', { bubbles: true });
-                    targetSelect.dispatchEvent(changeEvent);
-                    
-                    // Actualizar el texto mostrado
-                    selectText.textContent = text;
-                    
-                    // Marcar como seleccionado
-                    options.forEach(opt => opt.classList.remove('selected'));
-                    this.classList.add('selected');
-                    
-                    // Cerrar el dropdown
-                    optionsContainer.classList.remove('show');
-                    select.classList.remove('active');
-                });
-            });
-        });
-        
-        // Cerrar dropdowns al hacer click fuera
-        document.addEventListener('click', function() {
-            document.querySelectorAll('.custom-options.show').forEach(optionsContainer => {
-                optionsContainer.classList.remove('show');
-                optionsContainer.previousElementSibling.classList.remove('active');
-            });
         });
     }
 }
 
-// Función para actualizar opciones del selector personalizado (para supervisores dinámicos)
-function updateCustomSelectOptions(selectId, options) {
-    if (window.innerWidth < 768) {
-        const customSelect = document.querySelector(`.custom-select[data-target="${selectId}"]`);
-        if (customSelect) {
-            const optionsContainer = customSelect.nextElementSibling;
-            const selectText = customSelect.querySelector('.custom-select-text');
-            
-            // Limpiar opciones existentes
-            optionsContainer.innerHTML = '';
-            
-            // Agregar nueva opción por defecto
-            const defaultOption = document.createElement('div');
-            defaultOption.className = 'custom-option selected';
-            defaultOption.setAttribute('data-value', '');
-            defaultOption.textContent = options.length > 0 ? 'Selecciona un supervisor' : 'Cargando...';
-            optionsContainer.appendChild(defaultOption);
-            
-            // Agregar nuevas opciones
-            options.forEach(option => {
-                const customOption = document.createElement('div');
-                customOption.className = 'custom-option';
-                customOption.setAttribute('data-value', option.value);
-                customOption.textContent = option.text;
-                
-                // Click handler para la nueva opción
-                customOption.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    
-                    const value = this.getAttribute('data-value');
-                    const text = this.textContent;
-                    const targetSelect = document.getElementById(selectId);
-                    
-                    // Actualizar el select nativo
-                    targetSelect.value = value;
-                    
-                    // Disparar evento change
-                    const changeEvent = new Event('change', { bubbles: true });
-                    targetSelect.dispatchEvent(changeEvent);
-                    
-                    // Actualizar el texto mostrado
-                    selectText.textContent = text;
-                    
-                    // Marcar como seleccionado
-                    optionsContainer.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
-                    this.classList.add('selected');
-                    
-                    // Cerrar el dropdown
-                    optionsContainer.classList.remove('show');
-                    customSelect.classList.remove('active');
-                });
-                
-                optionsContainer.appendChild(customOption);
-            });
-            
-            // Reset text to default
-            selectText.textContent = options.length > 0 ? 'Selecciona un supervisor' : 'Cargando...';
-        }
+// Inicializar mapa de ubicación del usuario
+function initializeUserLocationMap() {
+    if (userLocationMap) {
+        userLocationMap.remove();
     }
+    
+    // Coordenadas por defecto (Santa Cruz, Bolivia)
+    const defaultLat = -17.78629;
+    const defaultLng = -63.18117;
+    
+    userLocationMap = L.map('user-location-map').setView([defaultLat, defaultLng], 13);
+    
+    // Agregar tile layer (OpenStreetMap)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(userLocationMap);
+    
+    // Manejar clicks en el mapa
+    userLocationMap.on('click', function(e) {
+        const lat = e.latlng.lat;
+        const lng = e.latlng.lng;
+        
+        // Actualizar campos de coordenadas
+        document.getElementById('user-latitude').value = lat.toFixed(7);
+        document.getElementById('user-longitude').value = lng.toFixed(7);
+        
+        // Remover marcador anterior si existe
+        if (userLocationMarker) {
+            userLocationMap.removeLayer(userLocationMarker);
+        }
+        
+        // Agregar nuevo marcador
+        userLocationMarker = L.marker([lat, lng])
+            .addTo(userLocationMap)
+            .bindPopup(`Ubicación seleccionada:<br>Lat: ${lat.toFixed(6)}<br>Lng: ${lng.toFixed(6)}`)
+            .openPopup();
+    });
+    
+    // Centrar el mapa al cargar
+    setTimeout(() => {
+        userLocationMap.invalidateSize();
+    }, 250);
+}
+
+function closeModal() {
+    document.getElementById('create-user-modal').classList.add('hidden');
+    document.getElementById('create-user-form').reset();
+    
+    // Limpiar vista previa de foto
+    document.getElementById('photo-preview').classList.add('hidden');
+    
+    // Limpiar mapa
+    if (userLocationMap) {
+        userLocationMap.remove();
+        userLocationMap = null;
+        userLocationMarker = null;
+    }
+    
+    // Limpiar coordenadas
+    document.getElementById('user-latitude').value = '';
+    document.getElementById('user-longitude').value = '';
+}
+
+async function handleCreateUser(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    
+    try {
+        const response = await fetch(`{% url 'sales_team_management:ajax_create_user' %}`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        // Verificar si la respuesta es exitosa
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Server response error:', response.status, errorText);
+            showNotification(`Error del servidor (${response.status}): ${response.statusText}`, 'error');
+            return;
+        }
+        
+        const data = await response.json();
+        console.log('Server response data:', data);
+        
+        if (data.success) {
+            // Seleccionar el usuario recién creado
+            selectUser(data.user.id, data.user.full_name, data.user.username, data.user.email);
+            closeModal();
+            
+            // Mostrar mensaje de éxito
+            showNotification('Usuario creado exitosamente', 'success');
+        } else {
+            console.error('User creation failed:', data);
+            if (data.errors) {
+                // Mostrar errores de validación específicos
+                const errorMessages = Object.entries(data.errors).map(([field, message]) => `${field}: ${message}`);
+                showNotification(`Errores de validación:\n${errorMessages.join('\n')}`, 'error');
+            } else {
+                showNotification(data.error || data.message || 'Error al crear usuario', 'error');
+            }
+        }
+    } catch (error) {
+        console.error('Error creating user:', error);
+        showNotification('Error al crear usuario', 'error');
+    }
+}
+
+// Funciones del formulario de asignación
+function initializeFormHandlers() {
+    document.getElementById('team-select').addEventListener('change', handleTeamChange);
+    document.getElementById('role-select').addEventListener('change', updateAssignmentSummary);
+    document.getElementById('direct-supervision').addEventListener('change', handleSupervisionChange);
+    document.getElementById('assignment-form').addEventListener('submit', handleAssignmentSubmit);
+}
+
+async function handleTeamChange(e) {
+    const teamId = e.target.value;
+    const roleSelect = document.getElementById('role-select');
+    
+    roleSelect.innerHTML = '<option value="">Seleccionar rol...</option>';
+    
+    if (!teamId) {
+        updateAssignmentSummary();
+        return;
+    }
+    
+    try {
+        const response = await fetch(`{% url 'sales_team_management:get_available_positions' 0 %}`.replace('0', teamId));
+        const data = await response.json();
+        
+        if (data.success) {
+            availablePositions = data.positions;
+            data.positions.forEach(position => {
+                const option = document.createElement('option');
+                option.value = position.id;
+                option.textContent = `${position.name} (Nivel ${position.hierarchy_level})`;
+                roleSelect.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading positions:', error);
+    }
+    
+    updateAssignmentSummary();
+}
+
+function handleSupervisionChange(e) {
+    const supervisorSelection = document.getElementById('supervisor-selection');
+    if (e.target.checked) {
+        supervisorSelection.classList.remove('hidden');
+        loadSupervisors();
+    } else {
+        supervisorSelection.classList.add('hidden');
+    }
+    updateAssignmentSummary();
+}
+
+async function loadSupervisors() {
+    const teamId = document.getElementById('team-select').value;
+    if (!teamId) return;
+    
+    try {
+        const response = await fetch(`{% url 'sales_team_management:get_team_members_json' 0 %}`.replace('0', teamId));
+        const data = await response.json();
+        
+        if (data.success) {
+            const supervisorSelect = document.querySelector('select[name="supervisor_id"]');
+            supervisorSelect.innerHTML = '<option value="">Sin supervisor directo</option>';
+            
+            data.members.forEach(member => {
+                const option = document.createElement('option');
+                option.value = member.id;
+                option.textContent = `${member.user_name} (${member.position})`;
+                supervisorSelect.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading supervisors:', error);
+    }
+}
+
+function enableAssignmentForm() {
+    document.getElementById('create-assignment-btn').disabled = false;
+    document.getElementById('create-assignment-btn').className = 'w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg font-medium transition-colors cursor-pointer';
+    document.getElementById('create-assignment-btn').innerHTML = '<i class="fas fa-plus mr-2"></i>Agregar al Equipo';
+}
+
+function disableAssignmentForm() {
+    document.getElementById('create-assignment-btn').disabled = true;
+    document.getElementById('create-assignment-btn').className = 'w-full bg-gray-300 text-gray-500 px-4 py-3 rounded-lg font-medium cursor-not-allowed';
+    document.getElementById('create-assignment-btn').innerHTML = '<i class="fas fa-plus mr-2"></i>Agregar al Equipo';
+}
+
+function updateAssignmentSummary() {
+    if (!selectedUser) return;
+    
+    const teamSelect = document.getElementById('team-select');
+    const roleSelect = document.getElementById('role-select');
+    const supervisionCheckbox = document.getElementById('direct-supervision');
+    
+    const summary = document.getElementById('assignment-summary');
+    document.getElementById('summary-user').textContent = selectedUser.fullName;
+    document.getElementById('summary-team').textContent = teamSelect.options[teamSelect.selectedIndex]?.text || 'No seleccionado';
+    document.getElementById('summary-role').textContent = roleSelect.options[roleSelect.selectedIndex]?.text || 'No seleccionado';
+    document.getElementById('summary-supervision').textContent = supervisionCheckbox.checked ? 'Sí' : 'No';
+    
+    if (teamSelect.value && roleSelect.value) {
+        summary.classList.remove('hidden');
+    } else {
+        summary.classList.add('hidden');
+    }
+}
+
+async function handleAssignmentSubmit(e) {
+    e.preventDefault();
+    
+    if (!selectedUser) {
+        showNotification('Debe seleccionar un usuario', 'error');
+        return;
+    }
+    
+    const formData = new FormData(e.target);
+    
+    try {
+        const response = await fetch(`{% url 'sales_team_management:agregar_miembro' 0 %}`.replace('0', formData.get('team_id')), {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showNotification('Miembro agregado exitosamente al equipo', 'success');
+            setTimeout(() => {
+                window.location.href = `{% url 'sales_team_management:jerarquia_list' %}`;
+            }, 1500);
+        } else {
+            showNotification(data.error || 'Error al agregar miembro', 'error');
+        }
+    } catch (error) {
+        console.error('Error adding member:', error);
+        showNotification('Error al agregar miembro', 'error');
+    }
+}
+
+// Utilidades
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg transition-all duration-300 ${
+        type === 'success' ? 'bg-green-500 text-white' :
+        type === 'error' ? 'bg-red-500 text-white' :
+        'bg-blue-500 text-white'
+    }`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 300);
+    }, 3000);
 }
 </script>
+
+<style>
+/* Estilos personalizados para el formulario */
+input[type="text"], input[type="email"], input[type="password"], textarea, select {
+    transition: all 0.2s ease;
+}
+
+input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus, textarea:focus, select:focus {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+/* Animaciones para el modal */
+#create-user-modal {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+    select, input {
+        font-size: 16px !important;
+        min-height: 44px !important;
+    }
+}
+</style>
 {% endblock %}

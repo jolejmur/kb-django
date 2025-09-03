@@ -1,0 +1,655 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Historial de Asignaciones - Korban{% endblock %}
+
+{% block header %}Historial de Asignaciones de Leads{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Variables CSS */
+:root {
+    --primary-color: #3B82F6;
+    --success-color: #10B981;
+    --warning-color: #F59E0B;
+    --error-color: #EF4444;
+    --gray-50: #F9FAFB;
+    --gray-100: #F3F4F6;
+    --gray-200: #E5E7EB;
+    --gray-300: #D1D5DB;
+    --gray-500: #6B7280;
+    --gray-600: #4B5563;
+    --gray-700: #374151;
+    --gray-900: #111827;
+}
+
+/* Filtros */
+.filters-panel {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+
+@media (min-width: 640px) {
+    .filter-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .filter-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--gray-700);
+    margin-bottom: 0.5rem;
+}
+
+.filter-input {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--gray-300);
+    border-radius: 6px;
+    font-size: 0.875rem;
+    transition: border-color 0.2s ease;
+}
+
+.filter-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Tabla responsive */
+.table-container {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.table-scroll {
+    overflow-x: auto;
+}
+
+.assignments-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.assignments-table th {
+    background: var(--gray-50);
+    padding: 1rem;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.assignments-table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--gray-200);
+    vertical-align: top;
+}
+
+.assignments-table tbody tr:hover {
+    background: var(--gray-50);
+}
+
+.assignments-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Badges de estado */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.status-badge.pending {
+    background: #FEF3C7;
+    color: #92400E;
+}
+
+.status-badge.assigned {
+    background: #DBEAFE;
+    color: #1E40AF;
+}
+
+.status-badge.accepted {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.status-badge.rejected {
+    background: #FEE2E2;
+    color: #991B1B;
+}
+
+.status-badge.transferred {
+    background: #E0E7FF;
+    color: #3730A3;
+}
+
+/* Badges de tipo */
+.type-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.type-badge.automatic {
+    background: #F3E8FF;
+    color: #6B21A8;
+}
+
+.type-badge.manual {
+    background: #FEF3C7;
+    color: #92400E;
+}
+
+.type-badge.reassignment {
+    background: #FEE2E2;
+    color: #991B1B;
+}
+
+.type-badge.emergency {
+    background: #FCA5A5;
+    color: #7F1D1D;
+}
+
+/* Información del lead */
+.lead-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.lead-id {
+    font-weight: 600;
+    color: var(--gray-900);
+}
+
+.lead-details {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+}
+
+/* Información de usuario */
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-name {
+    font-weight: 500;
+    color: var(--gray-900);
+    font-size: 0.875rem;
+}
+
+.user-role {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+}
+
+/* Paginación */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 2rem;
+}
+
+.pagination a, .pagination span {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--gray-300);
+    border-radius: 6px;
+    text-decoration: none;
+    color: var(--gray-700);
+    font-size: 0.875rem;
+}
+
+.pagination a:hover {
+    background: var(--gray-50);
+    border-color: var(--gray-400);
+}
+
+.pagination .current {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+/* Estadísticas rápidas */
+.quick-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    margin-top: 0.25rem;
+}
+
+/* Responsive para móviles */
+@media (max-width: 768px) {
+    .assignments-table th,
+    .assignments-table td {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.8rem;
+    }
+    
+    .user-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+    
+    .lead-info {
+        gap: 0.125rem;
+    }
+    
+    .filters-panel {
+        padding: 1rem;
+    }
+}
+
+/* Loading state */
+.loading {
+    opacity: 0.6;
+}
+
+.skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Empty state */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--gray-500);
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: var(--gray-300);
+}
+
+/* Botones */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2563EB;
+}
+
+.btn-secondary {
+    background: white;
+    color: var(--gray-700);
+    border: 1px solid var(--gray-300);
+}
+
+.btn-secondary:hover {
+    background: var(--gray-50);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 mb-2">Historial de Asignaciones</h1>
+            <p class="text-gray-600">Revise todas las asignaciones de leads realizadas por el sistema</p>
+        </div>
+        <div class="mt-4 sm:mt-0">
+            <a href="{% url 'communications:lead_distribution_config' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i>
+                Volver a Configuración
+            </a>
+        </div>
+    </div>
+
+    <!-- Estadísticas rápidas -->
+    <div class="quick-stats">
+        <div class="stat-card">
+            <div class="stat-value">{{ total_assignments }}</div>
+            <div class="stat-label">Total Asignaciones</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ page_obj.paginator.count }}</div>
+            <div class="stat-label">Coinciden Filtros</div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filters-panel">
+        <form method="GET" class="filter-grid">
+            <div class="filter-group">
+                <label class="filter-label">Fuerza de Venta</label>
+                <select name="unit" class="filter-input">
+                    <option value="">Todas</option>
+                    {% for unit in sales_units %}
+                        <option value="{{ unit.id }}" {% if unit_filter == unit.id|stringformat:"s" %}selected{% endif %}>
+                            {{ unit.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Estado</label>
+                <select name="status" class="filter-input">
+                    <option value="">Todos</option>
+                    {% for status_code, status_name in assignment_statuses %}
+                        <option value="{{ status_code }}" {% if status_filter == status_code %}selected{% endif %}>
+                            {{ status_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Desde</label>
+                <input type="date" name="date_from" value="{{ date_from }}" class="filter-input">
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Hasta</label>
+                <input type="date" name="date_to" value="{{ date_to }}" class="filter-input">
+            </div>
+
+            <div class="filter-group sm:col-span-2 lg:col-span-4">
+                <div class="flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i>
+                        Filtrar
+                    </button>
+                    <a href="{% url 'communications:lead_assignments_history' %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i>
+                        Limpiar
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabla de asignaciones -->
+    <div class="table-container">
+        {% if page_obj.object_list %}
+            <div class="table-scroll">
+                <table class="assignments-table">
+                    <thead>
+                        <tr>
+                            <th>Lead</th>
+                            <th>Fuerza de Venta</th>
+                            <th>Asignado a</th>
+                            <th>Tipo</th>
+                            <th>Estado</th>
+                            <th>Fecha Asignación</th>
+                            <th>Asignado por</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for assignment in page_obj %}
+                        <tr>
+                            <td>
+                                <div class="lead-info">
+                                    <span class="lead-id">Lead #{{ assignment.lead.id }}</span>
+                                    <span class="lead-details">
+                                        {{ assignment.lead.cliente.nombre_completo|default:"Cliente sin nombre" }}
+                                    </span>
+                                    {% if assignment.lead.interes_inicial %}
+                                        <span class="lead-details">
+                                            {{ assignment.lead.interes_inicial|truncatechars:40 }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="font-medium text-gray-900">
+                                    {{ assignment.organizational_unit.name }}
+                                </div>
+                                <div class="text-xs text-gray-500">
+                                    {{ assignment.organizational_unit.get_unit_type_display }}
+                                </div>
+                            </td>
+                            <td>
+                                {% if assignment.assigned_to_user %}
+                                    <div class="user-info">
+                                        <div class="user-avatar">
+                                            {{ assignment.assigned_to_user.first_name|first|default:"U" }}{{ assignment.assigned_to_user.last_name|first|default:"" }}
+                                        </div>
+                                        <div class="user-details">
+                                            <span class="user-name">{{ assignment.assigned_to_user.get_full_name }}</span>
+                                            <span class="user-role">{{ assignment.assigned_to_user.username }}</span>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <span class="text-gray-500 text-sm">Sin asignar a usuario específico</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="type-badge {{ assignment.assignment_type|lower }}">
+                                    {{ assignment.get_assignment_type_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="status-badge {{ assignment.status|lower }}">
+                                    {{ assignment.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="text-sm text-gray-900">
+                                    {{ assignment.assigned_date|date:"d/m/Y" }}
+                                </div>
+                                <div class="text-xs text-gray-500">
+                                    {{ assignment.assigned_date|date:"H:i" }}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="user-info">
+                                    <div class="user-avatar">
+                                        {{ assignment.assigned_by.first_name|first|default:"U" }}{{ assignment.assigned_by.last_name|first|default:"" }}
+                                    </div>
+                                    <div class="user-details">
+                                        <span class="user-name">{{ assignment.assigned_by.get_full_name }}</span>
+                                        <span class="user-role">{{ assignment.assigned_by.username }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No hay asignaciones</h3>
+                <p class="text-gray-500 mb-4">
+                    {% if unit_filter or status_filter or date_from or date_to %}
+                        No se encontraron asignaciones que coincidan con los filtros aplicados.
+                    {% else %}
+                        No hay asignaciones de leads registradas en el sistema.
+                    {% endif %}
+                </p>
+                {% if unit_filter or status_filter or date_from or date_to %}
+                    <a href="{% url 'communications:lead_assignments_history' %}" class="btn btn-primary">
+                        <i class="fas fa-times"></i>
+                        Limpiar Filtros
+                    </a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Paginación -->
+    {% if page_obj.has_other_pages %}
+        <div class="pagination">
+            {% if page_obj.has_previous %}
+                <a href="?{% if unit_filter %}unit={{ unit_filter }}&{% endif %}{% if status_filter %}status={{ status_filter }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}page={{ page_obj.previous_page_number }}">
+                    <i class="fas fa-chevron-left"></i>
+                    Anterior
+                </a>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <span class="current">{{ num }}</span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?{% if unit_filter %}unit={{ unit_filter }}&{% endif %}{% if status_filter %}status={{ status_filter }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}page={{ num }}">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <a href="?{% if unit_filter %}unit={{ unit_filter }}&{% endif %}{% if status_filter %}status={{ status_filter }}&{% endif %}{% if date_from %}date_from={{ date_from }}&{% endif %}{% if date_to %}date_to={{ date_to }}&{% endif %}page={{ page_obj.next_page_number }}">
+                    Siguiente
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            {% endif %}
+        </div>
+
+        <div class="text-center mt-4 text-sm text-gray-500">
+            Mostrando {{ page_obj.start_index }}-{{ page_obj.end_index }} de {{ page_obj.paginator.count }} asignaciones
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-submit del formulario cuando cambian los filtros
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const selects = form.querySelectorAll('select');
+    const dateInputs = form.querySelectorAll('input[type="date"]');
+    
+    // Auto-submit para selects
+    selects.forEach(select => {
+        select.addEventListener('change', function() {
+            form.submit();
+        });
+    });
+    
+    // Auto-submit para fechas (con delay para evitar envíos múltiples)
+    let dateTimeout;
+    dateInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            clearTimeout(dateTimeout);
+            dateTimeout = setTimeout(() => {
+                form.submit();
+            }, 500);
+        });
+    });
+});
+
+// Mejorar UX con loading states
+document.addEventListener('submit', function(e) {
+    if (e.target.tagName === 'FORM') {
+        const button = e.target.querySelector('button[type="submit"]');
+        if (button) {
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Filtrando...';
+            button.disabled = true;
+        }
+    }
+});
+
+// Funcionalidad para expandir/contraer detalles en móvil
+if (window.innerWidth <= 768) {
+    document.querySelectorAll('tbody tr').forEach(row => {
+        row.addEventListener('click', function() {
+            this.classList.toggle('expanded');
+        });
+    });
+}
+</script>
+{% endblock %}

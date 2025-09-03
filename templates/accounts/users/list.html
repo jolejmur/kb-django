@@ -1,7 +1,7 @@
 <!-- templates/accounts/users/list.html -->
 {% extends 'base/base.html' %}
 
-{% block title %}Usuarios - Django CRM{% endblock %}
+{% block title %}Usuarios - Korban{% endblock %}
 
 {% block header %}Usuarios{% endblock %}
 
@@ -108,19 +108,6 @@
                                             </span>
                                         {% endif %}
 
-                                        <!-- ✅ PROTECCIÓN: Solo mostrar eliminar si se puede eliminar -->
-                                        {% if not user_obj.is_superuser and user_obj != user %}
-                                            <a href="{% url 'accounts:user_delete' user_obj.pk %}"
-                                               class="text-red-400 hover:text-red-600 transition-colors"
-                                               title="Eliminar">
-                                                <i class="fas fa-trash"></i>
-                                            </a>
-                                        {% else %}
-                                            <span class="text-gray-300 cursor-not-allowed"
-                                                  title="{% if user_obj.is_superuser %}Los superadministradores están protegidos{% elif user_obj == user %}No puedes eliminarte a ti mismo{% endif %}">
-                                                <i class="fas fa-trash"></i>
-                                            </span>
-                                        {% endif %}
                                     </div>
                                 </td>
                             </tr>

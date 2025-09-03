@@ -1,0 +1,46 @@
+{% comment %}
+    Modal para confirmar el envío de archivos
+    Incluye: Preview del archivo, campo caption, botones Enviar y Cancelar
+{% endcomment %}
+<div id="fileSendModal" class="file-send-modal" style="display: none;">
+    <div class="file-modal-overlay" onclick="cancelFileSend()"></div>
+    <div class="file-modal-container">
+        <div class="file-modal-header">
+            <h3>Enviar archivo</h3>
+            <button class="modal-btn modal-close" onclick="cancelFileSend()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="file-modal-content">
+            <!-- Preview del archivo -->
+            <div class="file-preview" id="filePreview">
+                <!-- Se llenará dinámicamente -->
+            </div>
+            
+            <!-- Campo de caption/comentario -->
+            <div class="caption-container">
+                <label for="fileCaption">Comentario (opcional):</label>
+                <textarea 
+                    id="fileCaption" 
+                    class="file-caption-input" 
+                    placeholder="Agregar un comentario..."
+                    rows="2"
+                    maxlength="200">
+                </textarea>
+                <div class="caption-counter">
+                    <span id="captionCounter">0</span>/200
+                </div>
+            </div>
+        </div>
+        <div class="file-modal-footer">
+            <button class="modal-btn modal-cancel" onclick="cancelFileSend()">
+                <i class="fas fa-times"></i>
+                <span>Cancelar</span>
+            </button>
+            <button class="modal-btn modal-send" onclick="confirmFileSend()">
+                <i class="fas fa-paper-plane"></i>
+                <span>Enviar</span>
+            </button>
+        </div>
+    </div>
+</div>

@@ -1,105 +1,115 @@
 # apps/sales_team_management/admin.py
 from django.contrib import admin
 from .models import (
-    EquipoVenta, GerenteEquipo, JefeVenta, TeamLeader, Vendedor,
-    ComisionVenta
+    OrganizationalUnit, PositionType, TeamMembership, 
+    HierarchyRelation, CommissionStructure
 )
 
 
 # ============================================================
-# INLINES
+# INLINES FOR NEW MODELS
 # ============================================================
 
-class GerenteEquipoInline(admin.TabularInline):
-    model = GerenteEquipo
+class TeamMembershipInline(admin.TabularInline):
+    model = TeamMembership
     extra = 0
-    fields = ('usuario', 'activo')
+    fields = ('user', 'position_type', 'is_active', 'start_date')
+    readonly_fields = ('created_at',)
 
 
-class JefeVentaInline(admin.TabularInline):
-    model = JefeVenta
+class HierarchyRelationInline(admin.TabularInline):
+    model = HierarchyRelation
+    fk_name = 'supervisor_membership'
     extra = 0
-    fields = ('usuario', 'activo')
+    fields = ('subordinate_membership', 'relation_type', 'is_primary', 'is_active')
 
 
-class TeamLeaderInline(admin.TabularInline):
-    model = TeamLeader
+class CommissionStructureInline(admin.TabularInline):
+    model = CommissionStructure
     extra = 0
-    fields = ('usuario', 'activo')
-
-
-class VendedorInline(admin.TabularInline):
-    model = Vendedor
-    extra = 0
-    fields = ('usuario', 'activo')
-
-
+    fields = ('structure_name', 'commission_type', 'is_active')
 
 
 # ============================================================
-# ADMIN PARA EQUIPOS DE VENTA
+# ADMIN FOR NEW MODELS
 # ============================================================
 
-@admin.register(EquipoVenta)
-class EquipoVentaAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'activo', 'total_vendedores', 'created_at')
-    list_filter = ('activo', 'created_at')
-    search_fields = ('nombre', 'descripcion')
-    ordering = ('nombre',)
-    inlines = [GerenteEquipoInline]
-
-    def total_vendedores(self, obj):
-        return obj.total_vendedores
-
-    total_vendedores.short_description = 'Total Vendedores'
-
-
-@admin.register(GerenteEquipo)
-class GerenteEquipoAdmin(admin.ModelAdmin):
-    list_display = ('usuario', 'equipo_venta', 'activo', 'created_at')
-    list_filter = ('activo', 'equipo_venta', 'created_at')
-    search_fields = ('usuario__username', 'usuario__first_name', 'usuario__last_name', 'equipo_venta__nombre')
-    inlines = [JefeVentaInline]
+@admin.register(OrganizationalUnit)
+class OrganizationalUnitAdmin(admin.ModelAdmin):
+    list_display = ('name', 'code', 'unit_type', 'is_active', 'total_members', 'created_at')
+    list_filter = ('unit_type', 'is_active', 'created_at')
+    search_fields = ('name', 'code', 'description')
+    ordering = ('name',)
+    inlines = [TeamMembershipInline, CommissionStructureInline]
+    
+    def total_members(self, obj):
+        return obj.teammembership_set.filter(is_active=True).count()
+    
+    total_members.short_description = 'Active Members'
 
 
-@admin.register(JefeVenta)
-class JefeVentaAdmin(admin.ModelAdmin):
-    list_display = ('usuario', 'gerente_equipo', 'activo', 'created_at')
-    list_filter = ('activo', 'created_at')
-    search_fields = ('usuario__username', 'usuario__first_name', 'usuario__last_name')
-    inlines = [TeamLeaderInline]
+@admin.register(PositionType)
+class PositionTypeAdmin(admin.ModelAdmin):
+    list_display = ('name', 'code', 'hierarchy_level', 'is_active', 'created_at')
+    list_filter = ('hierarchy_level', 'is_active', 'created_at')
+    search_fields = ('name', 'code', 'description')
+    ordering = ('hierarchy_level', 'name')
 
 
-@admin.register(TeamLeader)
-class TeamLeaderAdmin(admin.ModelAdmin):
-    list_display = ('usuario', 'jefe_venta', 'activo', 'created_at')
-    list_filter = ('activo', 'created_at')
-    search_fields = ('usuario__username', 'usuario__first_name', 'usuario__last_name')
-    inlines = [VendedorInline]
-
-
-@admin.register(Vendedor)
-class VendedorAdmin(admin.ModelAdmin):
-    list_display = ('usuario', 'team_leader', 'activo', 'created_at')
-    list_filter = ('activo', 'created_at')
-    search_fields = ('usuario__username', 'usuario__first_name', 'usuario__last_name')
-
-
-# ============================================================
-# ADMIN PARA COMISIONES DE VENTAS
-# ============================================================
-
-@admin.register(ComisionVenta)
-class ComisionVentaAdmin(admin.ModelAdmin):
-    list_display = (
-        'equipo_venta', 'porcentaje_gerente_equipo',
-        'porcentaje_jefe_venta', 'porcentaje_team_leader',
-        'porcentaje_vendedor', 'total_porcentaje', 'activo', 'created_at'
+@admin.register(TeamMembership)
+class TeamMembershipAdmin(admin.ModelAdmin):
+    list_display = ('user', 'organizational_unit', 'position_type', 'is_active', 'start_date')
+    list_filter = ('organizational_unit', 'position_type', 'is_active', 'start_date')
+    search_fields = (
+        'user__username', 'user__first_name', 'user__last_name',
+        'organizational_unit__name', 'position_type__name'
     )
-    list_filter = ('activo', 'created_at')
-    search_fields = ('equipo_venta__nombre',)
+    ordering = ('-start_date',)
+    inlines = [HierarchyRelationInline]
+    raw_id_fields = ('user',)
 
-    def total_porcentaje(self, obj):
-        return f"{obj.total_porcentaje()}%"
 
-    total_porcentaje.short_description = 'Total %'
+@admin.register(HierarchyRelation)
+class HierarchyRelationAdmin(admin.ModelAdmin):
+    list_display = (
+        'supervisor_user', 'subordinate_user', 'relation_type', 
+        'is_primary', 'is_active', 'created_at'
+    )
+    list_filter = ('relation_type', 'is_primary', 'is_active', 'created_at')
+    search_fields = (
+        'supervisor_membership__user__username',
+        'supervisor_membership__user__first_name',
+        'supervisor_membership__user__last_name',
+        'subordinate_membership__user__username', 
+        'subordinate_membership__user__first_name',
+        'subordinate_membership__user__last_name'
+    )
+    raw_id_fields = ('supervisor_membership', 'subordinate_membership')
+    
+    def supervisor_user(self, obj):
+        return obj.supervisor_membership.user.get_full_name() or obj.supervisor_membership.user.username
+    
+    def subordinate_user(self, obj):
+        return obj.subordinate_membership.user.get_full_name() or obj.subordinate_membership.user.username
+    
+    supervisor_user.short_description = 'Supervisor'
+    subordinate_user.short_description = 'Subordinate'
+
+
+@admin.register(CommissionStructure)
+class CommissionStructureAdmin(admin.ModelAdmin):
+    list_display = (
+        'structure_name', 'organizational_unit', 'commission_type',
+        'total_percentage', 'is_active', 'created_at'
+    )
+    list_filter = ('commission_type', 'is_active', 'organizational_unit', 'created_at')
+    search_fields = ('structure_name', 'organizational_unit__name')
+    ordering = ('-created_at',)
+    
+    def total_percentage(self, obj):
+        if obj.position_percentages:
+            total = sum(obj.position_percentages.values())
+            return f"{total}%"
+        return "0%"
+    
+    total_percentage.short_description = 'Total %'

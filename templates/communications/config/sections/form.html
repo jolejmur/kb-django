@@ -1,0 +1,196 @@
+{% comment %}
+    Formulario de configuración de WhatsApp Business
+    Muestra los campos editables de la configuración actual
+{% endcomment %}
+<div class="form-card">
+    <div class="form-card-header">
+        <h5 class="form-card-title">
+            <i class="fas fa-cog"></i>
+            Configuración Meta Business
+        </h5>
+    </div>
+    <div class="form-card-body">
+        {% if config %}
+            <!-- Información Básica -->
+            <div class="form-section">
+                <h5 class="form-section-title">
+                    <i class="fas fa-info-circle"></i>
+                    Información Básica
+                </h5>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="info-item">
+                            <label class="form-label">ID del Número de Teléfono</label>
+                            <div class="info-value-container">
+                                <span class="info-value">{{ config.phone_number_id }}</span>
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="editField('phone_number_id', '{{ config.phone_number_id }}')">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="info-item">
+                            <label class="form-label">ID de la Cuenta Comercial</label>
+                            <div class="info-value-container">
+                                <span class="info-value">{{ config.business_account_id }}</span>
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="editField('business_account_id', '{{ config.business_account_id }}')">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="info-item">
+                            <label class="form-label">ID de la Cuenta de WhatsApp Business</label>
+                            <div class="info-value-container">
+                                <span class="info-value">{{ config.whatsapp_business_account_id|default:"No configurado" }}</span>
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="editField('whatsapp_business_account_id', '{{ config.whatsapp_business_account_id|default:"" }}')">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle"></i>
+                                Este campo es opcional pero recomendado para funcionalidad completa
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Token de Meta -->
+            <div class="form-section">
+                <h5 class="form-section-title">
+                    <i class="fas fa-key"></i>
+                    Tokens de Meta
+                </h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="info-item">
+                            <label class="form-label">Token de Acceso</label>
+                            <div class="info-value-container">
+                                <span class="info-value token-hidden">{{ config.access_token|slice:":20" }}...</span>
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="editField('access_token', '{{ config.access_token }}')">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="info-item">
+                            <label class="form-label">Secreto de la Aplicación</label>
+                            <div class="info-value-container">
+                                <span class="info-value token-hidden">{{ config.app_secret|slice:":8" }}...</span>
+                                <span class="badge bg-info">
+                                    <i class="fas fa-shield-alt"></i>
+                                    Auto-generado
+                                </span>
+                            </div>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle"></i>
+                                Este secreto se genera automáticamente por seguridad
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuración Webhook -->
+            <div class="form-section">
+                <h5 class="form-section-title">
+                    <i class="fas fa-link"></i>
+                    Configuración Webhook
+                </h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="info-item">
+                            <label class="form-label">Token de Verificación</label>
+                            <div class="info-value-container">
+                                <span class="info-value">{{ config.webhook_verify_token }}</span>
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="editField('webhook_verify_token', '{{ config.webhook_verify_token }}')">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle"></i>
+                                Secreto que tú eliges para que Facebook verifique tu webhook
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="info-item">
+                            <label class="form-label">URL del Webhook</label>
+                            <div class="info-value-container">
+                                <span class="info-value">{{ config.webhook_url }}</span>
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="editField('webhook_url', '{{ config.webhook_url }}')">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Información del Webhook -->
+                <div class="webhook-info">
+                    <h6><i class="fas fa-info-circle me-2"></i>Configuración en Meta/Facebook</h6>
+                    <p class="mb-2">
+                        <strong>🔗 URL del Webhook para Facebook:</strong> 
+                        <code>{{ config.webhook_url|default:"https://korban.duckdns.org/marketing/webhook/" }}</code>
+                    </p>
+                    <p class="mb-2">
+                        <strong>🔑 Token de Verificación:</strong> 
+                        <code>{{ config.webhook_verify_token }}</code>
+                    </p>
+                    <p class="mb-2">
+                        <strong>📋 Eventos a suscribir:</strong> messages, messaging_postbacks, message_deliveries, message_reads
+                    </p>
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>¡IMPORTANTE!</strong> Facebook requiere <strong>HTTPS</strong>. Asegúrate de que tu certificado SSL esté configurado correctamente.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Estado -->
+            <div class="form-section">
+                <h5 class="form-section-title">
+                    <i class="fas fa-toggle-on"></i>
+                    Estado de la Configuración
+                </h5>
+                <div class="info-item">
+                    <label class="form-label">Estado</label>
+                    <div class="info-value-container">
+                        <span class="info-value">
+                            {% if config.is_active %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check-circle"></i>
+                                    Activa
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">
+                                    <i class="fas fa-pause-circle"></i>
+                                    Inactiva
+                                </span>
+                            {% endif %}
+                        </span>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="editField('is_active', '{{ config.is_active }}')">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        {% else %}
+            <!-- No hay configuración -->
+            <div class="text-center py-5">
+                <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                <h4>No hay configuración activa</h4>
+                <p class="text-muted">Necesitas crear una configuración para empezar a usar WhatsApp Business</p>
+                <button type="button" class="btn btn-primary" onclick="createNewConfig()">
+                    <i class="fas fa-plus"></i>
+                    Crear Nueva Configuración
+                </button>
+            </div>
+        {% endif %}
+    </div>
+</div>

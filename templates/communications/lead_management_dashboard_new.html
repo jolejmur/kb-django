@@ -1,0 +1,1155 @@
+{% extends 'base/base.html' %}
+
+{% block title %}{{ page_title }} - Korban{% endblock %}
+
+{% block header %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Variables CSS */
+:root {
+    --primary-color: #3B82F6;
+    --success-color: #10B981;
+    --warning-color: #F59E0B;
+    --error-color: #EF4444;
+    --gray-50: #F9FAFB;
+    --gray-100: #F3F4F6;
+    --gray-200: #E5E7EB;
+    --gray-300: #D1D5DB;
+    --gray-400: #9CA3AF;
+    --gray-500: #6B7280;
+    --gray-600: #4B5563;
+    --gray-700: #374151;
+    --gray-800: #1F2937;
+    --gray-900: #111827;
+}
+
+.dashboard-container {
+    padding: 1.5rem;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+/* Cards de estadísticas principales - horizontal */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid var(--gray-200);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.stat-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.stat-label {
+    color: var(--gray-600);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.stat-total { color: var(--primary-color); }
+.stat-unassigned { color: var(--error-color); }
+.stat-today { color: var(--success-color); }
+.stat-week { color: var(--warning-color); }
+.stat-rejected { color: var(--error-color); }
+.stat-processed { color: var(--success-color); }
+
+/* Estado de fuerzas - horizontal */
+.sales-forces-section {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid var(--gray-200);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.sales-forces-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin-bottom: 1rem;
+}
+
+.sales-forces-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.sales-force-card {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.sales-force-card:hover {
+    background: var(--gray-100);
+}
+
+.sales-force-name {
+    font-weight: 600;
+    color: var(--gray-900);
+    margin-bottom: 0.5rem;
+}
+
+.sales-force-stats {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+}
+
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-top: 0.5rem;
+    display: inline-block;
+}
+
+.status-active {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.status-inactive {
+    background: var(--gray-200);
+    color: var(--gray-600);
+}
+
+/* Filtros mejorados */
+.filters-section {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid var(--gray-200);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.filters-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    align-items: end;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-group label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--gray-700);
+    font-size: 0.875rem;
+}
+
+.filter-select {
+    padding: 0.75rem;
+    border: 1px solid var(--gray-300);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    background: white;
+    transition: border-color 0.2s;
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.filter-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2563EB;
+}
+
+.btn-secondary {
+    background: var(--gray-200);
+    color: var(--gray-700);
+}
+
+.btn-secondary:hover {
+    background: var(--gray-300);
+}
+
+.btn-success {
+    background: var(--success-color);
+    color: white;
+}
+
+.btn-success:hover {
+    background: #059669;
+}
+
+.btn-danger {
+    background: var(--error-color);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #DC2626;
+}
+
+.btn-warning {
+    background: var(--warning-color);
+    color: white;
+}
+
+.btn-warning:hover {
+    background: #D97706;
+}
+
+/* Cards de leads grandes */
+.leads-section {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid var(--gray-200);
+    overflow: hidden;
+}
+
+.leads-header {
+    padding: 1.5rem;
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--gray-200);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.leads-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin: 0;
+}
+
+.leads-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.leads-content {
+    padding: 0;
+}
+
+.lead-card {
+    border-bottom: 1px solid var(--gray-200);
+    padding: 1.5rem;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.lead-card:hover {
+    background: var(--gray-50);
+}
+
+.lead-card:last-child {
+    border-bottom: none;
+}
+
+.lead-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 1rem;
+}
+
+.lead-info {
+    flex: 1;
+}
+
+.lead-name {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin: 0 0 0.5rem 0;
+}
+
+.lead-details {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    margin-bottom: 1rem;
+}
+
+.lead-details span {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.lead-phone {
+    color: var(--primary-color);
+    font-weight: 500;
+}
+
+.lead-message {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.lead-message-text {
+    color: var(--gray-700);
+    line-height: 1.5;
+    margin: 0;
+}
+
+.lead-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.lead-assignment-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.assignment-unit {
+    background: var(--primary-color);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.assignment-user {
+    font-size: 0.75rem;
+    color: var(--gray-600);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.lead-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+}
+
+/* Estados de lead */
+.lead-status {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+.lead-status-nuevo {
+    background: #DBEAFE;
+    color: #1D4ED8;
+}
+
+.lead-status-asignado {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.lead-status-rechazado {
+    background: #FEE2E2;
+    color: #991B1B;
+}
+
+/* Paginación */
+.pagination-section {
+    padding: 1.5rem;
+    background: var(--gray-50);
+    border-top: 1px solid var(--gray-200);
+    display: flex;
+    justify-content: center;
+}
+
+.pagination {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.pagination .page-link {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--gray-300);
+    border-radius: 6px;
+    text-decoration: none;
+    color: var(--gray-700);
+    transition: all 0.2s;
+}
+
+.pagination .page-link:hover {
+    background: var(--gray-100);
+}
+
+.pagination .page-link.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+/* Estados vacíos */
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--gray-500);
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    display: block;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .dashboard-container {
+        padding: 1rem;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .sales-forces-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .filters-form {
+        grid-template-columns: 1fr;
+    }
+    
+    .lead-card-header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .lead-details {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .lead-actions {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+    }
+    
+    .lead-buttons {
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Estadísticas principales -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-number stat-total">{{ stats.total_leads }}</div>
+            <div class="stat-label">Total Prospectos</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-number stat-unassigned">{{ stats.leads_without_assignment }}</div>
+            <div class="stat-label">Sin Asignar</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-number stat-today">{{ stats.leads_assigned_today }}</div>
+            <div class="stat-label">Asignados Hoy</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-number stat-week">{{ stats.leads_this_week }}</div>
+            <div class="stat-label">Esta Semana</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-number stat-rejected">{{ filtered_leads.paginator.count|default:0 }}</div>
+            <div class="stat-label">En Vista Actual</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-number stat-processed">{{ stats.active_sales_units }}</div>
+            <div class="stat-label">Fuerzas Activas</div>
+        </div>
+    </div>
+
+    <!-- Estado de Fuerzas de Venta - Horizontal -->
+    <div class="sales-forces-section">
+        <h3 class="sales-forces-title">Estado de Fuerzas de Venta</h3>
+        {% if sales_units_stats %}
+        <div class="sales-forces-grid">
+            {% for unit_stat in sales_units_stats %}
+            <div class="sales-force-card">
+                <div class="sales-force-name">{{ unit_stat.unit.name }}</div>
+                <div class="sales-force-stats">
+                    <div><strong>{{ unit_stat.percentage }}%</strong> configurado</div>
+                    <div>Hoy: <strong>{{ unit_stat.leads_today }}</strong></div>
+                    <div>Semana: <strong>{{ unit_stat.leads_week }}</strong></div>
+                    <div>Vendedores: <strong>{{ unit_stat.team_members }}</strong></div>
+                </div>
+                {% if unit_stat.is_active %}
+                <span class="status-badge status-active">Activa</span>
+                {% else %}
+                <span class="status-badge status-inactive">Inactiva</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>No hay fuerzas de venta configuradas</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Filtros -->
+    <div class="filters-section">
+        <form method="GET" class="filters-form">
+            <div class="filter-group">
+                <label for="sales_unit">Fuerza de Venta:</label>
+                <select name="sales_unit" id="sales_unit" class="filter-select">
+                    <option value="">Todas las fuerzas</option>
+                    {% for unit in sales_units %}
+                    <option value="{{ unit.id }}" {% if current_filters.sales_unit == unit.id|stringformat:"s" %}selected{% endif %}>
+                        {{ unit.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="lead_status">Estado del Prospecto:</label>
+                <select name="lead_status" id="lead_status" class="filter-select">
+                    <option value="">Todos los estados</option>
+                    {% for state_code, state_name in lead_states %}
+                    <option value="{{ state_code }}" {% if current_filters.lead_status == state_code %}selected{% endif %}>
+                        {{ state_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="assignment_status">Asignación:</label>
+                <select name="assignment_status" id="assignment_status" class="filter-select">
+                    <option value="">Todos</option>
+                    <option value="unassigned" {% if current_filters.assignment_status == "unassigned" %}selected{% endif %}>
+                        Sin Asignar
+                    </option>
+                    <option value="assigned_to_unit" {% if current_filters.assignment_status == "assigned_to_unit" %}selected{% endif %}>
+                        A Fuerza de Venta
+                    </option>
+                    <option value="assigned_to_user" {% if current_filters.assignment_status == "assigned_to_user" %}selected{% endif %}>
+                        A Vendedor
+                    </option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <div class="filter-buttons">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter"></i>
+                        Filtrar
+                    </button>
+                    <a href="?" class="btn btn-secondary">
+                        <i class="fas fa-times"></i>
+                        Limpiar
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Lista de Prospectos -->
+    <div class="leads-section">
+        <div class="leads-header">
+            <h3 class="leads-title">
+                Prospectos 
+                {% if filtered_leads.paginator.count > 0 %}
+                ({{ filtered_leads.paginator.count }} total{{ filtered_leads.paginator.count|pluralize }} - Página {{ filtered_leads.number }} de {{ filtered_leads.paginator.num_pages }})
+                {% endif %}
+            </h3>
+            <div class="leads-actions">
+                <a href="{% url 'communications:manual_lead_assignment' %}" class="btn btn-success btn-sm">
+                    <i class="fas fa-user-plus"></i>
+                    Asignación Manual
+                </a>
+                <a href="{% url 'communications:lead_distribution_config' %}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-cog"></i>
+                    Configuración
+                </a>
+            </div>
+        </div>
+        
+        <div class="leads-content">
+            {% if filtered_leads %}
+            {% for lead in filtered_leads %}
+            <div class="lead-card" data-lead-id="{{ lead.id }}">
+                <span class="lead-status lead-status-{{ lead.estado }}">{{ lead.get_estado_display }}</span>
+                
+                <div class="lead-card-header">
+                    <div class="lead-info">
+                        <h4 class="lead-name">{{ lead.cliente.nombre_completo }}</h4>
+                        <div class="lead-details">
+                            <span class="lead-phone">
+                                <i class="fas fa-phone"></i> {{ lead.cliente.numero_whatsapp }}
+                            </span>
+                            <span>
+                                <i class="fas fa-calendar"></i> {{ lead.fecha_primera_interaccion|date:"d/m/Y H:i" }}
+                            </span>
+                            <span>
+                                <i class="fas fa-tag"></i> {{ lead.get_prioridad_display }}
+                            </span>
+                            <span>
+                                <i class="fas fa-globe"></i> {{ lead.get_origen_display }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if lead.interes_inicial %}
+                <div class="lead-message">
+                    <p class="lead-message-text">{{ lead.interes_inicial }}</p>
+                </div>
+                {% endif %}
+                
+                <div class="lead-actions">
+                    <div class="lead-assignment-info">
+                        {% with active_assignment=lead.assignments.all.0 %}
+                        {% if active_assignment and active_assignment.is_active %}
+                        <span class="assignment-unit">{{ active_assignment.organizational_unit.name }}</span>
+                        {% if active_assignment.assigned_to_user %}
+                        <span class="assignment-user">
+                            <i class="fas fa-user"></i> {{ active_assignment.assigned_to_user.get_full_name }}
+                        </span>
+                        {% endif %}
+                        {% else %}
+                        <span class="status-badge status-inactive">Sin Asignar</span>
+                        {% endif %}
+                        {% endwith %}
+                    </div>
+                    
+                    <div class="lead-buttons">
+                        {% if lead.estado != 'rechazado' %}
+                        {% with active_assignment=lead.assignments.all.0 %}
+                        {% if active_assignment and active_assignment.is_active and not active_assignment.assigned_to_user %}
+                        <button class="btn btn-warning btn-sm assign-to-user" 
+                                data-lead-id="{{ lead.id }}" 
+                                data-unit-id="{{ active_assignment.organizational_unit.id }}">
+                            <i class="fas fa-user-plus"></i>
+                            Asignar Vendedor
+                        </button>
+                        {% endif %}
+                        {% endwith %}
+                        
+                        <button class="btn btn-danger btn-sm reject-lead" data-lead-id="{{ lead.id }}">
+                            <i class="fas fa-times"></i>
+                            Rechazar
+                        </button>
+                        {% endif %}
+                        
+                        <a href="https://korban.duckdns.org/marketing/configuracion/" class="btn btn-secondary btn-sm" target="_blank">
+                            <i class="fas fa-comments"></i>
+                            Ver Chat
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            
+            <!-- Paginación -->
+            {% if filtered_leads.has_other_pages %}
+            <div class="pagination-section">
+                <div class="pagination">
+                    {% if filtered_leads.has_previous %}
+                    <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page=1" class="page-link">
+                        <i class="fas fa-angle-double-left"></i>
+                    </a>
+                    <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ filtered_leads.previous_page_number }}" class="page-link">
+                        <i class="fas fa-angle-left"></i>
+                    </a>
+                    {% endif %}
+                    
+                    <span class="page-link active">
+                        {{ filtered_leads.number }} de {{ filtered_leads.paginator.num_pages }}
+                    </span>
+                    
+                    {% if filtered_leads.has_next %}
+                    <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ filtered_leads.next_page_number }}" class="page-link">
+                        <i class="fas fa-angle-right"></i>
+                    </a>
+                    <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ filtered_leads.paginator.num_pages }}" class="page-link">
+                        <i class="fas fa-angle-double-right"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <p>No se encontraron prospectos con los filtros aplicados</p>
+                <a href="?" class="btn btn-primary">Ver Todos</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Funcionalidad para asignar leads a vendedores específicos
+    document.querySelectorAll('.assign-to-user').forEach(button => {
+        button.addEventListener('click', function() {
+            const leadId = this.dataset.leadId;
+            const unitId = this.dataset.unitId;
+            
+            if (leadId && unitId) {
+                showSalespersonModal(leadId, unitId);
+            }
+        });
+    });
+    
+    // Funcionalidad para rechazar leads
+    document.querySelectorAll('.reject-lead').forEach(button => {
+        button.addEventListener('click', function() {
+            const leadId = this.dataset.leadId;
+            showRejectModal(leadId);
+        });
+    });
+});
+
+async function showSalespersonModal(leadId, unitId) {
+    try {
+        const response = await fetch(`/marketing/api/sales-team/${unitId}/members/`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Error al obtener vendedores');
+        }
+        
+        if (!data.salespeople || data.salespeople.length === 0) {
+            alert('No hay vendedores disponibles en esta fuerza de venta');
+            return;
+        }
+        
+        const modal = createSalespersonModal(leadId, data.salespeople);
+        document.body.appendChild(modal);
+        modal.style.display = 'flex';
+        
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al cargar vendedores: ' + error.message);
+    }
+}
+
+function createSalespersonModal(leadId, members) {
+    const modalHtml = `
+        <div class="modal-overlay" style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        ">
+            <div class="modal-content" style="
+                background: white;
+                border-radius: 12px;
+                padding: 2rem;
+                max-width: 500px;
+                width: 90%;
+                max-height: 80vh;
+                overflow-y: auto;
+            ">
+                <div class="modal-header" style="margin-bottom: 1.5rem;">
+                    <h3 style="margin: 0; font-size: 1.25rem; color: var(--gray-900);">
+                        Asignar Prospecto a Vendedor
+                    </h3>
+                    <button class="close-modal" style="
+                        background: none;
+                        border: none;
+                        font-size: 1.5rem;
+                        cursor: pointer;
+                        float: right;
+                        margin-top: -2rem;
+                        color: var(--gray-500);
+                    ">&times;</button>
+                </div>
+                
+                <div class="modal-body">
+                    <p style="color: var(--gray-600); margin-bottom: 1rem;">
+                        Selecciona un vendedor para asignar este prospecto:
+                    </p>
+                    
+                    <div class="salesperson-list" style="
+                        display: flex;
+                        flex-direction: column;
+                        gap: 0.75rem;
+                        margin-bottom: 1.5rem;
+                    ">
+                        ${members.map(member => `
+                            <div class="salesperson-option" style="
+                                border: 1px solid var(--gray-300);
+                                border-radius: 8px;
+                                padding: 1rem;
+                                cursor: pointer;
+                                transition: all 0.2s ease;
+                            " data-member-id="${member.id}">
+                                <div style="font-weight: 600; color: var(--gray-900);">
+                                    ${member.name}
+                                </div>
+                                <div style="font-size: 0.875rem; color: var(--gray-600);">
+                                    ${member.position} • ${member.email}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: var(--gray-700);">
+                            Notas (opcional):
+                        </label>
+                        <textarea id="assignment-notes" placeholder="Agregar notas sobre la asignación..." style="
+                            width: 100%;
+                            padding: 0.75rem;
+                            border: 1px solid var(--gray-300);
+                            border-radius: 6px;
+                            font-family: inherit;
+                            resize: vertical;
+                            min-height: 80px;
+                        "></textarea>
+                    </div>
+                    
+                    <div class="modal-actions" style="
+                        display: flex;
+                        gap: 1rem;
+                        justify-content: end;
+                    ">
+                        <button class="btn-cancel" style="
+                            padding: 0.75rem 1.5rem;
+                            border: 1px solid var(--gray-300);
+                            background: white;
+                            color: var(--gray-700);
+                            border-radius: 6px;
+                            cursor: pointer;
+                        ">Cancelar</button>
+                        <button class="btn-assign" style="
+                            padding: 0.75rem 1.5rem;
+                            background: var(--success-color);
+                            color: white;
+                            border: none;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            opacity: 0.5;
+                        " disabled>Asignar Prospecto</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const modalElement = document.createElement('div');
+    modalElement.innerHTML = modalHtml;
+    const modal = modalElement.firstElementChild;
+    
+    let selectedMemberId = null;
+    
+    // Manejar selección de vendedor
+    modal.querySelectorAll('.salesperson-option').forEach(option => {
+        option.addEventListener('click', function() {
+            modal.querySelectorAll('.salesperson-option').forEach(opt => {
+                opt.style.borderColor = 'var(--gray-300)';
+                opt.style.backgroundColor = 'white';
+            });
+            
+            this.style.borderColor = 'var(--primary-color)';
+            this.style.backgroundColor = 'var(--gray-50)';
+            
+            selectedMemberId = this.dataset.memberId;
+            
+            const assignBtn = modal.querySelector('.btn-assign');
+            assignBtn.disabled = false;
+            assignBtn.style.opacity = '1';
+        });
+    });
+    
+    // Manejar botones
+    modal.querySelector('.close-modal').addEventListener('click', () => {
+        document.body.removeChild(modal);
+    });
+    
+    modal.querySelector('.btn-cancel').addEventListener('click', () => {
+        document.body.removeChild(modal);
+    });
+    
+    modal.querySelector('.btn-assign').addEventListener('click', async () => {
+        if (!selectedMemberId) {
+            alert('Por favor selecciona un vendedor');
+            return;
+        }
+        
+        const notes = modal.querySelector('#assignment-notes').value.trim();
+        const assignBtn = modal.querySelector('.btn-assign');
+        
+        assignBtn.disabled = true;
+        assignBtn.textContent = 'Asignando...';
+        
+        try {
+            await assignLeadToSalesperson(leadId, selectedMemberId, notes);
+            document.body.removeChild(modal);
+            location.reload();
+        } catch (error) {
+            alert('Error al asignar prospecto: ' + error.message);
+            assignBtn.disabled = false;
+            assignBtn.textContent = 'Asignar Prospecto';
+        }
+    });
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            document.body.removeChild(modal);
+        }
+    });
+    
+    return modal;
+}
+
+function showRejectModal(leadId) {
+    const modalHtml = `
+        <div class="modal-overlay" style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        ">
+            <div class="modal-content" style="
+                background: white;
+                border-radius: 12px;
+                padding: 2rem;
+                max-width: 400px;
+                width: 90%;
+            ">
+                <div class="modal-header" style="margin-bottom: 1.5rem;">
+                    <h3 style="margin: 0; font-size: 1.25rem; color: var(--error-color);">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Rechazar Prospecto
+                    </h3>
+                </div>
+                
+                <div class="modal-body">
+                    <p style="color: var(--gray-600); margin-bottom: 1rem;">
+                        ¿Estás seguro que deseas rechazar este prospecto? Esta acción lo sacará de la cola de asignación.
+                    </p>
+                    
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: var(--gray-700);">
+                            Razón del rechazo:
+                        </label>
+                        <textarea id="reject-reason" placeholder="Ej: Contenido inapropiado, no es lead válido, etc..." style="
+                            width: 100%;
+                            padding: 0.75rem;
+                            border: 1px solid var(--gray-300);
+                            border-radius: 6px;
+                            font-family: inherit;
+                            resize: vertical;
+                            min-height: 80px;
+                        " required></textarea>
+                    </div>
+                    
+                    <div class="modal-actions" style="
+                        display: flex;
+                        gap: 1rem;
+                        justify-content: end;
+                    ">
+                        <button class="btn-cancel" style="
+                            padding: 0.75rem 1.5rem;
+                            border: 1px solid var(--gray-300);
+                            background: white;
+                            color: var(--gray-700);
+                            border-radius: 6px;
+                            cursor: pointer;
+                        ">Cancelar</button>
+                        <button class="btn-reject" style="
+                            padding: 0.75rem 1.5rem;
+                            background: var(--error-color);
+                            color: white;
+                            border: none;
+                            border-radius: 6px;
+                            cursor: pointer;
+                        ">Rechazar Prospecto</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const modalElement = document.createElement('div');
+    modalElement.innerHTML = modalHtml;
+    const modal = modalElement.firstElementChild;
+    document.body.appendChild(modal);
+    
+    modal.querySelector('.btn-cancel').addEventListener('click', () => {
+        document.body.removeChild(modal);
+    });
+    
+    modal.querySelector('.btn-reject').addEventListener('click', async () => {
+        const reason = modal.querySelector('#reject-reason').value.trim();
+        
+        if (!reason) {
+            alert('Debe proporcionar una razón para rechazar el prospecto');
+            return;
+        }
+        
+        const rejectBtn = modal.querySelector('.btn-reject');
+        rejectBtn.disabled = true;
+        rejectBtn.textContent = 'Rechazando...';
+        
+        try {
+            const response = await fetch(`/marketing/api/lead/${leadId}/reject/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify({
+                    reason: reason
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || 'Error al rechazar prospecto');
+            }
+            
+            document.body.removeChild(modal);
+            location.reload();
+            
+        } catch (error) {
+            alert('Error al rechazar prospecto: ' + error.message);
+            rejectBtn.disabled = false;
+            rejectBtn.textContent = 'Rechazar Prospecto';
+        }
+    });
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            document.body.removeChild(modal);
+        }
+    });
+}
+
+async function assignLeadToSalesperson(leadId, salespersonId, notes = '') {
+    const response = await fetch('/marketing/api/lead-distribution/assign/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify({
+            lead_id: leadId,
+            salesperson_id: salespersonId,
+            notes: notes,
+            assignment_type: 'MANUAL'
+        })
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+        throw new Error(data.error || 'Error al asignar prospecto');
+    }
+    
+    return data;
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

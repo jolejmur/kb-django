@@ -1,1100 +1,478 @@
-<!-- templates/sales/jerarquia/list.html -->
+<!-- templates/sales_team_management/jerarquia/list.html -->
 {% extends 'base/base.html' %}
 
-{% block title %}Jerarquía de Equipos - Django CRM{% endblock %}
+{% block title %}Jerarquía de Equipos - Korban{% endblock %}
 
 {% block header %}Jerarquía de Equipos{% endblock %}
 
+<!-- TEMPLATE UPDATED: {{ "now"|date:"Y-m-d H:i:s" }} -->
+
 {% block extra_css %}
 <style>
-/* Fix para selectores que aparecen diminutos */
-select {
-    min-height: 2.5rem !important;
-    line-height: 1.5 !important;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
-    background-position: right 0.5rem center !important;
-    background-repeat: no-repeat !important;
-    background-size: 1.5em 1.5em !important;
-    padding-right: 2.5rem !important;
-    position: relative !important;
-    z-index: 1 !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
+/* Prevenir scroll horizontal */
+body, html {
+    overflow-x: hidden;
 }
 
-/* Asegurar que los dropdown options se vean correctos */
-select option {
-    padding: 0.5rem !important;
-    font-size: 0.875rem !important;
-    line-height: 1.25rem !important;
-    color: #374151 !important;
-    background-color: white !important;
-    position: relative !important;
-    z-index: 999999 !important;
+/* Asegurar que las tablas no generen scroll horizontal */
+.table-container {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
 }
 
-/* Fix específico para mobile - Versión mejorada */
-@media (max-width: 768px) {
-    select {
-        font-size: 16px !important; /* iOS zoom fix */
-        min-height: 44px !important; /* Altura mínima para touch */
-        height: 44px !important;
-        line-height: 1.2 !important;
-        padding: 10px 40px 10px 12px !important;
-        touch-action: manipulation !important;
-        -webkit-appearance: none !important;
-        -moz-appearance: none !important;
-        appearance: none !important;
-        transform: none !important;
-        top: auto !important;
-        left: auto !important;
-        right: auto !important;
-        bottom: auto !important;
-        position: relative !important;
-        display: block !important;
-        border: 1px solid #d1d5db !important;
-        border-radius: 8px !important;
-        background-color: white !important;
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
-        background-position: right 12px center !important;
-        background-repeat: no-repeat !important;
-        background-size: 16px 16px !important;
-        color: #111827 !important;
-        font-weight: 400 !important;
-    }
-
-    /* Force normal positioning */
-    select, select:focus, select:active, select:hover {
-        position: relative !important;
-        transform: none !important;
-        top: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        bottom: 0 !important;
-        width: 100% !important;
-        margin: 0 !important;
-        z-index: 1 !important;
-    }
-    
-    /* Específico para las opciones en mobile */
-    select option {
-        font-size: 16px !important;
-        line-height: 1.4 !important;
-        padding: 12px 16px !important;
-        min-height: 44px !important;
-        color: #111827 !important;
-        background-color: white !important;
-        border: none !important;
-        display: block !important;
-        position: relative !important;
-        font-weight: 400 !important;
-    }
-    
-    /* Forzar que el dropdown aparezca en la posición correcta */
-    select:focus {
-        outline: 2px solid #3b82f6 !important;
-        outline-offset: 2px !important;
-        border-color: #3b82f6 !important;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
-    }
-    
-    /* Reset para webkit en mobile */
-    select::-webkit-appearance {
-        -webkit-appearance: none !important;
-    }
-    
-    /* Fix para Android */
-    @supports (-webkit-touch-callout: none) {
-        select {
-            background-attachment: scroll !important;
-        }
-    }
-    
-    /* Selector específico para paginación */
-    .mobile-select {
-        min-height: 36px !important;
-        height: 36px !important;
-        font-size: 14px !important;
-        padding: 6px 32px 6px 8px !important;
-        background-size: 14px 14px !important;
-        background-position: right 8px center !important;
-    }
-    
-    .mobile-select option {
-        font-size: 14px !important;
-        padding: 8px 12px !important;
-        min-height: 36px !important;
-    }
-    
-    /* Selectores de filtros específicos */
-    .mobile-filter-select {
-        /* Heredar todos los estilos de select pero más específicos */
-        font-size: 16px !important;
-        min-height: 44px !important;
-        height: 44px !important;
-        line-height: 1.2 !important;
-        padding: 10px 40px 10px 12px !important;
-    }
-    
-    .mobile-filter-select option {
-        font-size: 16px !important;
-        line-height: 1.4 !important;
-        padding: 12px 16px !important;
-        min-height: 44px !important;
-        color: #111827 !important;
-        background-color: white !important;
-    }
-
-    /* Custom dropdown para móviles */
-    .custom-select-wrapper {
-        position: relative;
-        display: block;
-    }
-    
-    .custom-select {
-        position: relative;
-        background: white;
-        border: 1px solid #d1d5db;
-        border-radius: 8px;
-        font-size: 16px;
-        min-height: 44px;
-        padding: 10px 40px 10px 12px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-    
-    .custom-select:after {
-        content: '▼';
-        position: absolute;
-        right: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        font-size: 12px;
-        color: #6b7280;
-        pointer-events: none;
-    }
-    
-    .custom-select.active:after {
-        transform: translateY(-50%) rotate(180deg);
-    }
-    
-    .custom-options {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        background: white;
-        border: 1px solid #d1d5db;
-        border-top: none;
-        border-radius: 0 0 8px 8px;
-        max-height: 200px;
-        overflow-y: auto;
-        z-index: 1000;
-        display: none;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    }
-    
-    .custom-options.show {
-        display: block;
-    }
-    
-    .custom-option {
-        padding: 12px 16px;
-        font-size: 16px;
-        line-height: 1.4;
-        color: #111827;
-        cursor: pointer;
-        border-bottom: 1px solid #f3f4f6;
-    }
-    
-    .custom-option:hover {
-        background-color: #f9fafb;
-    }
-    
-    .custom-option.selected {
-        background-color: #eff6ff;
-        color: #1d4ed8;
-        font-weight: 500;
-    }
-    
-    .custom-option:last-child {
-        border-bottom: none;
-    }
-    
-    /* Ocultar el select nativo en móviles */
-    .mobile-filter-select {
-        display: none !important;
+/* Ajustes específicos para diferentes tamaños de pantalla */
+@media (min-width: 1536px) {
+    /* 2XL: Monitores grandes */
+    .responsive-container {
+        max-width: none;
+        padding-left: 3rem;
+        padding-right: 3rem;
     }
 }
 
-/* Desktop: mostrar selects nativos, ocultar custom */
-@media (min-width: 768px) {
-    .mobile-filter-select {
-        display: block !important;
-    }
-    
-    .custom-select-wrapper {
-        display: none !important;
+@media (min-width: 1280px) and (max-width: 1535px) {
+    /* XL: Laptops grandes */
+    .responsive-container {
+        max-width: none;
+        padding-left: 2rem;
+        padding-right: 2rem;
     }
 }
 
-/* SISTEMA RESPONSIVE CORREGIDO */
-/* Móvil: 0px - 767px (solo lista compacta) */
-@media (max-width: 767px) {
-    #desktop-table-view,
-    #ipad-cards-view {
-        display: none !important;
-    }
-    #mobile-list-view {
-        display: block !important;
+@media (min-width: 1024px) and (max-width: 1279px) {
+    /* LG: Laptops */
+    .responsive-container {
+        max-width: none;
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
     }
 }
 
-/* iPad Vertical: 768px - 1023px (cards) */
 @media (min-width: 768px) and (max-width: 1023px) {
-    #desktop-table-view,
-    #mobile-list-view {
-        display: none !important;
-    }
-    #ipad-cards-view {
-        display: block !important;
-    }
-}
-
-/* Desktop: 1024px+ (tabla completa para todas las resoluciones desktop) */
-@media (min-width: 1024px) {
-    #ipad-cards-view,
-    #mobile-list-view {
-        display: none !important;
-    }
-    #desktop-table-view {
-        display: block !important;
+    /* MD: Tablets */
+    .responsive-container {
+        max-width: none;
+        padding-left: 1rem;
+        padding-right: 1rem;
     }
 }
 
-/* Mejoras específicas para HD y resoluciones altas */
-@media (min-width: 1024px) {
-    .container, .max-w-7xl {
-        max-width: none !important;
-        margin-left: 1rem !important;
-        margin-right: 1rem !important;
-        padding-left: 0 !important;
-        padding-right: 0 !important;
-        overflow-x: hidden !important;
-    }
-    
-    /* Forzar que todo el contenido se mantenga dentro del viewport */
-    body {
-        overflow-x: hidden !important;
-    }
-    
-    /* Tabla completamente responsive */
-    #desktop-table-view table {
-        width: 100% !important;
-        table-layout: fixed !important; /* Forzar ancho fijo para columnas */
-        min-width: 0 !important;
-    }
-    
-    /* Distribución inteligente de columnas */
-    #desktop-table-view table th:nth-child(1), /* Usuario */
-    #desktop-table-view table td:nth-child(1) {
-        width: 25% !important;
-        min-width: 200px !important;
-    }
-    
-    #desktop-table-view table th:nth-child(2), /* Equipo */
-    #desktop-table-view table td:nth-child(2) {
-        width: 15% !important;
-        min-width: 120px !important;
-    }
-    
-    #desktop-table-view table th:nth-child(3), /* Rol */
-    #desktop-table-view table td:nth-child(3) {
-        width: 12% !important;
-        min-width: 100px !important;
-    }
-    
-    #desktop-table-view table th:nth-child(4), /* Supervisor */
-    #desktop-table-view table td:nth-child(4) {
-        width: 20% !important;
-        min-width: 150px !important;
-    }
-    
-    #desktop-table-view table th:nth-child(5), /* Estado */
-    #desktop-table-view table td:nth-child(5) {
-        width: 10% !important;
-        min-width: 80px !important;
-    }
-    
-    #desktop-table-view table th:nth-child(6), /* Fecha */
-    #desktop-table-view table td:nth-child(6) {
-        width: 10% !important;
-        min-width: 90px !important;
-    }
-    
-    #desktop-table-view table th:nth-child(7), /* Acciones */
-    #desktop-table-view table td:nth-child(7) {
-        width: 8% !important;
-        min-width: 80px !important;
-    }
-    
-    /* Padding reducido para laptop */
-    #desktop-table-view table th, 
-    #desktop-table-view table td {
-        padding: 0.75rem 0.5rem !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-        white-space: nowrap !important;
-    }
-    
-    /* Para contenido de usuario, permitir wrap */
-    #desktop-table-view table td:nth-child(1) .ml-4,
-    #desktop-table-view table td:nth-child(4) {
-        white-space: normal !important;
-        line-height: 1.3 !important;
-    }
-    
-    /* Ajustar avatares y badges para que ocupen menos espacio */
-    #desktop-table-view .h-10.w-10 {
-        height: 2rem !important;
-        width: 2rem !important;
-    }
-    
-    #desktop-table-view .ml-4 {
-        margin-left: 0.75rem !important;
-    }
-    
-    /* Badges más compactos */
-    #desktop-table-view .px-2\.5 {
-        padding-left: 0.5rem !important;
-        padding-right: 0.5rem !important;
-    }
-    
-    /* Botones de acción más pequeños */
-    #desktop-table-view .space-x-2 > * {
-        padding: 0.5rem !important;
-    }
-    
-    /* Overflow visible para contenedor */
-    #desktop-table-view .overflow-x-auto {
-        overflow-x: visible !important;
-    }
-}
-
-/* Específico para laptops HD con scroll horizontal */
-@media (min-width: 1024px) and (max-width: 1599px) {
-    /* Reducir aún más el espaciado en laptops */
-    #desktop-table-view table th, 
-    #desktop-table-view table td {
-        padding: 0.5rem 0.25rem !important;
-        font-size: 0.875rem !important;
-    }
-    
-    /* Ajuste de anchos para laptops HD */
-    #desktop-table-view table th:nth-child(1), 
-    #desktop-table-view table td:nth-child(1) {
-        width: 22% !important;
-    }
-    
-    #desktop-table-view table th:nth-child(4), 
-    #desktop-table-view table td:nth-child(4) {
-        width: 18% !important;
-    }
-    
-    /* Hacer badges aún más pequeños en laptops */
-    #desktop-table-view .text-xs {
-        font-size: 0.7rem !important;
-    }
-    
-    /* Avatar más pequeño en laptops */
-    #desktop-table-view .h-10.w-10 {
-        height: 1.75rem !important;
-        width: 1.75rem !important;
-    }
-    
-    /* Reducir margin entre avatar y texto */
-    #desktop-table-view .ml-4 {
-        margin-left: 0.5rem !important;
-    }
-}
-
-@media (min-width: 1600px) {
-    .container, .max-w-7xl {
-        margin-left: 2rem !important;
-        margin-right: 2rem !important;
-    }
-    
-    /* Espaciado mayor para pantallas anchas */
-    #desktop-table-view table th, 
-    #desktop-table-view table td {
-        padding: 1rem 0.75rem !important;
-    }
-}
-
-@media (min-width: 1920px) {
-    .container, .max-w-7xl {
-        margin-left: 3rem !important;
-        margin-right: 3rem !important;
-    }
-    
-    /* Espaciado aún mayor para 4K */
-    #desktop-table-view table th, 
-    #desktop-table-view table td {
-        padding: 1.25rem 1rem !important;
-    }
-}
-
-/* Ajustes específicos para iPad */
-@media (min-width: 768px) and (max-width: 1023px) {
-    /* Mejorar el grid de cards en iPad */
-    .ipad-cards-grid {
-        grid-template-columns: 1fr;
-    }
-
-    /* Ajustar spacing en cards para iPad */
-    .ipad-card {
-        padding: 1rem;
-    }
-}
-
-/* Mejoras para móvil */
 @media (max-width: 767px) {
-    /* Stats grid más compacto en móvil */
-    .mobile-stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 0.75rem;
+    /* SM/Mobile */
+    .responsive-container {
+        max-width: none;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
     }
+    
+    /* Asegurar que no haya scroll horizontal en móvil */
+    .md\\:hidden {
+        width: 100%;
+        overflow-x: hidden;
+    }
+    
+    /* Forzar que el contenido se ajuste al ancho disponible */
+    .md\\:hidden .divide-y > div {
+        width: 100%;
+        min-width: 0;
+    }
+}
 
-    /* Último elemento span full width si es impar */
-    .mobile-stats-grid > div:last-child:nth-child(odd) {
-        grid-column: 1 / -1;
+/* Asegurar que el texto se trunca correctamente */
+.truncate-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 0;
+    flex: 1;
+}
+
+/* Mejorar la legibilidad en tablets */
+@media (min-width: 768px) and (max-width: 1023px) {
+    .tablet-card {
+        min-height: 200px;
     }
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto">
+<div class="responsive-container w-full max-w-none px-3 sm:px-4 lg:px-6 xl:px-8 2xl:px-12">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 space-y-4 sm:space-y-0">
         <div>
             <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Jerarquía de Equipos</h1>
-            <p class="text-gray-600 mt-1 text-sm sm:text-base">Vista completa de la estructura organizacional de ventas</p>
+            <p class="text-gray-600 mt-1 text-sm sm:text-base">Vista completa de todos los equipos y sus relaciones jerárquicas</p>
         </div>
-        <a href="{% url 'sales:jerarquia_create_member' %}"
-           class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center justify-center transition-colors">
-            <i class="fas fa-plus mr-2"></i>
-            <span class="hidden sm:inline">Asignar Usuario</span>
-            <span class="sm:hidden">Asignar</span>
-        </a>
+        <div class="flex">
+            <a href="{% url 'sales_team_management:jerarquia_create' %}"
+               class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center justify-center transition-colors">
+                <i class="fas fa-plus mr-2"></i>
+                <span class="hidden sm:inline">Crear Relación</span>
+                <span class="sm:hidden">Crear</span>
+            </a>
+        </div>
     </div>
 
     <!-- Filtros -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
-        <!-- Mobile Filter Toggle -->
-        <div class="sm:hidden p-4 border-b border-gray-200">
-            <button id="mobile-filter-toggle" class="w-full flex items-center justify-between text-left text-gray-700 hover:text-gray-900">
-                <span class="font-medium">Filtros de búsqueda</span>
-                <i class="fas fa-chevron-down transition-transform duration-200" id="filter-chevron"></i>
-            </button>
-        </div>
-
-        <!-- Filter Content -->
-        <div id="filter-content" class="hidden sm:block p-4 sm:p-6">
-            <form method="get" class="space-y-4">
-                <!-- Búsqueda por nombre - Always full width on mobile -->
-                <div class="w-full">
+        <div class="p-4 sm:p-6">
+            <div class="flex flex-col sm:flex-row gap-4 items-end">
+                <!-- Búsqueda en tiempo real -->
+                <div class="flex-1">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Buscar</label>
-                    <input type="text" name="search" value="{{ search }}"
-                           placeholder="Nombre, email o usuario..."
+                    <input type="text" id="search-input"
+                           placeholder="Buscar por nombre, email, unidad organizacional..."
                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 </div>
 
-                <!-- Filters Grid -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    <!-- Filtro por equipo -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Equipo</label>
-                        <!-- Select nativo (oculto en móviles) -->
-                        <select name="equipo" id="equipo-select" class="mobile-filter-select w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white">
-                            <option value="">Todos los equipos</option>
-                            {% for equipo in equipos %}
-                                <option value="{{ equipo.id }}" {% if equipo_seleccionado|stringformat:"s" == equipo.id|stringformat:"s" %}selected{% endif %}>
-                                    {{ equipo.nombre }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                        <!-- Custom select para móviles -->
-                        <div class="custom-select-wrapper block sm:hidden">
-                            <div class="custom-select" data-target="equipo-select">
-                                <span class="custom-select-text">Todos los equipos</span>
-                            </div>
-                            <div class="custom-options">
-                                <div class="custom-option selected" data-value="">Todos los equipos</div>
-                                {% for equipo in equipos %}
-                                    <div class="custom-option{% if equipo_seleccionado|stringformat:"s" == equipo.id|stringformat:"s" %} selected{% endif %}" data-value="{{ equipo.id }}">
-                                        {{ equipo.nombre }}
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Filtro por rol -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Rol</label>
-                        <!-- Select nativo (oculto en móviles) -->
-                        <select name="rol" id="rol-select" class="mobile-filter-select w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white">
-                            <option value="todos">Todos los roles</option>
-                            <option value="gerente" {% if rol_seleccionado == 'gerente' %}selected{% endif %}>Gerente</option>
-                            <option value="jefe" {% if rol_seleccionado == 'jefe' %}selected{% endif %}>Jefe</option>
-                            <option value="team_leader" {% if rol_seleccionado == 'team_leader' %}selected{% endif %}>Team Leader</option>
-                            <option value="vendedor" {% if rol_seleccionado == 'vendedor' %}selected{% endif %}>Vendedor</option>
-                        </select>
-                        <!-- Custom select para móviles -->
-                        <div class="custom-select-wrapper block sm:hidden">
-                            <div class="custom-select" data-target="rol-select">
-                                <span class="custom-select-text">Todos los roles</span>
-                            </div>
-                            <div class="custom-options">
-                                <div class="custom-option{% if rol_seleccionado == 'todos' or not rol_seleccionado %} selected{% endif %}" data-value="todos">Todos los roles</div>
-                                <div class="custom-option{% if rol_seleccionado == 'gerente' %} selected{% endif %}" data-value="gerente">Gerente</div>
-                                <div class="custom-option{% if rol_seleccionado == 'jefe' %} selected{% endif %}" data-value="jefe">Jefe</div>
-                                <div class="custom-option{% if rol_seleccionado == 'team_leader' %} selected{% endif %}" data-value="team_leader">Team Leader</div>
-                                <div class="custom-option{% if rol_seleccionado == 'vendedor' %} selected{% endif %}" data-value="vendedor">Vendedor</div>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-
-                <!-- Botones -->
-                <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4">
-                    <button type="submit" class="flex-1 sm:flex-initial bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-                        <i class="fas fa-search mr-2"></i>Filtrar
-                    </button>
-                    <a href="{% url 'sales:jerarquia_list' %}" class="flex-1 sm:flex-initial bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors text-center">
-                        <i class="fas fa-times mr-2"></i>Limpiar
-                    </a>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Resultados -->
-    {% if page_obj %}
-        <!-- Estadísticas -->
-        <div class="mobile-stats-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4 mb-6">
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4">
-                <div class="flex items-center">
-                    <div class="p-1.5 sm:p-2 bg-blue-100 rounded-lg flex-shrink-0">
-                        <i class="fas fa-users text-blue-600 text-sm sm:text-base"></i>
-                    </div>
-                    <div class="ml-2 sm:ml-3 min-w-0">
-                        <p class="text-xs sm:text-sm font-medium text-gray-500 truncate">Total</p>
-                        <p class="text-sm sm:text-lg font-semibold text-gray-900">{{ stats.total_miembros }}</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4">
-                <div class="flex items-center">
-                    <div class="p-1.5 sm:p-2 bg-green-100 rounded-lg flex-shrink-0">
-                        <i class="fas fa-user-tie text-green-600 text-sm sm:text-base"></i>
-                    </div>
-                    <div class="ml-2 sm:ml-3 min-w-0">
-                        <p class="text-xs sm:text-sm font-medium text-gray-500 truncate">Gerentes</p>
-                        <p class="text-sm sm:text-lg font-semibold text-gray-900">{{ stats.total_gerentes }}</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4">
-                <div class="flex items-center">
-                    <div class="p-1.5 sm:p-2 bg-yellow-100 rounded-lg flex-shrink-0">
-                        <i class="fas fa-user-cog text-yellow-600 text-sm sm:text-base"></i>
-                    </div>
-                    <div class="ml-2 sm:ml-3 min-w-0">
-                        <p class="text-xs sm:text-sm font-medium text-gray-500 truncate">Jefes</p>
-                        <p class="text-sm sm:text-lg font-semibold text-gray-900">{{ stats.total_jefes }}</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4">
-                <div class="flex items-center">
-                    <div class="p-1.5 sm:p-2 bg-orange-100 rounded-lg flex-shrink-0">
-                        <i class="fas fa-users text-orange-600 text-sm sm:text-base"></i>
-                    </div>
-                    <div class="ml-2 sm:ml-3 min-w-0">
-                        <p class="text-xs sm:text-sm font-medium text-gray-500 truncate">Leaders</p>
-                        <p class="text-sm sm:text-lg font-semibold text-gray-900">{{ stats.total_team_leaders }}</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4">
-                <div class="flex items-center">
-                    <div class="p-1.5 sm:p-2 bg-purple-100 rounded-lg flex-shrink-0">
-                        <i class="fas fa-user text-purple-600 text-sm sm:text-base"></i>
-                    </div>
-                    <div class="ml-2 sm:ml-3 min-w-0">
-                        <p class="text-xs sm:text-sm font-medium text-gray-500 truncate">Vendedores</p>
-                        <p class="text-sm sm:text-lg font-semibold text-gray-900">{{ stats.total_vendedores }}</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Vista responsive: Desktop (tabla) / iPad (cards) / Mobile (lista) -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <!-- Vista Desktop: Tabla (1280px+) -->
-            <div id="desktop-table-view">
-                <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Usuario
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Equipo
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Rol
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Supervisor
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Estado
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Fecha Asignación
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Acciones
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        {% for miembro in page_obj %}
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center">
-                                        <div class="h-10 w-10 rounded-full flex items-center justify-center
-                                            {% if miembro.rol_key == 'gerente' %}bg-blue-100{% elif miembro.rol_key == 'jefe' %}bg-green-100{% elif miembro.rol_key == 'team_leader' %}bg-yellow-100{% else %}bg-purple-100{% endif %}">
-                                            {% if miembro.rol_key == 'gerente' %}
-                                                <i class="fas fa-user-tie text-blue-600"></i>
-                                            {% elif miembro.rol_key == 'jefe' %}
-                                                <i class="fas fa-user-cog text-green-600"></i>
-                                            {% elif miembro.rol_key == 'team_leader' %}
-                                                <i class="fas fa-users text-yellow-600"></i>
-                                            {% else %}
-                                                <i class="fas fa-user text-purple-600"></i>
-                                            {% endif %}
-                                        </div>
-                                        <div class="ml-4">
-                                            <div class="text-sm font-medium text-gray-900">
-                                                {{ miembro.usuario.get_full_name|default:miembro.usuario.username }}
-                                            </div>
-                                            <div class="text-sm text-gray-500">
-                                                {{ miembro.usuario.email }}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900">{{ miembro.equipo.nombre }}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                        {% if miembro.rol_key == 'gerente' %}bg-blue-100 text-blue-800{% elif miembro.rol_key == 'jefe' %}bg-green-100 text-green-800{% elif miembro.rol_key == 'team_leader' %}bg-yellow-100 text-yellow-800{% else %}bg-purple-100 text-purple-800{% endif %}">
-                                        {{ miembro.rol }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    {% if miembro.supervisor %}
-                                        <div class="flex items-center">
-                                            {{ miembro.supervisor }}
-                                            {% if miembro.es_supervision_directa %}
-                                                <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
-                                                    <i class="fas fa-magic mr-1"></i>
-                                                    Directa
-                                                </span>
-                                            {% endif %}
-                                        </div>
-                                        {% if miembro.es_supervision_directa and miembro.tipo_supervision %}
-                                            <div class="text-xs text-purple-600 mt-1">
-                                                {{ miembro.tipo_supervision }}
-                                            </div>
-                                        {% endif %}
-                                    {% else %}
-                                        <span class="text-gray-400">-</span>
-                                    {% endif %}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    {% if miembro.activo %}
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                            <i class="fas fa-check-circle mr-1"></i>
-                                            Activo
-                                        </span>
-                                    {% else %}
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                            <i class="fas fa-times-circle mr-1"></i>
-                                            Inactivo
-                                        </span>
-                                    {% endif %}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {{ miembro.fecha_asignacion|date:"d/m/Y" }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    <div class="flex space-x-2">
-                                        <!-- Ver -->
-                                        <a href="{% url 'sales:jerarquia_member_detail' miembro.objeto.id miembro.rol_key %}"
-                                           class="bg-blue-50 hover:bg-blue-100 text-blue-700 p-2 rounded-lg transition-colors"
-                                           title="Ver Datos del Usuario">
-                                            <i class="fas fa-eye text-sm"></i>
-                                        </a>
-                                        <!-- Editar -->
-                                        <a href="{% url 'sales:jerarquia_member_edit' miembro.objeto.id miembro.rol_key %}"
-                                           class="bg-yellow-50 hover:bg-yellow-100 text-yellow-700 p-2 rounded-lg transition-colors"
-                                           title="Editar Usuario">
-                                            <i class="fas fa-edit text-sm"></i>
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
+                <!-- Filtro por Fuerza de Venta -->
+                <div class="w-full sm:w-64">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Fuerza de Venta</label>
+                    <select id="unit-filter" 
+                            {% if not can_change_filter %}disabled readonly{% endif %}
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none
+                            {% if not can_change_filter %}bg-gray-100 cursor-not-allowed{% else %}bg-white{% endif %}">
+                        {% if can_change_filter %}
+                            <option value="">Todas las fuerzas de venta</option>
+                        {% endif %}
+                        {% for unit in units %}
+                            <option value="{{ unit.id }}" {% if unit.id|stringformat:"s" == equipo_filter %}selected{% endif %}>
+                                {{ unit.name }}
+                                {% if not can_change_filter %} (Tu equipo){% endif %}
+                            </option>
                         {% endfor %}
-                    </tbody>
-                </table>
+                    </select>
+                    {% if not can_change_filter %}
+                        <p class="text-xs text-gray-500 mt-1">
+                            <i class="fas fa-lock mr-1"></i>Solo puedes ver la jerarquía de tu equipo
+                        </p>
+                    {% endif %}
                 </div>
-            </div>
 
-            <!-- Vista iPad: Cards (768px - 1279px) -->
-            <div id="ipad-cards-view">
-                <div class="ipad-cards-grid grid gap-4 p-4">
-                    {% for miembro in page_obj %}
-                        <div class="ipad-card border border-gray-200 rounded-xl hover:shadow-md transition-shadow bg-white">
-                            <div class="flex items-start justify-between">
-                                <div class="flex items-center flex-1">
-                                    <div class="h-12 w-12 rounded-full flex items-center justify-center flex-shrink-0
-                                        {% if miembro.rol_key == 'gerente' %}bg-blue-100{% elif miembro.rol_key == 'jefe' %}bg-green-100{% elif miembro.rol_key == 'team_leader' %}bg-yellow-100{% else %}bg-purple-100{% endif %}">
-                                        {% if miembro.rol_key == 'gerente' %}
-                                            <i class="fas fa-user-tie text-blue-600"></i>
-                                        {% elif miembro.rol_key == 'jefe' %}
-                                            <i class="fas fa-user-cog text-green-600"></i>
-                                        {% elif miembro.rol_key == 'team_leader' %}
-                                            <i class="fas fa-users text-yellow-600"></i>
-                                        {% else %}
-                                            <i class="fas fa-user text-purple-600"></i>
-                                        {% endif %}
-                                    </div>
-                                    <div class="ml-4 flex-1 min-w-0">
-                                        <h3 class="text-base font-medium text-gray-900 truncate">
-                                            {{ miembro.usuario.get_full_name|default:miembro.usuario.username }}
-                                        </h3>
-                                        <p class="text-sm text-gray-500 truncate">{{ miembro.usuario.email }}</p>
-
-                                        <div class="flex items-center flex-wrap gap-2 mt-3">
-                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-sm font-medium
-                                                {% if miembro.rol_key == 'gerente' %}bg-blue-100 text-blue-800{% elif miembro.rol_key == 'jefe' %}bg-green-100 text-green-800{% elif miembro.rol_key == 'team_leader' %}bg-yellow-100 text-yellow-800{% else %}bg-purple-100 text-purple-800{% endif %}">
-                                                {{ miembro.rol }}
-                                            </span>
-
-                                            {% if miembro.activo %}
-                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                                                    <i class="fas fa-check-circle mr-1"></i>Activo
-                                                </span>
-                                            {% else %}
-                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
-                                                    <i class="fas fa-times-circle mr-1"></i>Inactivo
-                                                </span>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Acciones -->
-                                <div class="flex items-center space-x-2 ml-4">
-                                    <a href="{% url 'sales:jerarquia_member_detail' miembro.objeto.id miembro.rol_key %}"
-                                       class="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <a href="{% url 'sales:jerarquia_member_edit' miembro.objeto.id miembro.rol_key %}"
-                                       class="text-yellow-600 hover:text-yellow-900 p-2 rounded-lg hover:bg-yellow-50 transition-colors">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                </div>
-                            </div>
-
-                            <!-- Información adicional -->
-                            <div class="mt-4 pt-4 border-t border-gray-100">
-                                <div class="grid grid-cols-2 gap-3 text-sm text-gray-600">
-                                    <div><strong>Equipo:</strong> {{ miembro.equipo.nombre }}</div>
-                                    <div><strong>Asignado:</strong> {{ miembro.fecha_asignacion|date:"d/m/Y" }}</div>
-                                    {% if miembro.supervisor %}
-                                        <div class="col-span-2">
-                                            <strong>Supervisor:</strong> {{ miembro.supervisor }}
-                                            {% if miembro.es_supervision_directa %}
-                                                <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
-                                                    <i class="fas fa-magic mr-1"></i>Directa
-                                                </span>
-                                            {% endif %}
-                                        </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <!-- Vista Mobile: Lista Compacta (menos de 768px) -->
-            <div id="mobile-list-view">
-                {% for miembro in page_obj %}
-                    <div class="flex items-center justify-between p-4 border-b border-gray-100 hover:bg-gray-50">
-                        <!-- Información Principal -->
-                        <div class="flex items-center flex-1 min-w-0">
-                            <!-- Avatar/Icono -->
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0
-                                {% if miembro.rol_key == 'gerente' %}bg-blue-100{% elif miembro.rol_key == 'jefe' %}bg-green-100{% elif miembro.rol_key == 'team_leader' %}bg-yellow-100{% else %}bg-purple-100{% endif %}">
-                                {% if miembro.rol_key == 'gerente' %}
-                                    <i class="fas fa-user-tie text-blue-600 text-sm"></i>
-                                {% elif miembro.rol_key == 'jefe' %}
-                                    <i class="fas fa-user-cog text-green-600 text-sm"></i>
-                                {% elif miembro.rol_key == 'team_leader' %}
-                                    <i class="fas fa-users text-yellow-600 text-sm"></i>
-                                {% else %}
-                                    <i class="fas fa-user text-purple-600 text-sm"></i>
-                                {% endif %}
-                            </div>
-
-                            <!-- Detalles -->
-                            <div class="ml-3 flex-1 min-w-0">
-                                <div class="flex items-center space-x-2">
-                                    <h3 class="text-sm font-medium text-gray-900 truncate">
-                                        {{ miembro.usuario.get_full_name|default:miembro.usuario.username }}
-                                    </h3>
-                                    <!-- Rol Badge -->
-                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
-                                        {% if miembro.rol_key == 'gerente' %}bg-blue-100 text-blue-800{% elif miembro.rol_key == 'jefe' %}bg-green-100 text-green-800{% elif miembro.rol_key == 'team_leader' %}bg-yellow-100 text-yellow-800{% else %}bg-purple-100 text-purple-800{% endif %}">
-                                        {% if miembro.rol_key == 'gerente' %}Ger{% elif miembro.rol_key == 'jefe' %}Jefe{% elif miembro.rol_key == 'team_leader' %}TL{% else %}Vend{% endif %}
-                                    </span>
-                                </div>
-                                <div class="flex items-center justify-between mt-1">
-                                    <p class="text-xs text-gray-500 truncate">{{ miembro.equipo.nombre }}</p>
-                                    <!-- Estado -->
-                                    {% if miembro.activo %}
-                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs bg-green-100 text-green-800">
-                                            <i class="fas fa-circle text-xs mr-1"></i>Activo
-                                        </span>
-                                    {% else %}
-                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs bg-red-100 text-red-800">
-                                            <i class="fas fa-circle text-xs mr-1"></i>Inactivo
-                                        </span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Acciones -->
-                        <div class="flex items-center space-x-1 ml-2">
-                            <a href="{% url 'sales:jerarquia_member_detail' miembro.objeto.id miembro.rol_key %}"
-                               class="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded">
-                                <i class="fas fa-eye text-xs"></i>
-                            </a>
-                            <a href="{% url 'sales:jerarquia_member_edit' miembro.objeto.id miembro.rol_key %}"
-                               class="p-1.5 text-yellow-600 hover:text-yellow-800 hover:bg-yellow-50 rounded">
-                                <i class="fas fa-edit text-xs"></i>
-                            </a>
-                        </div>
-                    </div>
-                {% empty %}
-                    <div class="p-8 text-center">
-                        <div class="text-gray-400">
-                            <i class="fas fa-users text-4xl mb-4"></i>
-                            <p class="text-lg font-medium">No hay miembros</p>
-                            <p class="text-sm">Ajusta los filtros o agrega un nuevo miembro</p>
-                        </div>
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- Paginación intuitiva -->
-        <div class="mt-6 space-y-4">
-            <!-- Información de resultados -->
-            <div class="text-center sm:text-left text-sm text-gray-600">
-                Mostrando {{ page_obj.start_index }} a {{ page_obj.end_index }} de {{ page_obj.paginator.count }} resultados
-            </div>
-
-            <!-- Navegación y selector de páginas -->
-            <div class="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
-                <!-- Navegación de páginas -->
-                {% if page_obj.has_other_pages %}
-                    <nav class="flex items-center space-x-1 sm:space-x-2">
-                        {% if page_obj.has_previous %}
-                            <a href="?page=1{% if search %}&search={{ search }}{% endif %}{% if equipo_seleccionado %}&equipo={{ equipo_seleccionado }}{% endif %}{% if rol_seleccionado %}&rol={{ rol_seleccionado }}{% endif %}{% if page_size %}&page_size={{ page_size }}{% endif %}"
-                               class="p-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50" title="Primera página">
-                                <i class="fas fa-angle-double-left"></i>
-                            </a>
-                            <a href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if equipo_seleccionado %}&equipo={{ equipo_seleccionado }}{% endif %}{% if rol_seleccionado %}&rol={{ rol_seleccionado }}{% endif %}{% if page_size %}&page_size={{ page_size }}{% endif %}"
-                               class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
-                                <span class="hidden sm:inline"><i class="fas fa-angle-left"></i> Anterior</span>
-                                <span class="sm:hidden"><i class="fas fa-angle-left"></i></span>
-                            </a>
-                        {% endif %}
-
-                        <span class="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm">
-                            {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
-                        </span>
-
-                        {% if page_obj.has_next %}
-                            <a href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if equipo_seleccionado %}&equipo={{ equipo_seleccionado }}{% endif %}{% if rol_seleccionado %}&rol={{ rol_seleccionado }}{% endif %}{% if page_size %}&page_size={{ page_size }}{% endif %}"
-                               class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
-                                <span class="hidden sm:inline">Siguiente <i class="fas fa-angle-right"></i></span>
-                                <span class="sm:hidden"><i class="fas fa-angle-right"></i></span>
-                            </a>
-                            <a href="?page={{ page_obj.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if equipo_seleccionado %}&equipo={{ equipo_seleccionado }}{% endif %}{% if rol_seleccionado %}&rol={{ rol_seleccionado }}{% endif %}{% if page_size %}&page_size={{ page_size }}{% endif %}"
-                               class="p-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50" title="Última página">
-                                <i class="fas fa-angle-double-right"></i>
-                            </a>
-                        {% endif %}
-                    </nav>
-                {% endif %}
-
-                <!-- Selector de entradas por página -->
-                <div class="flex items-center space-x-2 text-sm">
-                    <label class="text-gray-600 whitespace-nowrap">Por página:</label>
-                    <select name="page_size" onchange="changePageSize(this.value)"
-                            class="mobile-select px-2 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white">
-                        <option value="10" {% if page_size == 10 %}selected{% endif %}>10</option>
-                        <option value="25" {% if page_size == 25 %}selected{% endif %}>25</option>
-                        <option value="50" {% if page_size == 50 %}selected{% endif %}>50</option>
-                        <option value="100" {% if page_size == 100 %}selected{% endif %}>100</option>
+                <!-- Selector de elementos por página -->
+                <div class="w-full sm:w-32">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Por página</label>
+                    <select id="page-size-selector" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white">
+                        {% for size in page_size_options %}
+                            <option value="{{ size }}" {% if size == current_page_size %}selected{% endif %}>{{ size }}</option>
+                        {% endfor %}
                     </select>
                 </div>
             </div>
+
+            <!-- Indicador de búsqueda -->
+            <div id="search-indicator" class="hidden mt-4">
+                <div class="flex items-center text-sm text-blue-600">
+                    <i class="fas fa-search mr-2"></i>
+                    <span>Buscando...</span>
+                </div>
+            </div>
         </div>
-    {% else %}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 text-center py-12">
-            <i class="fas fa-users text-gray-300 text-6xl mb-4"></i>
-            <h3 class="text-lg font-medium text-gray-900 mb-2">No se encontraron miembros</h3>
-            <p class="text-gray-500">Ajusta los filtros para ver los miembros de los equipos.</p>
+    </div>
+
+    <!-- Estadísticas -->
+    {% if stats %}
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4 mb-6">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4">
+            <div class="flex items-center">
+                <div class="p-1.5 sm:p-2 bg-blue-100 rounded-lg flex-shrink-0">
+                    <i class="fas fa-sitemap text-blue-600 text-sm sm:text-base"></i>
+                </div>
+                <div class="ml-2 sm:ml-3 min-w-0">
+                    <p class="text-xs sm:text-sm font-medium text-gray-500 truncate">Total Relaciones</p>
+                    <p class="text-sm sm:text-lg font-semibold text-gray-900">{{ stats.total_relations }}</p>
+                </div>
+            </div>
         </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4">
+            <div class="flex items-center">
+                <div class="p-1.5 sm:p-2 bg-green-100 rounded-lg flex-shrink-0">
+                    <i class="fas fa-check-circle text-green-600 text-sm sm:text-base"></i>
+                </div>
+                <div class="ml-2 sm:ml-3 min-w-0">
+                    <p class="text-xs sm:text-sm font-medium text-gray-500 truncate">Activas</p>
+                    <p class="text-sm sm:text-lg font-semibold text-gray-900">{{ stats.active_relations }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4">
+            <div class="flex items-center">
+                <div class="p-1.5 sm:p-2 bg-purple-100 rounded-lg flex-shrink-0">
+                    <i class="fas fa-magic text-purple-600 text-sm sm:text-base"></i>
+                </div>
+                <div class="ml-2 sm:ml-3 min-w-0">
+                    <p class="text-xs sm:text-sm font-medium text-gray-500 truncate">Directas</p>
+                    <p class="text-sm sm:text-lg font-semibold text-gray-900">{{ stats.direct_relations }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4">
+            <div class="flex items-center">
+                <div class="p-1.5 sm:p-2 bg-orange-100 rounded-lg flex-shrink-0">
+                    <i class="fas fa-building text-orange-600 text-sm sm:text-base"></i>
+                </div>
+                <div class="ml-2 sm:ml-3 min-w-0">
+                    <p class="text-xs sm:text-sm font-medium text-gray-500 truncate">Unidades</p>
+                    <p class="text-sm sm:text-lg font-semibold text-gray-900">{{ stats.units_with_relations }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4">
+            <div class="flex items-center">
+                <div class="p-1.5 sm:p-2 bg-red-100 rounded-lg flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-sm sm:text-base"></i>
+                </div>
+                <div class="ml-2 sm:ml-3 min-w-0">
+                    <p class="text-xs sm:text-sm font-medium text-gray-500 truncate">Inconsistencias</p>
+                    <p class="text-sm sm:text-lg font-semibold text-gray-900">{{ stats.inconsistencies|default:0 }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
     {% endif %}
+
+    <!-- Lista de Relaciones -->
+    <div id="relations-container" class="bg-white rounded-xl shadow-sm border border-gray-200">
+        {% include 'sales_team_management/jerarquia/partials/relations_list.html' %}
+    </div>
+
+    <!-- Paginación -->
+    <div id="pagination-container" class="mt-6 flex justify-center">
+        {% if page_obj.has_other_pages %}
+            {% include 'sales_team_management/jerarquia/partials/pagination.html' %}
+        {% endif %}
+    </div>
+
+    <!-- Mensaje cuando no hay resultados -->
+    <div id="no-results" class="hidden bg-white rounded-xl shadow-sm border border-gray-200 text-center py-12">
+        <i class="fas fa-search text-gray-300 text-6xl mb-4"></i>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No se encontraron resultados</h3>
+        <p class="text-gray-500 mb-6">Intenta con otros términos de búsqueda o ajusta los filtros.</p>
+        <button onclick="clearSearch()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium inline-flex items-center">
+            <i class="fas fa-times mr-2"></i>Limpiar búsqueda
+        </button>
+    </div>
 </div>
 
 <script>
-function changePageSize(size) {
-    const url = new URL(window.location.href);
-    url.searchParams.set('page_size', size);
-    url.searchParams.delete('page'); // Reset to first page when changing page size
-    window.location.href = url.toString();
+let searchTimeout;
+let currentSearch = '';
+let currentUnitFilter = '';
+let currentPage = 1;
+let currentPageSize = {{ current_page_size }};
+
+// Control de acceso
+const canChangeFilter = {{ can_change_filter|yesno:"true,false" }};
+const isTeamMember = {{ is_team_member|yesno:"true,false" }};
+const userTeamFilter = "{{ equipo_filter }}";
+
+// Clave para localStorage
+const FILTERS_STORAGE_KEY = 'hierarchy_filters';
+
+// Función para guardar filtros en localStorage
+function saveFiltersToStorage(filters) {
+    try {
+        localStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(filters));
+    } catch (e) {
+        console.warn('No se pudo guardar filtros en localStorage:', e);
+    }
 }
 
-// Mobile filter toggle functionality
-document.addEventListener('DOMContentLoaded', function() {
-    const mobileFilterToggle = document.getElementById('mobile-filter-toggle');
-    const filterContent = document.getElementById('filter-content');
-    const filterChevron = document.getElementById('filter-chevron');
+// Función para cargar filtros desde localStorage
+function loadFiltersFromStorage() {
+    try {
+        const saved = localStorage.getItem(FILTERS_STORAGE_KEY);
+        return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+        console.warn('No se pudo cargar filtros desde localStorage:', e);
+        return {};
+    }
+}
 
-    if (mobileFilterToggle && filterContent && filterChevron) {
-        mobileFilterToggle.addEventListener('click', function() {
-            const isHidden = filterContent.classList.contains('hidden');
-
-            if (isHidden) {
-                filterContent.classList.remove('hidden');
-                filterChevron.classList.add('rotate-180');
-            } else {
-                filterContent.classList.add('hidden');
-                filterChevron.classList.remove('rotate-180');
-            }
-        });
+// Función para aplicar filtros guardados
+function applySavedFilters() {
+    const saved = loadFiltersFromStorage();
+    
+    // Aplicar valores a los elementos del formulario
+    if (saved.search) {
+        document.getElementById('search-input').value = saved.search;
+        currentSearch = saved.search;
     }
     
-    // Custom select functionality para móviles
-    initCustomSelects();
-});
-
-function initCustomSelects() {
-    // Solo en móviles (menos de 768px)
-    if (window.innerWidth < 768) {
-        const customSelects = document.querySelectorAll('.custom-select');
-        
-        customSelects.forEach(select => {
-            const targetId = select.getAttribute('data-target');
-            const targetSelect = document.getElementById(targetId);
-            const optionsContainer = select.nextElementSibling;
-            const selectText = select.querySelector('.custom-select-text');
-            
-            // Inicializar texto seleccionado
-            const selectedOption = targetSelect.querySelector('option[selected]');
-            if (selectedOption) {
-                selectText.textContent = selectedOption.textContent;
-                // Marcar opción como seleccionada en custom select
-                const customOption = optionsContainer.querySelector(`[data-value="${selectedOption.value}"]`);
-                if (customOption) {
-                    optionsContainer.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
-                    customOption.classList.add('selected');
-                }
-            }
-            
-            // Click en el selector personalizado
-            select.addEventListener('click', function(e) {
-                e.stopPropagation();
-                
-                // Cerrar otros selects abiertos
-                document.querySelectorAll('.custom-options.show').forEach(other => {
-                    if (other !== optionsContainer) {
-                        other.classList.remove('show');
-                        other.previousElementSibling.classList.remove('active');
-                    }
-                });
-                
-                // Toggle el select actual
-                optionsContainer.classList.toggle('show');
-                select.classList.toggle('active');
-            });
-            
-            // Click en las opciones
-            const options = optionsContainer.querySelectorAll('.custom-option');
-            options.forEach(option => {
-                option.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    
-                    const value = this.getAttribute('data-value');
-                    const text = this.textContent;
-                    
-                    // Actualizar el select nativo
-                    targetSelect.value = value;
-                    
-                    // Actualizar el texto mostrado
-                    selectText.textContent = text;
-                    
-                    // Marcar como seleccionado
-                    options.forEach(opt => opt.classList.remove('selected'));
-                    this.classList.add('selected');
-                    
-                    // Cerrar el dropdown
-                    optionsContainer.classList.remove('show');
-                    select.classList.remove('active');
-                });
-            });
-        });
-        
-        // Cerrar dropdowns al hacer click fuera
-        document.addEventListener('click', function() {
-            document.querySelectorAll('.custom-options.show').forEach(optionsContainer => {
-                optionsContainer.classList.remove('show');
-                optionsContainer.previousElementSibling.classList.remove('active');
-            });
-        });
+    // Para miembros de equipo, FORZAR el filtro de su equipo
+    if (isTeamMember && !canChangeFilter) {
+        const unitSelect = document.getElementById('unit-filter');
+        if (unitSelect) {
+            unitSelect.value = userTeamFilter;
+            currentUnitFilter = userTeamFilter;
+        }
+    } else if (saved.unitFilter && canChangeFilter) {
+        const unitSelect = document.getElementById('unit-filter');
+        if (unitSelect) {
+            unitSelect.value = saved.unitFilter;
+            currentUnitFilter = saved.unitFilter;
+        }
+    }
+    
+    if (saved.pageSize) {
+        const pageSizeSelect = document.getElementById('page-size-selector');
+        if (pageSizeSelect) {
+            pageSizeSelect.value = saved.pageSize;
+            currentPageSize = saved.pageSize;
+        }
+    }
+    
+    // Si hay filtros aplicados, ejecutar búsqueda
+    const effectiveUnitFilter = isTeamMember ? userTeamFilter : (saved.unitFilter || '');
+    if (saved.search || effectiveUnitFilter) {
+        searchHierarchy(saved.search || '', effectiveUnitFilter, 1, saved.pageSize || currentPageSize);
     }
 }
+
+// Función principal de búsqueda
+function searchHierarchy(query = '', unitFilter = '', page = 1, pageSize = null) {
+    const searchIndicator = document.getElementById('search-indicator');
+    const relationsContainer = document.getElementById('relations-container');
+    const paginationContainer = document.getElementById('pagination-container');
+    const noResults = document.getElementById('no-results');
+    
+    // Mostrar indicador de búsqueda
+    searchIndicator.classList.remove('hidden');
+    
+    // Construir URL
+    const url = new URL('{% url "sales_team_management:ajax_search_hierarchy" %}', window.location.origin);
+    const params = new URLSearchParams();
+    
+    if (query) params.append('q', query);
+    if (unitFilter) params.append('unit_filter', unitFilter);
+    if (page > 1) params.append('page', page);
+    if (pageSize && pageSize !== 10) params.append('page_size', pageSize);
+    
+    url.search = params.toString();
+    
+    // Actualizar variables globales
+    currentSearch = query;
+    currentUnitFilter = unitFilter;
+    currentPage = page;
+    if (pageSize) currentPageSize = pageSize;
+    
+    // Guardar filtros en localStorage
+    saveFiltersToStorage({
+        search: query,
+        unitFilter: unitFilter,
+        pageSize: pageSize || currentPageSize
+    });
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            // Ocultar indicador de búsqueda
+            searchIndicator.classList.add('hidden');
+            
+            // Debug temporal
+            console.log('AJAX Response:', data);
+            
+            if (data.success) {
+                if (data.total_results > 0) {
+                    // Mostrar resultados
+                    relationsContainer.innerHTML = data.relations_html;
+                    paginationContainer.innerHTML = data.pagination_html;
+                    
+                    // Ocultar mensaje de no resultados
+                    noResults.classList.add('hidden');
+                    relationsContainer.classList.remove('hidden');
+                } else {
+                    // Mostrar mensaje de no resultados
+                    relationsContainer.classList.add('hidden');
+                    paginationContainer.innerHTML = '';
+                    noResults.classList.remove('hidden');
+                }
+            } else {
+                console.error('Error en la búsqueda:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error en la solicitud AJAX:', error);
+            searchIndicator.classList.add('hidden');
+        });
+}
+
+// Función para limpiar búsqueda
+function clearSearch() {
+    // Limpiar formulario
+    document.getElementById('search-input').value = '';
+    document.getElementById('unit-filter').value = '';
+    
+    // Limpiar localStorage
+    localStorage.removeItem(FILTERS_STORAGE_KEY);
+    
+    // Ejecutar búsqueda vacía
+    searchHierarchy('', '', 1, currentPageSize);
+}
+
+// Función para cambiar el tamaño de página
+function changePageSize(newSize) {
+    // Usar AJAX en lugar de recargar la página para mantener filtros
+    currentPageSize = newSize;
+    
+    // Guardar el nuevo tamaño en localStorage
+    const saved = loadFiltersFromStorage();
+    saved.pageSize = newSize;
+    saveFiltersToStorage(saved);
+    
+    // Ejecutar búsqueda con filtros actuales y nuevo tamaño de página
+    searchHierarchy(currentSearch, currentUnitFilter, 1, newSize);
+}
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('search-input');
+    const unitFilter = document.getElementById('unit-filter');
+    const pageSizeSelector = document.getElementById('page-size-selector');
+    
+    // Aplicar filtros guardados al cargar la página
+    applySavedFilters();
+    
+    // Búsqueda en tiempo real con debounce
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        const query = this.value.trim();
+        const unitFilterValue = unitFilter.value;
+        
+        searchTimeout = setTimeout(() => {
+            searchHierarchy(query, unitFilterValue, 1, currentPageSize);
+        }, 500); // 500ms de delay
+    });
+    
+    // Filtro por unidad organizacional (solo si puede cambiar)
+    if (canChangeFilter) {
+        unitFilter.addEventListener('change', function() {
+            const query = searchInput.value.trim();
+            const unitFilterValue = this.value;
+            searchHierarchy(query, unitFilterValue, 1, currentPageSize);
+        });
+    } else {
+        // Para miembros de equipo, evitar que cambien el filtro
+        unitFilter.addEventListener('change', function() {
+            // Revertir al filtro del equipo si intentan cambiarlo
+            if (this.value !== userTeamFilter) {
+                this.value = userTeamFilter;
+                console.warn('No puedes cambiar el filtro de equipo');
+            }
+        });
+    }
+
+    // Selector de elementos por página
+    pageSizeSelector.addEventListener('change', function() {
+        const newSize = this.value;
+        changePageSize(newSize);
+    });
+});
 </script>
 {% endblock %}

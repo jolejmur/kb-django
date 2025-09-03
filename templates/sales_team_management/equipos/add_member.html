@@ -1,34 +1,26 @@
-<!-- templates/sales/equipos/add_member.html -->
+<!-- templates/sales_team_management/equipos/add_member.html -->
 {% extends 'base/base.html' %}
 
-{% block title %}Agregar Miembro - {{ equipo.nombre }}{% endblock %}
+{% block title %}Agregar Miembro - {{ unit.name }}{% endblock %}
 
-{% block header %}Agregar Miembro al Equipo{% endblock %}
+{% block header %}Agregar Miembro a la Unidad{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto">
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
     <!-- Breadcrumb -->
     <nav class="flex mb-6" aria-label="Breadcrumb">
         <ol class="inline-flex items-center space-x-1 md:space-x-3">
             <li class="inline-flex items-center">
-                <a href="{% url 'sales:equipos_list' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
-                    <i class="fas fa-users mr-2"></i>
-                    Equipos de Venta
+                <a href="{% url 'sales_team_management:equipos_list' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    <i class="fas fa-building mr-2"></i>
+                    Unidades Organizacionales
                 </a>
             </li>
             <li>
                 <div class="flex items-center">
                     <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
-                    <a href="{% url 'sales:equipos_detail' equipo.pk %}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
-                        {{ equipo.nombre }}
-                    </a>
-                </div>
-            </li>
-            <li>
-                <div class="flex items-center">
-                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
-                    <a href="{% url 'sales:jerarquia_list' %}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
-                        Gestionar Miembros
+                    <a href="{% url 'sales_team_management:equipo_detail' unit.pk %}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
+                        {{ unit.name }}
                     </a>
                 </div>
             </li>
@@ -42,275 +34,209 @@
     </nav>
 
     <!-- Header -->
-    <div class="flex justify-between items-center mb-6">
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 space-y-4 sm:space-y-0">
         <div>
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ title }}</h1>
-            <p class="text-gray-600">{{ help_text }}</p>
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Agregar Miembro</h1>
+            <p class="text-gray-600">Añade un nuevo miembro a la unidad organizacional con su posición específica</p>
         </div>
-        <a href="{% url 'sales:jerarquia_list' %}" 
+        <a href="{% url 'sales_team_management:equipo_detail' unit.pk %}" 
            class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors">
             <i class="fas fa-arrow-left mr-2"></i>Cancelar
         </a>
     </div>
 
-    <!-- Información del equipo -->
-    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+    <!-- Información de la unidad -->
+    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6 rounded-r-lg">
         <div class="flex items-center">
             <div class="h-10 w-10 bg-blue-500 rounded-full flex items-center justify-center text-white mr-3">
-                <i class="fas fa-users"></i>
+                <i class="fas fa-building"></i>
             </div>
             <div>
-                <h3 class="text-lg font-medium text-blue-900">{{ equipo.nombre }}</h3>
-                <p class="text-sm text-blue-700">{{ equipo.descripcion|default:"Equipo de ventas" }}</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Advertencia si ya hay un gerente - Solo mostrar si se intenta agregar otro gerente -->
-    <div id="advertencia-gerente" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6" style="display: none;">
-        <div class="flex items-start">
-            <i class="fas fa-exclamation-triangle text-yellow-400 mt-0.5 mr-3"></i>
-            <div>
-                <h3 class="text-sm font-medium text-yellow-800">Gerente ya asignado</h3>
-                <div class="mt-1 text-sm text-yellow-700">
-                    <p>Este equipo ya tiene un gerente activo. Solo puede haber un gerente por equipo.</p>
-                    <p class="mt-2">Si necesitas cambiar el gerente, primero desactiva el actual en la página de jerarquía.</p>
+                <h3 class="text-lg font-medium text-blue-900">{{ unit.name }}</h3>
+                <div class="flex items-center space-x-3 mt-1">
+                    <p class="text-sm text-blue-700">{{ unit.description|default:"Unidad organizacional" }}</p>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                        {% if unit.unit_type == 'SALES' %}bg-blue-100 text-blue-800
+                        {% elif unit.unit_type == 'PORTFOLIO' %}bg-purple-100 text-purple-800
+                        {% elif unit.unit_type == 'MARKETING' %}bg-orange-100 text-orange-800
+                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                        {{ unit.get_unit_type_display }}
+                    </span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Estado del equipo -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-        <h3 class="text-sm font-semibold text-gray-900 mb-3">Estado actual del equipo</h3>
+    <!-- Estado actual de la unidad -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 mb-6">
+        <h3 class="text-sm font-semibold text-gray-900 mb-4">Estado actual de la unidad</h3>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-            <div>
-                <p class="text-2xl font-bold text-blue-600">{{ stats.total_gerentes|default:0 }}</p>
-                <p class="text-xs text-gray-500">Gerentes</p>
-            </div>
-            <div>
-                <p class="text-2xl font-bold text-green-600">{{ stats.total_jefes|default:0 }}</p>
-                <p class="text-xs text-gray-500">Jefes de Venta</p>
-            </div>
-            <div>
-                <p class="text-2xl font-bold text-purple-600">{{ stats.total_leaders|default:0 }}</p>
-                <p class="text-xs text-gray-500">Team Leaders</p>
-            </div>
-            <div>
-                <p class="text-2xl font-bold text-orange-600">{{ stats.total_vendedores|default:0 }}</p>
-                <p class="text-xs text-gray-500">Vendedores</p>
-            </div>
+            {% for position_code, position_stats in stats.members_by_position.items %}
+                <div>
+                    <p class="text-2xl font-bold 
+                        {% if position_code == 'MANAGER' %}text-blue-600
+                        {% elif position_code == 'SUPERVISOR' %}text-green-600
+                        {% elif position_code == 'TEAM_LEAD' %}text-purple-600
+                        {% else %}text-orange-600{% endif %}">
+                        {{ position_stats.count }}
+                    </p>
+                    <p class="text-xs text-gray-500">{{ position_stats.name }}s</p>
+                </div>
+            {% empty %}
+                <div class="col-span-full text-center text-gray-500">
+                    <p>Esta unidad aún no tiene miembros asignados</p>
+                </div>
+            {% endfor %}
         </div>
     </div>
 
-    <!-- Formulario -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <h2 class="text-lg font-semibold text-gray-900">Información del Miembro</h2>
+    <!-- Formulario de agregar miembro -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-900">Información del Nuevo Miembro</h2>
         </div>
-        
-        <form method="post" class="p-6">
+
+        <form method="post" class="p-4 sm:p-6">
             {% csrf_token %}
             
+            <!-- Mostrar errores generales -->
+            {% if form.non_field_errors %}
+                <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <div class="flex">
+                        <i class="fas fa-exclamation-circle text-red-400 mt-0.5 mr-2"></i>
+                        <div>
+                            <h3 class="text-sm font-medium text-red-800">Error en el formulario</h3>
+                            <ul class="mt-1 text-sm text-red-600">
+                                {% for error in form.non_field_errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
             <div class="space-y-6">
                 <!-- Usuario -->
                 <div>
-                    <label for="{{ form.usuario.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                        {{ form.usuario.label }}
+                    <label for="{{ form.user.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.user.label }} <span class="text-red-500">*</span>
                     </label>
-                    {{ form.usuario }}
-                    {% if form.usuario.help_text %}
-                        <p class="mt-1 text-sm text-gray-500">{{ form.usuario.help_text }}</p>
+                    {{ form.user }}
+                    {% if form.user.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.user.errors.0 }}</p>
                     {% endif %}
-                    {% if form.usuario.errors %}
-                        <div class="mt-1 text-sm text-red-600">
-                            {% for error in form.usuario.errors %}
-                                <p>{{ error }}</p>
-                            {% endfor %}
-                        </div>
+                    {% if form.user.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ form.user.help_text }}</p>
                     {% endif %}
                 </div>
 
-                <!-- Rol -->
+                <!-- Tipo de Posición -->
                 <div>
-                    <label for="{{ form.rol.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                        {{ form.rol.label }}
+                    <label for="{{ form.position_type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.position_type.label }} <span class="text-red-500">*</span>
                     </label>
-                    <select id="{{ form.rol.id_for_label }}" name="{{ form.rol.name }}" 
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                            onchange="updateSupervisorOptions()">
-                        <option value="">Selecciona un rol...</option>
-                        {% for value, label in form.rol.field.choices %}
-                            <option value="{{ value }}" {% if form.rol.value == value %}selected{% endif %}>{{ label }}</option>
-                        {% endfor %}
-                    </select>
-                    {% if form.rol.help_text %}
-                        <p class="mt-1 text-sm text-gray-500">{{ form.rol.help_text }}</p>
+                    {{ form.position_type }}
+                    {% if form.position_type.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.position_type.errors.0 }}</p>
                     {% endif %}
-                    {% if form.rol.errors %}
-                        <div class="mt-1 text-sm text-red-600">
-                            {% for error in form.rol.errors %}
-                                <p>{{ error }}</p>
-                            {% endfor %}
-                        </div>
+                    {% if form.position_type.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ form.position_type.help_text }}</p>
                     {% endif %}
                 </div>
 
-                <!-- Supervisor (dinámico) -->
-                <div id="supervisor-container" style="display: none;">
-                    <label for="{{ form.supervisor.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                        <span id="supervisor-label">Supervisor</span>
+                <!-- Tipo de Asignación -->
+                <div>
+                    <label for="{{ form.assignment_type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.assignment_type.label }}
                     </label>
-                    <select id="{{ form.supervisor.id_for_label }}" name="{{ form.supervisor.name }}" 
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                        <option value="">Selecciona un supervisor...</option>
-                    </select>
-                    <p id="supervisor-help" class="mt-1 text-sm text-gray-500"></p>
-                    {% if form.supervisor.errors %}
-                        <div class="mt-1 text-sm text-red-600">
-                            {% for error in form.supervisor.errors %}
-                                <p>{{ error }}</p>
-                            {% endfor %}
-                        </div>
+                    {{ form.assignment_type }}
+                    {% if form.assignment_type.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.assignment_type.errors.0 }}</p>
+                    {% endif %}
+                    {% if form.assignment_type.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ form.assignment_type.help_text }}</p>
                     {% endif %}
                 </div>
 
-                <!-- Información de jerarquía -->
-                <div class="bg-gray-50 rounded-lg p-4">
-                    <h3 class="text-sm font-semibold text-gray-900 mb-3">Estructura de Roles</h3>
-                    <div class="space-y-2 text-sm text-gray-600">
-                        <div class="flex items-center">
-                            <div class="h-3 w-3 bg-blue-500 rounded-full mr-2"></div>
-                            <span><strong>Gerente de Equipo:</strong> Nivel más alto (solo 1 por equipo)</span>
-                        </div>
-                        <div class="flex items-center">
-                            <div class="h-3 w-3 bg-green-500 rounded-full mr-2"></div>
-                            <span><strong>Jefe de Venta:</strong> Reporta al Gerente de Equipo</span>
-                        </div>
-                        <div class="flex items-center">
-                            <div class="h-3 w-3 bg-purple-500 rounded-full mr-2"></div>
-                            <span><strong>Team Leader:</strong> Reporta al Jefe de Venta</span>
-                        </div>
-                        <div class="flex items-center">
-                            <div class="h-3 w-3 bg-orange-500 rounded-full mr-2"></div>
-                            <span><strong>Vendedor:</strong> Reporta al Team Leader</span>
-                        </div>
-                    </div>
+                <!-- Notas -->
+                <div>
+                    <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        {{ form.notes.label }}
+                    </label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.notes.errors.0 }}</p>
+                    {% endif %}
+                    {% if form.notes.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ form.notes.help_text }}</p>
+                    {% endif %}
                 </div>
 
-                <!-- Errores generales del formulario -->
-                {% if form.non_field_errors %}
-                    <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-                        <div class="flex items-center">
-                            <i class="fas fa-exclamation-triangle text-red-400 mr-2"></i>
-                            <span class="text-red-800 font-medium">Errores de validación:</span>
-                        </div>
-                        <ul class="mt-2 text-sm text-red-700 list-disc list-inside">
-                            {% for error in form.non_field_errors %}
-                                <li>{{ error }}</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                {% endif %}
+                <!-- Estado Activo -->
+                <div>
+                    <label class="flex items-center">
+                        {{ form.is_active }}
+                        <span class="ml-2 text-sm font-medium text-gray-700">{{ form.is_active.label }}</span>
+                    </label>
+                    {% if form.is_active.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.is_active.errors.0 }}</p>
+                    {% endif %}
+                    {% if form.is_active.help_text %}
+                        <p class="mt-1 text-sm text-gray-500">{{ form.is_active.help_text }}</p>
+                    {% endif %}
+                </div>
             </div>
 
-            <!-- Botones -->
-            <div class="flex justify-end space-x-3 mt-8 pt-6 border-t border-gray-200">
-                <a href="{% url 'sales:jerarquia_list' %}" 
+            <!-- Botones de acción -->
+            <div class="mt-8 flex items-center justify-between pt-6 border-t border-gray-200">
+                <a href="{% url 'sales_team_management:equipo_detail' unit.pk %}" 
                    class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors">
-                    Cancelar
+                    <i class="fas fa-times mr-2"></i>Cancelar
                 </a>
+                
                 <button type="submit" 
-                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-                    <i class="fas fa-plus mr-2"></i>Agregar Miembro
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                    <i class="fas fa-user-plus mr-2"></i>Agregar Miembro
                 </button>
             </div>
         </form>
     </div>
+
+    <!-- Información adicional -->
+    <div class="mt-6 bg-gray-50 rounded-xl border border-gray-200 p-4">
+        <h3 class="text-sm font-medium text-gray-900 mb-3">Información sobre Posiciones</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div class="flex items-start space-x-2">
+                <i class="fas fa-info-circle text-blue-600 mt-0.5"></i>
+                <div>
+                    <p class="font-medium text-gray-900">Tipos de Asignación</p>
+                    <p class="text-gray-600">PERMANENT: Asignación fija, TEMPORARY: Temporal con fecha fin, INTERIM: Temporal sin fecha definida</p>
+                </div>
+            </div>
+            <div class="flex items-start space-x-2">
+                <i class="fas fa-users-cog text-green-600 mt-0.5"></i>
+                <div>
+                    <p class="font-medium text-gray-900">Jerarquía</p>
+                    <p class="text-gray-600">Después de agregar el miembro, podrás establecer relaciones jerárquicas específicas</p>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-<script>
-    // Datos de supervisores desde el contexto de Django
-    const supervisoresData = JSON.parse('{{ supervisores_data|escapejs }}');
-    
-    function updateSupervisorOptions() {
-        const rolSelect = document.getElementById('{{ form.rol.id_for_label }}');
-        const supervisorContainer = document.getElementById('supervisor-container');
-        const supervisorSelect = document.getElementById('{{ form.supervisor.id_for_label }}');
-        const supervisorLabel = document.getElementById('supervisor-label');
-        const supervisorHelp = document.getElementById('supervisor-help');
-        const advertenciaGerente = document.getElementById('advertencia-gerente');
-        
-        const selectedRole = rolSelect.value;
-        
-        // Limpiar opciones actuales
-        supervisorSelect.innerHTML = '<option value="">Selecciona un supervisor...</option>';
-        
-        // Mostrar/ocultar advertencia de gerente
-        if (selectedRole === 'gerente' && {{ tiene_gerente_activo|yesno:"true,false" }}) {
-            advertenciaGerente.style.display = 'block';
-        } else {
-            advertenciaGerente.style.display = 'none';
-        }
-        
-        if (selectedRole === 'gerente') {
-            // Los gerentes no necesitan supervisor
-            supervisorContainer.style.display = 'none';
-        } else if (selectedRole === 'jefe_venta') {
-            // Los jefes de venta reportan a gerentes
-            supervisorContainer.style.display = 'block';
-            supervisorLabel.textContent = 'Gerente Supervisor';
-            supervisorHelp.textContent = 'Selecciona el gerente al que reportará este jefe de venta';
-            
-            supervisoresData.gerentes.forEach(gerente => {
-                const option = document.createElement('option');
-                option.value = gerente.id;
-                option.textContent = gerente.name;
-                supervisorSelect.appendChild(option);
-            });
-        } else if (selectedRole === 'team_leader') {
-            // Los team leaders reportan a jefes de venta
-            supervisorContainer.style.display = 'block';
-            supervisorLabel.textContent = 'Jefe de Venta Supervisor';
-            supervisorHelp.textContent = 'Selecciona el jefe de venta al que reportará este team leader';
-            
-            supervisoresData.jefes_venta.forEach(jefe => {
-                const option = document.createElement('option');
-                option.value = jefe.id;
-                option.textContent = jefe.name;
-                supervisorSelect.appendChild(option);
-            });
-        } else if (selectedRole === 'vendedor') {
-            // Los vendedores reportan a team leaders
-            supervisorContainer.style.display = 'block';
-            supervisorLabel.textContent = 'Team Leader Supervisor';
-            supervisorHelp.textContent = 'Selecciona el team leader al que reportará este vendedor';
-            
-            supervisoresData.team_leaders.forEach(leader => {
-                const option = document.createElement('option');
-                option.value = leader.id;
-                option.textContent = leader.name;
-                supervisorSelect.appendChild(option);
-            });
-        } else {
-            supervisorContainer.style.display = 'none';
-        }
-    }
-    
-    // Inicializar el formulario
-    document.addEventListener('DOMContentLoaded', function() {
-        updateSupervisorOptions();
-        
-        // Deshabilitar la opción de gerente si ya hay uno activo
-        {% if tiene_gerente_activo %}
-            const rolSelect = document.getElementById('{{ form.rol.id_for_label }}');
-            const gerenteOption = rolSelect.querySelector('option[value="gerente"]');
-            if (gerenteOption) {
-                gerenteOption.disabled = true;
-                gerenteOption.textContent += ' (Ya existe un gerente activo)';
-                gerenteOption.style.color = '#9CA3AF';
-            }
-        {% endif %}
-    });
-</script>
+<style>
+/* Estilos para los campos del formulario */
+input[type="text"], textarea, select {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
+}
+
+textarea {
+    @apply min-h-[80px] resize-y;
+}
+
+input[type="checkbox"] {
+    @apply h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500;
+}
+</style>
 {% endblock %}

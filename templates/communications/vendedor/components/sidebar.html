@@ -1,0 +1,27 @@
+{% comment %}
+    Sidebar de conversaciones para el chat de vendedor
+    Incluye: Header con info del usuario, lista de conversaciones, loading states
+    NOTA: Similar al de supervisión pero usa endpoints específicos para vendedores
+{% endcomment %}
+<div class="chat-sidebar" id="chatSidebar">
+    <div class="sidebar-header">
+        <h2 class="sidebar-title">
+            <i class="fas fa-comments"></i>
+            Chat - Mis Leads
+        </h2>
+        <p class="sidebar-subtitle" id="sidebarSubtitle">
+            {% if user_team %}
+                Equipo: {{ user_team.name }}
+            {% else %}
+                Mis conversaciones
+            {% endif %}
+            • <span id="conversationCount">{{ accessible_leads_count }}</span> leads
+        </p>
+    </div>
+    <div class="conversations-list" id="conversationsList">
+        <div class="loading-messages">
+            <div class="spinner"></div>
+            Cargando conversaciones...
+        </div>
+    </div>
+</div>

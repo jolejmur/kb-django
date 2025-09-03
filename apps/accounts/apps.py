@@ -51,11 +51,12 @@ class AccountsConfig(AppConfig):
             # Verificar que las tablas existan
             try:
                 with connection.cursor() as cursor:
+                    # Usar syntax de PostgreSQL en lugar de SQLite
                     cursor.execute("""
-                                   SELECT name
-                                   FROM sqlite_master
-                                   WHERE type = 'table'
-                                     AND name IN (
+                                   SELECT tablename as name
+                                   FROM pg_tables
+                                   WHERE schemaname = 'public'
+                                     AND tablename IN (
                                                   'accounts_menucategory',
                                                   'accounts_navigation',
                                                   'auth_group',

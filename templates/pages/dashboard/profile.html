@@ -1,6 +1,6 @@
 {% extends 'base/base.html' %}
 
-{% block title %}Profile Dashboard - Django CRM{% endblock %}
+{% block title %}Profile Dashboard - Korban{% endblock %}
 
 {% block header %}Profile Dashboard{% endblock %}
 
@@ -11,8 +11,8 @@
         <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-4 sm:p-6 text-white">
             <div class="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-6">
                 <div class="flex-shrink-0">
-                    {% if user.profile_picture %}
-                        <img src="{{ user.profile_picture.url }}" alt="{{ user.username }}"
+                    {% if user.foto_perfil %}
+                        <img src="{{ user.foto_perfil.url }}" alt="{{ user.username }}"
                              class="w-24 h-24 rounded-full border-4 border-white/20 object-cover">
                     {% else %}
                         <div class="w-24 h-24 rounded-full bg-white/20 flex items-center justify-center border-4 border-white/20">
@@ -33,7 +33,17 @@
                     {% endif %}
                     {% if user.role %}
                         <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white/20 text-white">
-                            <i class="fas fa-crown mr-2"></i>
+                            {% if 'Vendedor' in user.role.name or 'Ventas' in user.role.name %}
+                                <i class="fas fa-handshake mr-2"></i>
+                            {% elif 'Gerente' in user.role.name %}
+                                <i class="fas fa-user-tie mr-2"></i>
+                            {% elif 'Team Leader' in user.role.name or 'Leader' in user.role.name %}
+                                <i class="fas fa-users mr-2"></i>
+                            {% elif 'Admin' in user.role.name %}
+                                <i class="fas fa-cog mr-2"></i>
+                            {% else %}
+                                <i class="fas fa-user-tag mr-2"></i>
+                            {% endif %}
                             {{ user.role.name }}
                         </span>
                     {% endif %}
@@ -42,19 +52,19 @@
                     <a href="{% url 'dashboard:edit_profile' %}"
                        class="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center">
                         <i class="fas fa-edit mr-2"></i>
-                        Edit Profile
+                        Editar Perfil
                     </a>
                     <a href="{% url 'dashboard:change_password' %}"
                        class="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center">
                         <i class="fas fa-key mr-2"></i>
-                        Change Password
+                        Cambiar Contraseña
                     </a>
                 </div>
             </div>
         </div>
     </div>
 
-    {% if user.role and user.role.name in 'Gerente de Proyecto,Jefe de Equipo,Team Leader,Ventas,Super Admin' %}
+    {% if user.role and user.role.name in 'Gerente de Proyecto,Gerente de Equipo,Team Leader,Ventas,Super Admin' %}
     <!-- Event QR Codes Section -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
         <div class="flex items-center justify-between mb-6">
@@ -98,18 +108,18 @@
     </div>
     {% endif %}
 
-    <!-- Stats Cards -->
+    <!-- Estadísticas -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div class="flex items-center">
                 <div class="flex-shrink-0">
                     <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-calendar text-blue-600"></i>
+                        <i class="fas fa-user-plus text-blue-600"></i>
                     </div>
                 </div>
                 <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-500">Member Since</p>
-                    <p class="text-lg font-semibold text-gray-900">{{ account_age_days }} days</p>
+                    <p class="text-sm font-medium text-gray-500">Leads Asignados Este Mes</p>
+                    <p class="text-lg font-semibold text-gray-900">{{ leads_este_mes|default:0 }}</p>
                 </div>
             </div>
         </div>
@@ -118,12 +128,26 @@
             <div class="flex items-center">
                 <div class="flex-shrink-0">
                     <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-shield-alt text-green-600"></i>
+                        <i class="fas fa-comment text-green-600"></i>
                     </div>
                 </div>
                 <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-500">Permissions</p>
-                    <p class="text-lg font-semibold text-gray-900">{{ permissions|length }}</p>
+                    <p class="text-sm font-medium text-gray-500">Chats Nuevos Pendientes</p>
+                    <p class="text-lg font-semibold text-gray-900">{{ chats_nuevos_pendientes|default:0 }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-reply text-orange-600"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Chats Pendientes Respuesta</p>
+                    <p class="text-lg font-semibold text-gray-900">{{ chats_pendientes_respuesta|default:0 }}</p>
                 </div>
             </div>
         </div>
@@ -132,38 +156,12 @@
             <div class="flex items-center">
                 <div class="flex-shrink-0">
                     <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-clock text-purple-600"></i>
+                        <i class="fas fa-calendar text-purple-600"></i>
                     </div>
                 </div>
                 <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-500">Last Login</p>
-                    <p class="text-lg font-semibold text-gray-900">
-                        {% if user.last_login %}
-                            {{ user.last_login|timesince }} ago
-                        {% else %}
-                            Never
-                        {% endif %}
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div class="flex items-center">
-                <div class="flex-shrink-0">
-                    <div class="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-toggle-on text-yellow-600"></i>
-                    </div>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-500">Account Status</p>
-                    <p class="text-lg font-semibold text-gray-900">
-                        {% if user.is_active %}
-                            <span class="text-green-600">Active</span>
-                        {% else %}
-                            <span class="text-red-600">Inactive</span>
-                        {% endif %}
-                    </p>
+                    <p class="text-sm font-medium text-gray-500">Miembro Desde</p>
+                    <p class="text-lg font-semibold text-gray-900">{{ account_age_days }} días</p>
                 </div>
             </div>
         </div>
@@ -177,40 +175,94 @@
                 <div class="px-6 py-4 border-b border-gray-200">
                     <h2 class="text-xl font-semibold text-gray-900 flex items-center">
                         <i class="fas fa-user-circle mr-3 text-blue-600"></i>
-                        Personal Information
+                        Información Personal
                     </h2>
                 </div>
                 <div class="p-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label class="block text-sm font-medium text-gray-500 mb-1">Username</label>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Nombre de Usuario</label>
                             <p class="text-gray-900 font-medium">{{ user.username }}</p>
-                            <p class="text-xs text-gray-400 mt-1">Username cannot be changed</p>
+                            <p class="text-xs text-gray-400 mt-1">El nombre de usuario no se puede cambiar</p>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-500 mb-1">Email Address</label>
-                            <p class="text-gray-900 font-medium">{{ user.email|default:"Not provided" }}</p>
-                            <p class="text-xs text-gray-400 mt-1">Email cannot be changed</p>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Correo Electrónico</label>
+                            <p class="text-gray-900 font-medium">{{ user.email|default:"No proporcionado" }}</p>
+                            <p class="text-xs text-gray-400 mt-1">El correo no se puede cambiar</p>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-500 mb-1">First Name</label>
-                            <p class="text-gray-900 font-medium">{{ user.first_name|default:"Not provided" }}</p>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Nombre</label>
+                            <p class="text-gray-900 font-medium">{{ user.first_name|default:"No proporcionado" }}</p>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-500 mb-1">Last Name</label>
-                            <p class="text-gray-900 font-medium">{{ user.last_name|default:"Not provided" }}</p>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Apellido</label>
+                            <p class="text-gray-900 font-medium">{{ user.last_name|default:"No proporcionado" }}</p>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-500 mb-1">Phone Number</label>
-                            <p class="text-gray-900 font-medium">{{ user.phone_number|default:"Not provided" }}</p>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Teléfono</label>
+                            <p class="text-gray-900 font-medium">{{ user.telefono|default:"No proporcionado" }}</p>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-500 mb-1">Role</label>
-                            <p class="text-gray-900 font-medium">{{ user.role.name|default:"No role assigned" }}</p>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Cédula</label>
+                            <p class="text-gray-900 font-medium">{{ user.cedula|default:"No proporcionado" }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Fecha de Nacimiento</label>
+                            <p class="text-gray-900 font-medium">
+                                {% if user.fecha_nacimiento %}
+                                    {{ user.fecha_nacimiento|date:"d/m/Y" }}
+                                    {% if user.get_edad %}
+                                        <span class="text-gray-500">({{ user.get_edad }} años)</span>
+                                    {% endif %}
+                                {% else %}
+                                    No proporcionado
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Rol</label>
+                            <p class="text-gray-900 font-medium">{{ user.role.name|default:"Sin rol asignado" }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Domicilio</label>
+                            <p class="text-gray-900 font-medium">{{ user.domicilio|default:"No proporcionado" }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Fuerza de Venta</label>
+                            <p class="text-gray-900 font-medium">
+                                {% if user.get_equipo_venta %}
+                                    {{ user.get_equipo_venta.name }}
+                                    {% if user.get_rol_en_equipo_venta %}
+                                        <span class="text-sm text-gray-500">({{ user.get_rol_en_equipo_venta|capfirst }})</span>
+                                    {% endif %}
+                                {% else %}
+                                    No asignado
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Estado de Cuenta</label>
+                            <p class="text-lg font-semibold">
+                                {% if user.is_active %}
+                                    <span class="text-green-600">✓ Activo</span>
+                                {% else %}
+                                    <span class="text-red-600">✗ Inactivo</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Último Acceso</label>
+                            <p class="text-gray-900 font-medium">
+                                {% if user.last_login %}
+                                    {{ user.last_login|timesince }} atrás
+                                {% else %}
+                                    Nunca
+                                {% endif %}
+                            </p>
                         </div>
                         <div class="md:col-span-2">
-                            <label class="block text-sm font-medium text-gray-500 mb-1">Member Since</label>
-                            <p class="text-gray-900 font-medium">{{ user.date_joined|date:"F j, Y \a\t g:i A" }}</p>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">Miembro Desde</label>
+                            <p class="text-gray-900 font-medium">{{ user.date_joined|date:"j \d\e F \d\e Y \a \l\a\s G:i" }}</p>
                         </div>
                     </div>
                 </div>
@@ -224,14 +276,34 @@
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200">
                     <div class="px-6 py-4 border-b border-gray-200">
                         <h3 class="text-lg font-semibold text-gray-900 flex items-center">
-                            <i class="fas fa-crown mr-3 text-yellow-600"></i>
-                            Role Information
+                            {% if 'Vendedor' in user.role.name or 'Ventas' in user.role.name %}
+                                <i class="fas fa-handshake mr-3 text-blue-600"></i>
+                            {% elif 'Gerente' in user.role.name %}
+                                <i class="fas fa-user-tie mr-3 text-purple-600"></i>
+                            {% elif 'Team Leader' in user.role.name or 'Leader' in user.role.name %}
+                                <i class="fas fa-users mr-3 text-green-600"></i>
+                            {% elif 'Admin' in user.role.name %}
+                                <i class="fas fa-cog mr-3 text-orange-600"></i>
+                            {% else %}
+                                <i class="fas fa-user-tag mr-3 text-gray-600"></i>
+                            {% endif %}
+                            Información del Rol
                         </h3>
                     </div>
                     <div class="p-6">
                         <div class="text-center mb-4">
-                            <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                <i class="fas fa-crown text-yellow-600 text-2xl"></i>
+                            <div class="w-16 h-16 {% if 'Vendedor' in user.role.name or 'Ventas' in user.role.name %}bg-blue-100{% elif 'Gerente' in user.role.name %}bg-purple-100{% elif 'Team Leader' in user.role.name or 'Leader' in user.role.name %}bg-green-100{% elif 'Admin' in user.role.name %}bg-orange-100{% else %}bg-gray-100{% endif %} rounded-full flex items-center justify-center mx-auto mb-3">
+                                {% if 'Vendedor' in user.role.name or 'Ventas' in user.role.name %}
+                                    <i class="fas fa-handshake text-blue-600 text-2xl"></i>
+                                {% elif 'Gerente' in user.role.name %}
+                                    <i class="fas fa-user-tie text-purple-600 text-2xl"></i>
+                                {% elif 'Team Leader' in user.role.name or 'Leader' in user.role.name %}
+                                    <i class="fas fa-users text-green-600 text-2xl"></i>
+                                {% elif 'Admin' in user.role.name %}
+                                    <i class="fas fa-cog text-orange-600 text-2xl"></i>
+                                {% else %}
+                                    <i class="fas fa-user-tag text-gray-600 text-2xl"></i>
+                                {% endif %}
                             </div>
                             <h4 class="text-lg font-semibold text-gray-900">{{ user.role.name }}</h4>
                             {% if user.role.description %}
@@ -247,59 +319,27 @@
                 <div class="px-6 py-4 border-b border-gray-200">
                     <h3 class="text-lg font-semibold text-gray-900 flex items-center">
                         <i class="fas fa-bolt mr-3 text-purple-600"></i>
-                        Quick Actions
+                        Acciones Rápidas
                     </h3>
                 </div>
                 <div class="p-6 space-y-3">
                     <a href="{% url 'dashboard:edit_profile' %}"
                        class="flex items-center w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
                         <i class="fas fa-user-edit text-blue-600 mr-3"></i>
-                        <span class="font-medium text-gray-900">Edit Profile</span>
+                        <span class="font-medium text-gray-900">Editar Perfil</span>
                         <i class="fas fa-chevron-right ml-auto text-gray-400"></i>
                     </a>
                     <a href="{% url 'dashboard:change_password' %}"
                        class="flex items-center w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
                         <i class="fas fa-key text-green-600 mr-3"></i>
-                        <span class="font-medium text-gray-900">Change Password</span>
+                        <span class="font-medium text-gray-900">Cambiar Contraseña</span>
                         <i class="fas fa-chevron-right ml-auto text-gray-400"></i>
                     </a>
-                    <!--<button onclick="downloadData()"
-                            class="flex items-center w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
-                        <i class="fas fa-download text-purple-600 mr-3"></i>
-                        <span class="font-medium text-gray-900">Download My Data</span>
-                        <i class="fas fa-chevron-right ml-auto text-gray-400"></i>
-                    </button>  !-->
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Permissions Section -->
-    {% if permissions %}
-        <div class="mt-8">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h2 class="text-xl font-semibold text-gray-900 flex items-center">
-                        <i class="fas fa-shield-alt mr-3 text-green-600"></i>
-                        Your Permissions
-                    </h2>
-                </div>
-                <div class="p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {% for permission in permissions %}
-                            <div class="flex items-center p-3 bg-green-50 rounded-lg border border-green-200">
-                                <i class="fas fa-check-circle text-green-500 mr-3"></i>
-                                <div>
-                                    <p class="text-sm font-medium text-gray-900">{{ permission.name }}</p>
-                                    <p class="text-xs text-gray-500">{{ permission.content_type.app_label }}.{{ permission.codename }}</p>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-        </div>
-    {% endif %}
 </div>
 
 <script>
@@ -308,7 +348,7 @@ function downloadData() {
     alert('Data download feature coming soon!');
 }
 
-{% if user.role and user.role.name in 'Gerente de Proyecto,Jefe de Equipo,Team Leader,Ventas,Super Admin' %}
+{% if user.role and user.role.name in 'Gerente de Proyecto,Gerente de Equipo,Team Leader,Ventas,Super Admin' %}
 // Load Event QR Codes
 document.addEventListener('DOMContentLoaded', function() {
     loadEventQRCodes();

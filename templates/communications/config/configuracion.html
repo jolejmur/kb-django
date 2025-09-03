@@ -1,0 +1,54 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Configuración WhatsApp Business{% endblock %}
+
+{% block extra_css %}
+    {% include 'communications/config/partials/styles.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="main-content">
+        
+        <!-- Header Section -->
+        {% include 'communications/config/components/header.html' with page_title="Configuración WhatsApp Business" has_active_config=has_active_config breadcrumbs=breadcrumbs %}
+
+        <!-- Content Section -->
+        <div class="content-section">
+
+            <!-- Mensajes -->
+            {% if messages %}
+                <div class="mb-4">
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Configuración Actual -->
+            {% include 'communications/config/sections/form.html' with config=config %}
+
+            <!-- Panel de Pruebas -->
+            {% if has_active_config %}
+                {% include 'communications/config/sections/test_panel.html' %}
+                
+                <!-- Historial de Mensajes -->
+                {% include 'communications/config/sections/debug_messages.html' with debug_messages=debug_messages %}
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+
+<!-- Modales -->
+{% include 'communications/config/partials/modals.html' %}
+
+{% endblock %}
+
+{% block extra_js %}
+    {% include 'communications/config/partials/scripts.html' %}
+{% endblock %}

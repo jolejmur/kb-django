@@ -19,11 +19,11 @@ def role_required(*allowed_roles):
         def wrapper(request, *args, **kwargs):
             if not request.user.role:
                 messages.error(request, 'No tienes un rol asignado. Contacta al administrador.')
-                return redirect('core:dashboard')
+                return redirect('dashboard:profile')
             
-            if request.user.role.name not in allowed_roles:
+            if allowed_roles and request.user.role.name not in allowed_roles:
                 messages.error(request, 'No tienes permisos para acceder a esta sección.')
-                return redirect('core:dashboard')
+                return redirect('dashboard:profile')
             
             return view_func(request, *args, **kwargs)
         return wrapper
@@ -41,7 +41,7 @@ def module_required(module_name):
         def wrapper(request, *args, **kwargs):
             if not request.user.has_module_access(module_name):
                 messages.error(request, f'No tienes acceso al módulo: {module_name}')
-                return redirect('core:dashboard')
+                return redirect('dashboard:profile')
             
             return view_func(request, *args, **kwargs)
         return wrapper
@@ -77,12 +77,12 @@ def team_management_required(view_func):
     def wrapper(request, *args, **kwargs):
         if not request.user.role:
             messages.error(request, 'No tienes un rol asignado.')
-            return redirect('core:dashboard')
+            return redirect('dashboard:profile')
         
         allowed_roles = ['Super Admin', 'Registro']
         if request.user.role.name not in allowed_roles:
             messages.error(request, 'No tienes permisos para gestionar equipos.')
-            return redirect('core:dashboard')
+            return redirect('dashboard:profile')
         
         return view_func(request, *args, **kwargs)
     return wrapper
@@ -97,12 +97,12 @@ def sales_view_required(view_func):
     def wrapper(request, *args, **kwargs):
         if not request.user.role:
             messages.error(request, 'No tienes un rol asignado.')
-            return redirect('core:dashboard')
+            return redirect('dashboard:profile')
         
         allowed_roles = ['Super Admin', 'Registro', 'Ventas']
         if request.user.role.name not in allowed_roles:
             messages.error(request, 'No tienes permisos para acceder a esta sección.')
-            return redirect('core:dashboard')
+            return redirect('dashboard:profile')
         
         return view_func(request, *args, **kwargs)
     return wrapper

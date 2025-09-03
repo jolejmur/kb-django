@@ -28,6 +28,63 @@ def profile_dashboard(request):
     # Calculate account age
     account_age = timezone.now() - user.date_joined
 
+    # Calcular estadísticas de leads y chats
+    from apps.communications.models import Lead, LeadAssignment, Mensaje, Conversacion
+    from django.db.models import Q
+    from datetime import datetime, timedelta
+    
+    # Leads asignados este mes
+    primer_dia_mes = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    leads_este_mes = 0
+    
+    try:
+        # Buscar asignaciones de leads a este usuario este mes
+        leads_este_mes = LeadAssignment.objects.filter(
+            assigned_to_user=user,
+            assigned_date__gte=primer_dia_mes,
+            is_active=True
+        ).count()
+        
+        # Si no hay asignaciones directas, buscar por unidad organizacional
+        if leads_este_mes == 0 and hasattr(user, 'team_memberships'):
+            unidades_usuario = user.team_memberships.filter(status='ACTIVE').values_list('organizational_unit', flat=True)
+            leads_este_mes = LeadAssignment.objects.filter(
+                organizational_unit__in=unidades_usuario,
+                assigned_date__gte=primer_dia_mes,
+                is_active=True
+            ).count()
+    except Exception as e:
+        print(f"Error calculando leads este mes: {e}")
+        leads_este_mes = 0
+    
+    # Chats nuevos pendientes (mensajes entrantes no leídos de nuevas conversaciones)
+    chats_nuevos_pendientes = 0
+    try:
+        # Conversaciones con mensajes no leídos donde el último mensaje es entrante y reciente
+        hace_24_horas = timezone.now() - timedelta(hours=24)
+        chats_nuevos_pendientes = Conversacion.objects.filter(
+            mensajes_no_leidos__gt=0,
+            ultimo_mensaje_at__gte=hace_24_horas,
+            estado='abierta'
+        ).count()
+    except Exception as e:
+        print(f"Error calculando chats nuevos pendientes: {e}")
+        chats_nuevos_pendientes = 0
+    
+    # Chats pendientes de respuesta (conversaciones donde el cliente escribió después de nuestra respuesta)
+    chats_pendientes_respuesta = 0
+    try:
+        # Buscar conversaciones donde el último mensaje es entrante y hay mensajes no leídos
+        chats_pendientes_respuesta = Conversacion.objects.filter(
+            mensajes_no_leidos__gt=0,
+            estado='abierta'
+        ).exclude(
+            ultimo_mensaje_at__gte=hace_24_horas  # Excluir los ya contados como nuevos
+        ).count()
+    except Exception as e:
+        print(f"Error calculando chats pendientes respuesta: {e}")
+        chats_pendientes_respuesta = 0
+
     # Generate QR code with vCard contact info
     qr_data_url = None
     if user.get_full_name() and user.email:
@@ -63,6 +120,10 @@ END:VCARD"""
         'account_age_days': account_age.days,
         'qr_data_url': qr_data_url,
         'title': 'Profile Dashboard',
+        # Nuevas estadísticas
+        'leads_este_mes': leads_este_mes,
+        'chats_nuevos_pendientes': chats_nuevos_pendientes,
+        'chats_pendientes_respuesta': chats_pendientes_respuesta,
     }
 
     return render(request, 'pages/dashboard/profile.html', context)

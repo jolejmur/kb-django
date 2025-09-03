@@ -1,0 +1,602 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Asignar Supervisor y Rol - Korban{% endblock %}
+
+{% block header %}Asignar Supervisor y Rol{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Toggle Switch Styles */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+    background-color: #6366f1;
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(26px);
+}
+
+/* Form styling */
+.form-section {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    border: 1px solid #e5e7eb;
+    margin-bottom: 24px;
+}
+
+.form-section h3 {
+    color: #374151;
+    font-weight: 600;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.member-info {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.direct-supervision-section {
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 16px;
+    display: none;
+}
+
+.direct-supervision-section.active {
+    display: block;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- Header con información del miembro -->
+    <div class="member-info">
+        <div class="flex items-center">
+            <div class="h-12 w-12 rounded-full flex items-center justify-center bg-blue-100 flex-shrink-0">
+                <i class="fas fa-user text-blue-600"></i>
+            </div>
+            <div class="ml-4">
+                <h2 class="text-lg font-semibold text-gray-900">
+                    {{ member.user.get_full_name|default:member.user.username }}
+                </h2>
+                <p class="text-sm text-gray-600">
+                    {{ member.organizational_unit.name }} • {{ member.position_type.name|default:"Sin rol asignado" }}
+                </p>
+                <p class="text-xs text-gray-500 mt-1">
+                    <i class="fas fa-envelope mr-1"></i>{{ member.user.email }}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+        
+        <!-- Sección: Rol/Función -->
+        <div class="form-section">
+            <h3><i class="fas fa-id-badge mr-2 text-blue-600"></i>Rol y Función</h3>
+            
+            <!-- Seleccionar Rol/Posición -->
+            <div>
+                <label for="position_type" class="block text-sm font-medium text-gray-700 mb-2">
+                    Rol/Posición *
+                </label>
+                <select name="position_type" id="position_type" required 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">Seleccionar rol...</option>
+                    {% for position in position_types %}
+                        <option value="{{ position.id }}" {% if member.position_type.id == position.id %}selected{% endif %}>
+                            {{ position.name }} (Nivel {{ position.hierarchy_level }})
+                        </option>
+                    {% endfor %}
+                </select>
+                <p class="text-xs text-gray-500 mt-1">Define la función del miembro en el equipo</p>
+            </div>
+        </div>
+
+        <!-- Sección: Supervisión -->
+        <div class="form-section">
+            <h3><i class="fas fa-users-cog mr-2 text-green-600"></i>Tipo de Supervisión</h3>
+            
+            <!-- Explicación de tipos de supervisión -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h4 class="font-medium text-blue-800 mb-2">
+                        <i class="fas fa-sitemap mr-2"></i>Estructura Rígida (Recomendado)
+                    </h4>
+                    <p class="text-sm text-blue-700 mb-2">
+                        Jerarquía tradicional: Gerente → Jefe Ventas → Team Leader → Vendedor
+                    </p>
+                    <p class="text-xs text-blue-600">
+                        Solo puede ser supervisado por el nivel inmediatamente superior
+                    </p>
+                </div>
+                
+                <div class="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                    <h4 class="font-medium text-amber-800 mb-2">
+                        <i class="fas fa-random mr-2"></i>Supervisión Directa
+                    </h4>
+                    <p class="text-sm text-amber-700 mb-2">
+                        Permite supervisión directa saltando niveles jerárquicos
+                    </p>
+                    <p class="text-xs text-amber-600">
+                        Útil para equipos nuevos, en formación o por preferencia operativa
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Toggle para Supervisión Directa -->
+            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg mb-4">
+                <div>
+                    <label for="direct_supervision" class="text-sm font-medium text-gray-700">
+                        Activar Supervisión Directa
+                    </label>
+                    <p class="text-xs text-gray-500">
+                        Permite supervisión por cualquier nivel superior (no solo el inmediato)
+                    </p>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" name="direct_supervision" id="direct_supervision">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+
+            <!-- Sección de Supervisión (se muestra siempre) -->
+            <div id="supervision-details">
+                <!-- Información del tipo actual -->
+                <div id="hierarchy-info" class="p-3 bg-blue-50 border-l-4 border-blue-400 mb-4">
+                    <p class="text-sm text-blue-800">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        <span id="hierarchy-description">
+                            Estructura rígida: Solo se mostrarán supervisores del nivel inmediatamente superior
+                        </span>
+                    </p>
+                </div>
+                
+                <!-- Información de depuración DINÁMICA -->
+                <div class="p-3 bg-gray-50 border border-gray-200 rounded-lg mb-4">
+                    <h5 class="text-sm font-medium text-gray-700 mb-2">
+                        🔍 Información de depuración para: {{ member.user.get_full_name }}
+                    </h5>
+                    <div class="text-xs text-gray-600 space-y-1">
+                        <p><strong>Equipo:</strong> {{ member.organizational_unit.name }}</p>
+                        <p><strong>Posición actual en BD:</strong> {{ member.position_type.name }} (Nivel {{ member.position_type.hierarchy_level }})</p>
+                        <p><strong>Posición seleccionada:</strong> <span id="debug-selected-position">No seleccionada</span></p>
+                        <p><strong>Buscando supervisores de nivel:</strong> <span id="debug-supervisor-level">-</span></p>
+                        <p><strong>Última consulta:</strong> <span id="debug-last-query">Ninguna</span></p>
+                        <p><strong>Estado de la API:</strong> <span id="debug-api-status">Esperando...</span></p>
+                        <p><strong>Supervisores encontrados:</strong> <span id="debug-supervisors-count">0</span></p>
+                        
+                        <div id="debug-supervisors-list" class="mt-2 hidden">
+                            <strong>Supervisores disponibles:</strong>
+                            <ul id="debug-supervisors-ul" class="ml-4 list-disc text-green-600">
+                                <!-- Se llenarán dinámicamente -->
+                            </ul>
+                        </div>
+                        
+                        <div id="debug-no-supervisors" class="mt-2 hidden">
+                            <p class="text-red-600"><strong>❌ <span id="debug-no-supervisors-reason">No se encontraron supervisores</span></strong></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Seleccionar Supervisor -->
+                <div>
+                    <label for="supervisor" class="block text-sm font-medium text-gray-700 mb-2">
+                        <span id="supervisor-label">Supervisor (Estructura Rígida)</span> *
+                    </label>
+                    <select name="supervisor" id="supervisor" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Seleccionar supervisor...</option>
+                        <!-- Los supervisores se cargarán dinámicamente según el tipo -->
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1" id="supervisor-help">
+                        Supervisores disponibles según la estructura jerárquica
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección: Notas adicionales -->
+        <div class="form-section">
+            <h3><i class="fas fa-sticky-note mr-2 text-purple-600"></i>Notas Adicionales</h3>
+            
+            <div>
+                <label for="justification" class="block text-sm font-medium text-gray-700 mb-2">
+                    Justificación o Comentarios
+                </label>
+                <textarea name="justification" id="justification" rows="3"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="Motivo de la asignación, consideraciones especiales, etc."></textarea>
+            </div>
+        </div>
+
+        <!-- Botones de acción -->
+        <div class="flex justify-between items-center pt-6 border-t border-gray-200">
+            <a href="{% url 'sales_team_management:jerarquia_list' %}" 
+               class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2 rounded-lg font-medium transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>Cancelar
+            </a>
+            
+            <button type="submit" 
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2 rounded-lg font-medium transition-colors">
+                <i class="fas fa-save mr-2"></i>Asignar Supervisor y Rol
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const directSupervisionToggle = document.getElementById('direct_supervision');
+    const supervisorSelect = document.getElementById('supervisor');
+    const hierarchyInfo = document.getElementById('hierarchy-info');
+    const hierarchyDescription = document.getElementById('hierarchy-description');
+    const supervisorLabel = document.getElementById('supervisor-label');
+    const supervisorHelp = document.getElementById('supervisor-help');
+    
+    // Datos de supervisores pasados desde el contexto
+    const rigidSupervisors = [
+        {% for supervisor in rigid_supervisors %}
+        {
+            id: {{ supervisor.id }},
+            name: '{{ supervisor.user.get_full_name|default:supervisor.user.username|escapejs }}',
+            position: '{{ supervisor.position_type.name|escapejs }}',
+            level: {{ supervisor.position_type.hierarchy_level }}
+        },
+        {% endfor %}
+    ];
+    
+    const directSupervisors = [
+        {% for supervisor in direct_supervisors %}
+        {
+            id: {{ supervisor.id }},
+            name: '{{ supervisor.user.get_full_name|default:supervisor.user.username|escapejs }}',
+            position: '{{ supervisor.position_type.name|escapejs }}',
+            level: {{ supervisor.position_type.hierarchy_level }}
+        },
+        {% endfor %}
+    ];
+    
+    // Función para actualizar el select de supervisores
+    function updateSupervisors(supervisors, type) {
+        // Limpiar opciones existentes
+        supervisorSelect.innerHTML = '<option value="">Seleccionar supervisor...</option>';
+        
+        // Agregar nuevas opciones
+        supervisors.forEach(supervisor => {
+            const option = document.createElement('option');
+            option.value = supervisor.id;
+            option.textContent = `${supervisor.name} (${supervisor.position} - Nivel ${supervisor.level})`;
+            supervisorSelect.appendChild(option);
+        });
+        
+        // Actualizar texto de ayuda según cantidad de supervisores
+        if (supervisors.length === 0) {
+            const noSupervisors = document.createElement('option');
+            noSupervisors.value = '';
+            noSupervisors.textContent = type === 'rigid' ? 
+                'No hay supervisores del nivel inmediatamente superior' : 
+                'No hay supervisores disponibles para supervisión directa';
+            noSupervisors.disabled = true;
+            supervisorSelect.appendChild(noSupervisors);
+        }
+    }
+    
+    // Función para actualizar la interfaz según el tipo de supervisión
+    function updateSupervisionType(isDirect) {
+        if (isDirect) {
+            // Supervisión directa
+            hierarchyInfo.className = 'p-3 bg-amber-50 border-l-4 border-amber-400 mb-4';
+            hierarchyDescription.textContent = 'Supervisión directa: Se muestran todos los supervisores de niveles superiores';
+            supervisorLabel.textContent = 'Supervisor Directo';
+            supervisorHelp.textContent = 'Cualquier supervisor de nivel superior puede supervisar directamente';
+            updateSupervisors(directSupervisors, 'direct');
+        } else {
+            // Estructura rígida
+            hierarchyInfo.className = 'p-3 bg-blue-50 border-l-4 border-blue-400 mb-4';
+            hierarchyDescription.textContent = 'Estructura rígida: Solo se muestran supervisores del nivel inmediatamente superior';
+            supervisorLabel.textContent = 'Supervisor (Estructura Rígida)';
+            supervisorHelp.textContent = 'Solo supervisores del nivel jerárquico inmediatamente superior';
+            updateSupervisors(rigidSupervisors, 'rigid');
+        }
+    }
+    
+    // Función para actualizar información de depuración
+    function updateDebugInfo(selectedPositionId, isDirect, status = 'Esperando...') {
+        const positionSelect = document.getElementById('position_type');
+        
+        // Actualizar posición seleccionada
+        if (selectedPositionId) {
+            const selectedOption = positionSelect.querySelector(`option[value="${selectedPositionId}"]`);
+            const positionText = selectedOption ? selectedOption.textContent : 'Desconocida';
+            document.getElementById('debug-selected-position').textContent = positionText;
+            
+            // Extraer nivel de la posición seleccionada
+            const levelMatch = positionText.match(/Nivel (\d+)/);
+            const currentLevel = levelMatch ? parseInt(levelMatch[1]) : 0;
+            const supervisorLevel = currentLevel - 1;
+            
+            document.getElementById('debug-supervisor-level').textContent = supervisorLevel > 0 ? supervisorLevel : 'Ninguno (Nivel máximo)';
+        } else {
+            document.getElementById('debug-selected-position').textContent = 'No seleccionada';
+            document.getElementById('debug-supervisor-level').textContent = '-';
+        }
+        
+        // Actualizar tipo de consulta
+        const queryType = isDirect ? 'Supervisión Directa' : 'Estructura Rígida';
+        document.getElementById('debug-last-query').textContent = queryType;
+        
+        // Actualizar estado
+        document.getElementById('debug-api-status').textContent = status;
+    }
+    
+    // Función para actualizar supervisores basándose en la posición seleccionada
+    function updateSupervisorsForPosition() {
+        const positionSelect = document.getElementById('position_type');
+        const selectedPositionId = positionSelect.value;
+        const isDirect = directSupervisionToggle.checked;
+        
+        // Actualizar información de depuración
+        updateDebugInfo(selectedPositionId, isDirect, 'Cargando...');
+        
+        if (!selectedPositionId) {
+            updateSupervisionType(isDirect);
+            document.getElementById('debug-api-status').textContent = 'Sin posición seleccionada';
+            return;
+        }
+        
+        // Mostrar loading
+        supervisorSelect.innerHTML = '<option value="">Cargando supervisores...</option>';
+        supervisorSelect.disabled = true;
+        
+        // Hacer petición AJAX
+        const membershipId = '{{ member.id }}';
+        const url = `/sales/ajax/supervisors/${membershipId}/?position_id=${selectedPositionId}&type=${isDirect ? 'direct' : 'rigid'}`;
+        
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Limpiar supervisores
+                    supervisorSelect.innerHTML = '<option value="">Seleccionar supervisor...</option>';
+                    
+                    // Actualizar información de depuración
+                    document.getElementById('debug-api-status').textContent = '✅ Respuesta exitosa';
+                    document.getElementById('debug-supervisors-count').textContent = data.supervisors ? data.supervisors.length : 0;
+                    
+                    // Limpiar listas de depuración
+                    document.getElementById('debug-supervisors-list').classList.add('hidden');
+                    document.getElementById('debug-no-supervisors').classList.add('hidden');
+                    
+                    if (data.message) {
+                        // Caso especial (ej: Gerentes no necesitan supervisor)
+                        const messageOption = document.createElement('option');
+                        messageOption.value = '';
+                        messageOption.textContent = data.message;
+                        messageOption.disabled = true;
+                        supervisorSelect.appendChild(messageOption);
+                        supervisorSelect.disabled = true;
+                        
+                        // Actualizar información
+                        hierarchyDescription.textContent = data.message;
+                        hierarchyInfo.className = 'p-3 bg-green-50 border-l-4 border-green-400 mb-4';
+                        
+                        // Actualizar depuración
+                        document.getElementById('debug-no-supervisors-reason').textContent = data.message;
+                        document.getElementById('debug-no-supervisors').classList.remove('hidden');
+                        
+                    } else if (data.supervisors.length > 0) {
+                        // Agregar supervisores disponibles
+                        data.supervisors.forEach(supervisor => {
+                            const option = document.createElement('option');
+                            option.value = supervisor.id;
+                            option.textContent = `${supervisor.user_name} (${supervisor.position} - Nivel ${supervisor.hierarchy_level})`;
+                            supervisorSelect.appendChild(option);
+                        });
+                        supervisorSelect.disabled = false;
+                        
+                        // Actualizar información
+                        const typeText = isDirect ? 'Supervisión directa' : 'Estructura rígida';
+                        hierarchyDescription.textContent = `${typeText}: ${data.supervisors.length} supervisor(es) disponible(s)`;
+                        hierarchyInfo.className = isDirect ? 'p-3 bg-amber-50 border-l-4 border-amber-400 mb-4' : 'p-3 bg-blue-50 border-l-4 border-blue-400 mb-4';
+                        
+                        // Actualizar lista de depuración
+                        const debugList = document.getElementById('debug-supervisors-ul');
+                        debugList.innerHTML = '';
+                        data.supervisors.forEach(supervisor => {
+                            const li = document.createElement('li');
+                            li.textContent = `${supervisor.user_name} - ${supervisor.position} (Nivel ${supervisor.hierarchy_level})`;
+                            debugList.appendChild(li);
+                        });
+                        document.getElementById('debug-supervisors-list').classList.remove('hidden');
+                        
+                    } else {
+                        // No hay supervisores
+                        const noSupervisors = document.createElement('option');
+                        noSupervisors.value = '';
+                        noSupervisors.textContent = 'No hay supervisores disponibles para este nivel';
+                        noSupervisors.disabled = true;
+                        supervisorSelect.appendChild(noSupervisors);
+                        supervisorSelect.disabled = true;
+                        
+                        // Actualizar información
+                        hierarchyDescription.textContent = 'No se encontraron supervisores para el nivel seleccionado';
+                        hierarchyInfo.className = 'p-3 bg-red-50 border-l-4 border-red-400 mb-4';
+                        
+                        // Actualizar depuración con información detallada
+                        let debugReason = 'No hay supervisores del nivel requerido en este equipo';
+                        if (data.debug) {
+                            debugReason += `\n\nDETALLES DE DEBUG:\n`;
+                            debugReason += `• Equipo: ${data.debug.equipo_name}\n`;
+                            debugReason += `• Membresías totales: ${data.debug.all_memberships_count}\n`;
+                            debugReason += `• Membresías activas: ${data.debug.active_memberships_count}\n`;
+                            debugReason += `• Tipos de posición nivel 1: ${data.debug.level_1_positions.length}\n`;
+                            debugReason += `• Miembros potenciales nivel 1: ${data.debug.potential_level_1_members.length}\n\n`;
+                            
+                            if (data.debug.potential_level_1_members.length > 0) {
+                                debugReason += 'MIEMBROS NIVEL 1 ENCONTRADOS:\n';
+                                data.debug.potential_level_1_members.forEach(member => {
+                                    debugReason += `• ${member.user_name} (${member.position_name})\n`;
+                                    debugReason += `  - Usuario activo: ${member.user_active}\n`;
+                                    debugReason += `  - Membresía activa: ${member.membership_active}\n`;
+                                    debugReason += `  - Puede supervisar: ${member.position_can_supervise}\n`;
+                                    debugReason += `  - Status: ${member.membership_status}\n\n`;
+                                });
+                            }
+                        }
+                        
+                        document.getElementById('debug-no-supervisors-reason').innerHTML = debugReason.replace(/\n/g, '<br>');
+                        document.getElementById('debug-no-supervisors').classList.remove('hidden');
+                    }
+                } else {
+                    console.error('Error obteniendo supervisores:', data);
+                    supervisorSelect.innerHTML = '<option value="">Error cargando supervisores</option>';
+                    supervisorSelect.disabled = true;
+                    
+                    // Actualizar depuración
+                    document.getElementById('debug-api-status').textContent = '❌ Error de API';
+                    document.getElementById('debug-no-supervisors-reason').textContent = 'Error en la respuesta de la API';
+                    document.getElementById('debug-no-supervisors').classList.remove('hidden');
+                }
+            })
+            .catch(error => {
+                console.error('Error en petición AJAX:', error);
+                supervisorSelect.innerHTML = '<option value="">Error de conexión</option>';
+                supervisorSelect.disabled = true;
+                
+                // Actualizar depuración
+                document.getElementById('debug-api-status').textContent = '❌ Error de conexión';
+                document.getElementById('debug-no-supervisors-reason').textContent = `Error de conexión: ${error.message}`;
+                document.getElementById('debug-no-supervisors').classList.remove('hidden');
+            });
+    }
+    
+    // Event listeners
+    document.getElementById('position_type').addEventListener('change', updateSupervisorsForPosition);
+    
+    // Inicializar con estructura rígida
+    updateSupervisionType(false);
+    updateSupervisorsForPosition(); // Cargar supervisores iniciales
+    
+    // Toggle supervisión directa
+    directSupervisionToggle.addEventListener('change', function() {
+        updateSupervisionType(this.checked);
+        updateSupervisorsForPosition(); // Actualizar supervisores al cambiar tipo
+    });
+    
+    // Validación de formulario mejorada
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        const positionType = document.getElementById('position_type').value;
+        const supervisor = supervisorSelect.value;
+        const isDirect = directSupervisionToggle.checked;
+        
+        if (!positionType) {
+            e.preventDefault();
+            alert('Por favor selecciona un rol/posición.');
+            document.getElementById('position_type').focus();
+            return;
+        }
+        
+        // Verificar si la posición seleccionada es Gerente (nivel 1)
+        const selectedOption = document.querySelector(`#position_type option[value="${positionType}"]`);
+        const positionText = selectedOption ? selectedOption.textContent : '';
+        const isManager = positionText.includes('Nivel 1'); // Gerentes son nivel 1
+        
+        // Solo requerir supervisor si NO es Gerente y el select no está deshabilitado
+        if (!isManager && !supervisorSelect.disabled && !supervisor) {
+            e.preventDefault();
+            const supervisionText = isDirect ? 'supervisión directa' : 'estructura jerárquica';
+            alert(`Por favor selecciona un supervisor para ${supervisionText}.`);
+            supervisorSelect.focus();
+            return;
+        }
+    });
+    
+    // Mostrar/ocultar información adicional cuando hay supervisores disponibles
+    function checkSupervisorAvailability() {
+        const currentSupervisors = directSupervisionToggle.checked ? directSupervisors : rigidSupervisors;
+        const warningDiv = document.getElementById('supervisor-warning');
+        
+        if (currentSupervisors.length === 0) {
+            if (!warningDiv) {
+                const warning = document.createElement('div');
+                warning.id = 'supervisor-warning';
+                warning.className = 'p-3 bg-red-50 border border-red-200 rounded-lg mt-2';
+                warning.innerHTML = `
+                    <p class="text-sm text-red-700">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        <strong>Sin supervisores disponibles:</strong> 
+                        ${directSupervisionToggle.checked ? 
+                          'No hay supervisores de nivel superior para supervisión directa.' : 
+                          'No hay supervisores del nivel inmediatamente superior.'}
+                    </p>
+                    <p class="text-xs text-red-600 mt-1">
+                        ${directSupervisionToggle.checked ? 
+                          'Prueba cambiando a estructura rígida o contacta al administrador.' : 
+                          'Prueba cambiando a supervisión directa o contacta al administrador.'}
+                    </p>
+                `;
+                supervisorSelect.parentNode.appendChild(warning);
+            }
+            supervisorSelect.disabled = true;
+        } else {
+            if (warningDiv) {
+                warningDiv.remove();
+            }
+            supervisorSelect.disabled = false;
+        }
+    }
+    
+    // Verificar disponibilidad inicial y en cada cambio
+    checkSupervisorAvailability();
+    directSupervisionToggle.addEventListener('change', checkSupervisorAvailability);
+});
+</script>
+{% endblock %}

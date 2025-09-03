@@ -1,0 +1,28 @@
+<nav class="flex flex-col sm:flex-row items-center justify-between space-y-2 sm:space-y-0">
+    <!-- Información de paginación -->
+    <div class="text-sm text-gray-600">
+        Mostrando {{ page_obj.start_index }}-{{ page_obj.end_index }} de {{ page_obj.paginator.count }} elementos
+    </div>
+    
+    <!-- Controles de navegación -->
+    <div class="flex space-x-2">
+        {% if page_obj.has_previous %}
+            <button onclick="searchHierarchy('{{ search|default:'' }}', '{{ unit_filter|default:'' }}', {{ page_obj.previous_page_number }}, {{ current_page_size|default:10 }})"
+                   class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+                Anterior
+            </button>
+        {% endif %}
+
+        <span class="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm">
+            {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+        </span>
+
+        {% if page_obj.has_next %}
+            <button onclick="searchHierarchy('{{ search|default:'' }}', '{{ unit_filter|default:'' }}', {{ page_obj.next_page_number }}, {{ current_page_size|default:10 }})"
+                   class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+                Siguiente
+            </button>
+        {% endif %}
+    </div>
+</nav>
+

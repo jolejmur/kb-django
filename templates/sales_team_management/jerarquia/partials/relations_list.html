@@ -1,0 +1,518 @@
+<!-- Vista Desktop Grande (1920px+): Tabla compacta -->
+<div class="hidden 2xl:block">
+    <div class="overflow-hidden">
+        <table class="w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Miembro</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Supervisor</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Equipo</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for relation in page_obj %}
+                    <tr class="hover:bg-gray-50 {% if not relation.subordinate_membership.user.is_active %}bg-red-50{% endif %}">
+                        <!-- Miembro (Subordinado) -->
+                        <td class="px-4 py-2">
+                            <div class="flex items-center">
+                                <div class="h-7 w-7 rounded-full flex items-center justify-center {% if relation.subordinate_membership.position_type.code == 'AGENT' %}bg-green-100{% else %}bg-blue-100{% endif %} flex-shrink-0">
+                                    {% if relation.subordinate_membership.position_type.code == 'AGENT' %}
+                                        <i class="fas fa-handshake text-green-600 text-xs"></i>
+                                    {% else %}
+                                        <i class="fas fa-user text-blue-600 text-xs"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="ml-3">
+                                    <div class="text-sm font-medium text-gray-900">
+                                        {{ relation.subordinate_membership.user.get_full_name|default:relation.subordinate_membership.user.username }}
+                                    </div>
+                                    <div class="text-xs text-gray-500">{{ relation.subordinate_membership.position_type.name }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <!-- Supervisor -->
+                        <td class="px-4 py-2">
+                            {% if relation.supervisor_membership %}
+                                <div class="text-sm font-medium text-gray-900">
+                                    {{ relation.supervisor_membership.user.get_full_name|default:relation.supervisor_membership.user.username }}
+                                </div>
+                                <div class="text-xs text-gray-500">{{ relation.supervisor_membership.position_type.name }}</div>
+                            {% elif relation.relation_type == 'HEAD' %}
+                                <span class="text-sm text-gray-600 font-medium">Gerente</span>
+                            {% else %}
+                                <span class="text-sm text-gray-400 italic">Sin asignar</span>
+                            {% endif %}
+                        </td>
+                        <!-- Equipo -->
+                        <td class="px-4 py-2">
+                            <div class="text-sm text-gray-900">{{ relation.subordinate_membership.organizational_unit.name }}</div>
+                        </td>
+                        <!-- Tipo -->
+                        <td class="px-4 py-2">
+                            {% if relation.relation_type == 'UNASSIGNED' %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    Sin Supervisor
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                    {% if relation.relation_type == 'NORMAL' %}bg-blue-100 text-blue-800
+                                    {% elif relation.relation_type == 'DIRECT' %}bg-purple-100 text-purple-800
+                                    {% else %}bg-orange-100 text-orange-800{% endif %}">
+                                    {{ relation.get_relation_type_display }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <!-- Estado -->
+                        <td class="px-4 py-2">
+                            {% if not relation.subordinate_membership.user.is_active %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                    Usuario Inactivo
+                                </span>
+                            {% elif relation.relation_type == 'HEAD' %}
+                                <!-- Gerente/Jefe - solo mostrar estado del usuario -->
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    Gerente
+                                </span>
+                            {% elif relation.relation_type == 'UNASSIGNED' %}
+                                <!-- Sin supervisor asignado - mostrar estado del usuario -->
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    Sin Supervisor
+                                </span>
+                            {% elif relation.subordinate_membership.user.is_active and relation.is_active %}
+                                <!-- Relación jerárquica normal activa -->
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    Activo
+                                </span>
+                            {% elif relation.subordinate_membership.user.is_active and not relation.is_active %}
+                                <!-- Relación jerárquica desactivada -->
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    Relación Inactiva
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                    Inactivo
+                                </span>
+                            {% endif %}
+                        </td>
+                        <!-- Acciones -->
+                        <td class="px-4 py-2">
+                            <div class="flex space-x-1">
+                                {% if not relation.subordinate_membership.user.is_active %}
+                                    <a href="{% url 'sales_team_management:jerarquia_assign' %}?subordinate={{ relation.subordinate_membership.id }}" 
+                                       class="bg-blue-50 hover:bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-medium" title="Activar Usuario">
+                                        <i class="fas fa-user-check mr-1"></i>Activar
+                                    </a>
+                                {% elif relation.subordinate_membership.user.is_active and relation.subordinate_membership %}
+                                    <!-- Usuario activo con membresía (tiene rol asignado) - mostrar Ver/Editar -->
+                                    {% if relation.relation_type != 'UNASSIGNED' and relation.relation_type != 'HEAD' %}
+                                        <!-- Tiene supervisor asignado y es relación real - usar el pk de la relación -->
+                                        <a href="{% url 'sales_team_management:jerarquia_detail' relation.pk %}" class="bg-gray-50 hover:bg-gray-100 text-gray-700 p-1 rounded" title="Ver">
+                                            <i class="fas fa-eye text-xs"></i>
+                                        </a>
+                                        <a href="{% url 'sales_team_management:jerarquia_edit' relation.pk %}" class="bg-gray-50 hover:bg-gray-100 text-gray-700 p-1 rounded" title="Editar">
+                                            <i class="fas fa-edit text-xs"></i>
+                                        </a>
+                                    {% else %}
+                                        <!-- No tiene supervisor pero tiene rol - ver/editar membresía -->
+                                        <a href="{% url 'sales_team_management:jerarquia_assign' %}?subordinate={{ relation.subordinate_membership.id }}" 
+                                           class="bg-gray-50 hover:bg-gray-100 text-gray-700 p-1 rounded" title="Ver/Editar Asignación">
+                                            <i class="fas fa-eye text-xs"></i>
+                                        </a>
+                                        <a href="{% url 'sales_team_management:jerarquia_assign' %}?subordinate={{ relation.subordinate_membership.id }}" 
+                                           class="bg-gray-50 hover:bg-gray-100 text-yellow-700 p-1 rounded" title="Editar Asignación">
+                                            <i class="fas fa-edit text-xs"></i>
+                                        </a>
+                                    {% endif %}
+                                {% else %}
+                                    <!-- Usuario sin membresía - mostrar asignar -->
+                                    <a href="{% url 'sales_team_management:jerarquia_assign' %}?subordinate={{ relation.subordinate_membership.id }}" 
+                                       class="bg-green-50 hover:bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-medium" title="Asignar Rol">
+                                        <i class="fas fa-user-plus mr-1"></i>Asignar
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Vista Desktop/Laptop (1024px-1919px): Tabla compacta -->
+<div class="hidden lg:block 2xl:hidden">
+    <div class="overflow-hidden">
+        <table class="w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Miembro</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Supervisor</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Equipo</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for relation in page_obj %}
+                    <tr class="hover:bg-gray-50 {% if not relation.subordinate_membership.user.is_active %}bg-red-50{% endif %}">
+                        <td class="px-3 py-2">
+                            <div class="flex items-center">
+                                <div class="h-6 w-6 rounded-full flex items-center justify-center {% if relation.subordinate_membership.position_type.code == 'AGENT' %}bg-green-100{% else %}bg-blue-100{% endif %} flex-shrink-0">
+                                    <i class="fas fa-user text-xs {% if relation.subordinate_membership.position_type.code == 'AGENT' %}text-green-600{% else %}text-blue-600{% endif %}"></i>
+                                </div>
+                                <div class="ml-2">
+                                    <div class="text-sm font-medium text-gray-900">{{ relation.subordinate_membership.user.get_full_name|default:relation.subordinate_membership.user.username }}</div>
+                                    <div class="text-xs text-gray-500">{{ relation.subordinate_membership.position_type.name }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-3 py-2">
+                            {% if relation.supervisor_membership %}
+                                <div class="text-sm text-gray-900">{{ relation.supervisor_membership.user.get_full_name|default:relation.supervisor_membership.user.username }}</div>
+                            {% elif relation.relation_type == 'HEAD' %}
+                                <span class="text-sm text-gray-600 font-medium">Gerente</span>
+                            {% else %}
+                                <span class="text-sm text-gray-400 italic">Sin asignar</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-3 py-2">
+                            <div class="text-sm text-gray-900">{{ relation.subordinate_membership.organizational_unit.name }}</div>
+                        </td>
+                        <td class="px-3 py-2">
+                            {% if relation.relation_type == 'UNASSIGNED' %}
+                                <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800">Sin Supervisor</span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium
+                                    {% if relation.relation_type == 'NORMAL' %}bg-blue-100 text-blue-800
+                                    {% elif relation.relation_type == 'DIRECT' %}bg-purple-100 text-purple-800
+                                    {% else %}bg-orange-100 text-orange-800{% endif %}">
+                                    {{ relation.get_relation_type_display }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-3 py-2">
+                            {% if not relation.subordinate_membership.user.is_active %}
+                                <a href="{% url 'sales_team_management:jerarquia_assign' %}?subordinate={{ relation.subordinate_membership.id }}" 
+                                   class="bg-blue-50 hover:bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-medium">
+                                    <i class="fas fa-user-check mr-1"></i>Activar
+                                </a>
+                            {% elif relation.subordinate_membership.user.is_active and relation.subordinate_membership %}
+                                <div class="flex space-x-1">
+                                    {% if relation.relation_type != 'UNASSIGNED' and relation.relation_type != 'HEAD' %}
+                                        <!-- Tiene supervisor asignado y es relación real -->
+                                        <a href="{% url 'sales_team_management:jerarquia_detail' relation.pk %}" class="bg-gray-50 hover:bg-gray-100 text-gray-700 p-1 rounded" title="Ver">
+                                            <i class="fas fa-eye text-xs"></i>
+                                        </a>
+                                        <a href="{% url 'sales_team_management:jerarquia_edit' relation.pk %}" class="bg-gray-50 hover:bg-gray-100 text-gray-700 p-1 rounded" title="Editar">
+                                            <i class="fas fa-edit text-xs"></i>
+                                        </a>
+                                    {% else %}
+                                        <!-- Tiene rol pero no supervisor -->
+                                        <a href="{% url 'sales_team_management:jerarquia_assign' %}?subordinate={{ relation.subordinate_membership.id }}" 
+                                           class="bg-gray-50 hover:bg-gray-100 text-gray-700 p-1 rounded" title="Ver/Editar">
+                                            <i class="fas fa-eye text-xs"></i>
+                                        </a>
+                                        <a href="{% url 'sales_team_management:jerarquia_assign' %}?subordinate={{ relation.subordinate_membership.id }}" 
+                                           class="bg-gray-50 hover:bg-gray-100 text-yellow-700 p-1 rounded" title="Editar">
+                                            <i class="fas fa-edit text-xs"></i>
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <a href="{% url 'sales_team_management:jerarquia_assign' %}?subordinate={{ relation.subordinate_membership.id }}" 
+                                   class="bg-green-50 hover:bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-medium">
+                                    <i class="fas fa-user-plus mr-1"></i>Asignar
+                                </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Vista Tablet (768px-1023px): Cards en grid -->
+<div class="hidden md:block lg:hidden">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+        {% for relation in page_obj %}
+            <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 {% if not relation.subordinate_membership.user.is_active %}border-l-4 border-l-red-500 bg-red-50{% endif %}">
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium
+                                {% if relation.relation_type == 'NORMAL' %}bg-blue-100 text-blue-800
+                                {% elif relation.relation_type == 'DIRECT' %}bg-purple-100 text-purple-800
+                                {% elif relation.relation_type == 'HEAD' %}bg-green-100 text-green-800
+                                {% elif relation.relation_type == 'UNASSIGNED' %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-orange-100 text-orange-800{% endif %}">
+                                {{ relation.get_relation_type_display }}
+                            </span>
+                            {% if not relation.subordinate_membership.user.is_active %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">Usuario Inactivo</span>
+                            {% elif relation.relation_type == 'HEAD' %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Gerente</span>
+                            {% elif relation.relation_type == 'UNASSIGNED' %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Sin Supervisor</span>
+                            {% elif relation.subordinate_membership.user.is_active and relation.is_active %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Activa</span>
+                            {% elif relation.subordinate_membership.user.is_active and not relation.is_active %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Relación Inactiva</span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Inactiva</span>
+                            {% endif %}
+                        </div>
+                        <div class="flex space-x-1">
+                            {% if not relation.subordinate_membership.user.is_active %}
+                                <a href="{% url 'sales_team_management:jerarquia_assign' %}?subordinate={{ relation.subordinate_membership.id }}" 
+                                   class="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Activar Usuario">
+                                    <i class="fas fa-user-check text-xs"></i>
+                                </a>
+                                <span class="text-xs text-red-600 italic">Inactivo</span>
+                            {% elif relation.subordinate_membership.user.is_active and relation.subordinate_membership %}
+                                {% if relation.relation_type != 'UNASSIGNED' and relation.relation_type != 'HEAD' %}
+                                    <!-- Tiene supervisor asignado y es relación real -->
+                                    <a href="{% url 'sales_team_management:jerarquia_detail' relation.pk %}" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded">
+                                        <i class="fas fa-eye text-xs"></i>
+                                    </a>
+                                    <a href="{% url 'sales_team_management:jerarquia_edit' relation.pk %}" class="p-1.5 text-yellow-600 hover:bg-yellow-50 rounded">
+                                        <i class="fas fa-edit text-xs"></i>
+                                    </a>
+                                {% else %}
+                                    <!-- Tiene rol pero no supervisor -->
+                                    <a href="{% url 'sales_team_management:jerarquia_assign' %}?subordinate={{ relation.subordinate_membership.id }}" 
+                                       class="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Ver/Editar">
+                                        <i class="fas fa-eye text-xs"></i>
+                                    </a>
+                                    <a href="{% url 'sales_team_management:jerarquia_assign' %}?subordinate={{ relation.subordinate_membership.id }}" 
+                                       class="p-1.5 text-yellow-600 hover:bg-yellow-50 rounded" title="Editar">
+                                        <i class="fas fa-edit text-xs"></i>
+                                    </a>
+                                    <span class="text-xs text-yellow-600 italic">Sin supervisor</span>
+                                {% endif %}
+                            {% else %}
+                                <a href="{% url 'sales_team_management:jerarquia_assign' %}?subordinate={{ relation.subordinate_membership.id }}" 
+                                   class="p-1.5 text-green-600 hover:bg-green-50 rounded" title="Asignar Rol">
+                                    <i class="fas fa-user-plus text-xs"></i>
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        {% if relation.supervisor_membership %}
+                            <div class="flex items-center">
+                                <div class="h-8 w-8 rounded-full flex items-center justify-center bg-blue-100 flex-shrink-0">
+                                    <i class="fas fa-user-tie text-blue-600 text-xs"></i>
+                                </div>
+                                <div class="ml-3 min-w-0">
+                                    <div class="text-sm font-medium text-gray-900 truncate">
+                                        {{ relation.supervisor_membership.user.get_full_name|default:relation.supervisor_membership.user.username }}
+                                    </div>
+                                    <div class="text-xs text-gray-500">{{ relation.supervisor_membership.position_type.name }}</div>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="flex items-center">
+                                <div class="h-8 w-8 rounded-full flex items-center justify-center bg-gray-100 flex-shrink-0">
+                                    <i class="fas fa-minus text-gray-300 text-xs"></i>
+                                </div>
+                                <div class="ml-3 min-w-0">
+                                    {% if relation.relation_type == 'HEAD' %}
+                                        <div class="text-sm font-medium text-gray-600 truncate">Gerente</div>
+                                        <div class="text-xs text-gray-500">Nivel máximo</div>
+                                    {% else %}
+                                        <div class="text-sm font-medium text-gray-400 truncate">-</div>
+                                        <div class="text-xs text-gray-300">Sin supervisor</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endif %}
+                        <div class="flex items-center justify-center">
+                            <i class="fas fa-arrow-down text-gray-400"></i>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="h-8 w-8 rounded-full flex items-center justify-center bg-green-100 flex-shrink-0">
+                                <i class="fas fa-user text-green-600 text-xs"></i>
+                            </div>
+                            <div class="ml-3 min-w-0">
+                                <div class="text-sm font-medium text-gray-900 truncate">
+                                    {{ relation.subordinate_membership.user.get_full_name|default:relation.subordinate_membership.user.username }}
+                                </div>
+                                <div class="text-xs text-gray-500">{{ relation.subordinate_membership.position_type.name }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-xs text-gray-500 border-t pt-2">
+                        {% if relation.supervisor_membership %}
+                            <span>{{ relation.supervisor_membership.organizational_unit.name }}</span>
+                        {% else %}
+                            <span>{{ relation.subordinate_membership.organizational_unit.name }}</span>
+                        {% endif %}
+                        <span class="mx-2">•</span>
+                        <span>{{ relation.created_at|date:"d/m/Y" }}</span>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Vista Mobile (menos de 768px): Lista compacta -->
+<div class="md:hidden">
+    <div class="divide-y divide-gray-200">
+        {% for relation in page_obj %}
+            <div class="p-3 hover:bg-gray-50 {% if not relation.subordinate_membership.user.is_active %}border-l-4 border-red-500 bg-red-50{% endif %}">
+                <div class="space-y-3">
+                    <!-- Header con badges y acciones -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-1 flex-shrink-0">
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
+                                {% if relation.relation_type == 'NORMAL' %}bg-blue-100 text-blue-800
+                                {% elif relation.relation_type == 'DIRECT' %}bg-purple-100 text-purple-800
+                                {% elif relation.relation_type == 'HEAD' %}bg-green-100 text-green-800
+                                {% elif relation.relation_type == 'UNASSIGNED' %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-orange-100 text-orange-800{% endif %}">
+                                {% if relation.relation_type == 'NORMAL' %}Normal
+                                {% elif relation.relation_type == 'DIRECT' %}Directa
+                                {% elif relation.relation_type == 'HEAD' %}Cabeza
+                                {% elif relation.relation_type == 'UNASSIGNED' %}Sin Supervisor
+                                {% else %}Funcional{% endif %}
+                            </span>
+                            {% if not relation.subordinate_membership.user.is_active %}
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">I</span>
+                            {% elif relation.relation_type == 'HEAD' %}
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">G</span>
+                            {% elif relation.relation_type == 'UNASSIGNED' %}
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">S</span>
+                            {% elif relation.subordinate_membership.user.is_active and relation.is_active %}
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">A</span>
+                            {% elif relation.subordinate_membership.user.is_active and not relation.is_active %}
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">R</span>
+                            {% else %}
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">I</span>
+                            {% endif %}
+                        </div>
+                        <div class="flex space-x-1 flex-shrink-0">
+                            {% if not relation.subordinate_membership.user.is_active %}
+                                <a href="{% url 'sales_team_management:jerarquia_assign' %}?subordinate={{ relation.subordinate_membership.id }}" 
+                                   class="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Activar Usuario">
+                                    <i class="fas fa-user-check text-xs"></i>
+                                </a>
+                                <span class="text-xs text-red-600">Inactivo</span>
+                            {% elif relation.subordinate_membership.user.is_active and relation.subordinate_membership %}
+                                {% if relation.relation_type != 'UNASSIGNED' and relation.relation_type != 'HEAD' %}
+                                    <!-- Tiene supervisor asignado y es relación real -->
+                                    <a href="{% url 'sales_team_management:jerarquia_detail' relation.pk %}" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded">
+                                        <i class="fas fa-eye text-xs"></i>
+                                    </a>
+                                    <a href="{% url 'sales_team_management:jerarquia_edit' relation.pk %}" class="p-1.5 text-yellow-600 hover:bg-yellow-50 rounded">
+                                        <i class="fas fa-edit text-xs"></i>
+                                    </a>
+                                {% else %}
+                                    <!-- Tiene rol pero no supervisor -->
+                                    <a href="{% url 'sales_team_management:jerarquia_assign' %}?subordinate={{ relation.subordinate_membership.id }}" 
+                                       class="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Ver/Editar">
+                                        <i class="fas fa-eye text-xs"></i>
+                                    </a>
+                                    <a href="{% url 'sales_team_management:jerarquia_assign' %}?subordinate={{ relation.subordinate_membership.id }}" 
+                                       class="p-1.5 text-yellow-600 hover:bg-yellow-50 rounded" title="Editar">
+                                        <i class="fas fa-edit text-xs"></i>
+                                    </a>
+                                    <span class="text-xs text-yellow-600">Sin supervisor</span>
+                                {% endif %}
+                            {% else %}
+                                <a href="{% url 'sales_team_management:jerarquia_assign' %}?subordinate={{ relation.subordinate_membership.id }}" 
+                                   class="p-1.5 text-green-600 hover:bg-green-50 rounded" title="Asignar Rol">
+                                    <i class="fas fa-user-plus text-xs"></i>
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Supervisor -->
+                    <div class="space-y-1">
+                        <div class="flex items-center text-xs text-gray-500">
+                            <i class="fas fa-user-tie mr-1"></i>
+                            <span>Supervisor</span>
+                        </div>
+                        {% if relation.supervisor_membership %}
+                            <div class="flex items-center">
+                                <div class="h-6 w-6 rounded-full flex items-center justify-center bg-blue-100 flex-shrink-0 mr-2">
+                                    <i class="fas fa-user-tie text-blue-600 text-xs"></i>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="font-medium text-gray-900 text-sm truncate">
+                                        {{ relation.supervisor_membership.user.get_full_name|default:relation.supervisor_membership.user.username }}
+                                    </div>
+                                    <div class="text-xs text-gray-500 truncate">
+                                        {{ relation.supervisor_membership.position_type.name }}
+                                    </div>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="flex items-center">
+                                <div class="h-6 w-6 rounded-full flex items-center justify-center bg-gray-100 flex-shrink-0 mr-2">
+                                    <i class="fas fa-minus text-gray-300 text-xs"></i>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    {% if relation.relation_type == 'HEAD' %}
+                                        <div class="font-medium text-gray-600 text-sm truncate">Gerente</div>
+                                        <div class="text-xs text-gray-500 truncate">Nivel máximo</div>
+                                    {% else %}
+                                        <div class="font-medium text-gray-400 text-sm truncate">-</div>
+                                        <div class="text-xs text-gray-300 truncate">Sin supervisor</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Arrow -->
+                    <div class="flex justify-center">
+                        <i class="fas fa-arrow-down text-gray-400 text-xs"></i>
+                    </div>
+                    
+                    <!-- Subordinado -->
+                    <div class="space-y-1">
+                        <div class="flex items-center text-xs text-gray-500">
+                            <i class="fas fa-user mr-1"></i>
+                            <span>Subordinado</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="h-6 w-6 rounded-full flex items-center justify-center bg-green-100 flex-shrink-0 mr-2">
+                                <i class="fas fa-user text-green-600 text-xs"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <div class="font-medium text-gray-900 text-sm truncate">
+                                    {{ relation.subordinate_membership.user.get_full_name|default:relation.subordinate_membership.user.username }}
+                                </div>
+                                <div class="text-xs text-gray-500 truncate">
+                                    {{ relation.subordinate_membership.position_type.name }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Info adicional -->
+                    <div class="text-xs text-gray-500 pt-2 border-t border-gray-100">
+                        <div class="truncate mb-1">
+                            <i class="fas fa-building mr-1"></i>
+                            {% if relation.supervisor_membership %}
+                                {{ relation.supervisor_membership.organizational_unit.name }}
+                            {% else %}
+                                {{ relation.subordinate_membership.organizational_unit.name }}
+                            {% endif %}
+                        </div>
+                        <div>
+                            <i class="fas fa-calendar mr-1"></i>
+                            {{ relation.created_at|date:"d/m/Y" }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>

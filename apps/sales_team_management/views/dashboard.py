@@ -2,108 +2,113 @@
 
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q, Count, Case, When, IntegerField
+from django.db.models import Q, Count, Case, When, IntegerField, Avg
 from django.contrib.auth.models import User
 
+# NUEVO MODELO - Sin Legacy
 from ..models import (
-    EquipoVenta, GerenteEquipo, JefeVenta, 
-    TeamLeader, Vendedor, ComisionVenta
+    OrganizationalUnit, PositionType, TeamMembership, 
+    HierarchyRelation, CommissionStructure
 )
 from apps.real_estate_projects.models import Proyecto, Inmueble
 
 
 @login_required
 def sales_dashboard(request):
-    """Dashboard principal de gestión de equipos de ventas"""
+    """Dashboard principal de gestión de equipos usando el nuevo modelo"""
     
-    # Estadísticas de equipos
-    equipos_activos = EquipoVenta.objects.filter(activo=True)
-    equipos_inactivos = EquipoVenta.objects.filter(activo=False)
+    # Estadísticas de unidades organizacionales
+    units_activas = OrganizationalUnit.objects.filter(is_active=True)
+    units_inactivas = OrganizationalUnit.objects.filter(is_active=False)
     
-    # Estadísticas de miembros del equipo
-    gerentes_activos = GerenteEquipo.objects.filter(activo=True).count()
-    gerentes_inactivos = GerenteEquipo.objects.filter(activo=False).count()
+    # Estadísticas de membresías por posición
+    memberships_activas = TeamMembership.objects.filter(is_active=True)
+    memberships_inactivas = TeamMembership.objects.filter(is_active=False)
     
-    jefes_activos = JefeVenta.objects.filter(activo=True).count()
-    jefes_inactivos = JefeVenta.objects.filter(activo=False).count()
+    # Contar por tipo de posición
+    position_stats = {}
+    for position in PositionType.objects.filter(is_active=True):
+        activos = memberships_activas.filter(position_type=position).count()
+        inactivos = memberships_inactivas.filter(position_type=position).count()
+        position_stats[position.code] = {
+            'name': position.name,
+            'activos': activos,
+            'inactivos': inactivos
+        }
     
-    leaders_activos = TeamLeader.objects.filter(activo=True).count()
-    leaders_inactivos = TeamLeader.objects.filter(activo=False).count()
-    
-    vendedores_activos = Vendedor.objects.filter(activo=True).count()
-    vendedores_inactivos = Vendedor.objects.filter(activo=False).count()
-    
-    total_miembros_activos = gerentes_activos + jefes_activos + leaders_activos + vendedores_activos
-    total_miembros_inactivos = gerentes_inactivos + jefes_inactivos + leaders_inactivos + vendedores_inactivos
+    total_miembros_activos = memberships_activas.count()
+    total_miembros_inactivos = memberships_inactivas.count()
     
     # Estadísticas generales del sistema
     stats = {
-        'total_equipos_activos': equipos_activos.count(),
-        'total_equipos_inactivos': equipos_inactivos.count(),
+        'total_equipos_activos': units_activas.count(),
+        'total_equipos_inactivos': units_inactivas.count(),
         'total_proyectos': Proyecto.objects.filter(activo=True).count(),
         'total_inmuebles': Inmueble.objects.count(),
         'total_miembros_activos': total_miembros_activos,
         'total_miembros_inactivos': total_miembros_inactivos,
-        'gerentes_activos': gerentes_activos,
-        'jefes_activos': jefes_activos,
-        'leaders_activos': leaders_activos,
-        'vendedores_activos': vendedores_activos,
+        'total_relaciones_jerarquicas': HierarchyRelation.objects.filter(is_active=True).count(),
+        'total_estructuras_comision': CommissionStructure.objects.filter(is_active=True).count(),
     }
     
-    # Distribución por roles
-    roles_distribution = {
-        'gerentes': {'activos': gerentes_activos, 'inactivos': gerentes_inactivos},
-        'jefes': {'activos': jefes_activos, 'inactivos': jefes_inactivos},
-        'leaders': {'activos': leaders_activos, 'inactivos': leaders_inactivos},
-        'vendedores': {'activos': vendedores_activos, 'inactivos': vendedores_inactivos},
-    }
-
-    # Equipos con más miembros (jerarquía completa)
-    equipos_con_jerarquia = []
-    for equipo in equipos_activos.order_by('nombre'):
-        gerentes_count = equipo.gerenteequipo_set.filter(activo=True).count()
-        jefes_count = 0
-        leaders_count = 0
-        vendedores_count = 0
+    # Distribución por tipos de unidad
+    unit_type_distribution = units_activas.values('unit_type').annotate(
+        count=Count('id')
+    ).order_by('unit_type')
+    
+    # Equipos con información detallada
+    equipos_con_info = []
+    for unit in units_activas.annotate(
+        total_members=Count('teammembership', filter=Q(teammembership__is_active=True))
+    ).order_by('name'):
         
-        for gerente in equipo.gerenteequipo_set.filter(activo=True):
-            jefes_activos_equipo = gerente.jefeventas.filter(activo=True)
-            jefes_count += jefes_activos_equipo.count()
-            
-            for jefe in jefes_activos_equipo:
-                leaders_activos_equipo = jefe.teamleaders.filter(activo=True)
-                leaders_count += leaders_activos_equipo.count()
-                
-                for leader in leaders_activos_equipo:
-                    vendedores_count += leader.vendedores.filter(activo=True).count()
+        # Contar por posición
+        members_by_position = {}
+        for membership in unit.teammembership_set.filter(is_active=True).select_related('position_type'):
+            pos_code = membership.position_type.code
+            if pos_code not in members_by_position:
+                members_by_position[pos_code] = 0
+            members_by_position[pos_code] += 1
         
-        total_miembros = gerentes_count + jefes_count + leaders_count + vendedores_count
+        # Verificar si tiene estructura de comisiones
+        has_commission_structure = CommissionStructure.objects.filter(
+            organizational_unit=unit,
+            is_active=True
+        ).exists()
         
-        equipos_con_jerarquia.append({
-            'equipo': equipo,
-            'gerentes': gerentes_count,
-            'jefes': jefes_count,
-            'leaders': leaders_count,
-            'vendedores': vendedores_count,
-            'total_miembros': total_miembros,
-            'tiene_configuracion_completa': gerentes_count > 0 and hasattr(equipo, 'comision_venta') and equipo.comision_venta is not None,
+        # Obtener relaciones jerárquicas
+        hierarchy_relations_count = HierarchyRelation.objects.filter(
+            supervisor_membership__organizational_unit=unit,
+            is_active=True
+        ).count()
+        
+        equipos_con_info.append({
+            'unit': unit,
+            'total_members': unit.total_members,
+            'members_by_position': members_by_position,
+            'has_commission_structure': has_commission_structure,
+            'hierarchy_relations_count': hierarchy_relations_count,
+            'completion_score': calculate_team_completion_score(unit, members_by_position, has_commission_structure, hierarchy_relations_count)
         })
     
-    # Ordenar por total de miembros
-    equipos_con_jerarquia.sort(key=lambda x: x['total_miembros'], reverse=True)
+    # Ordenar por puntuación de completitud
+    equipos_con_info.sort(key=lambda x: x['completion_score'], reverse=True)
     
-    # Equipos sin configurar
-    equipos_sin_gerente = EquipoVenta.objects.filter(
-        activo=True,
-        gerenteequipo__isnull=True
-    ).distinct()
+    # Unidades sin configurar completamente
+    units_sin_miembros = units_activas.annotate(
+        members_count=Count('teammembership', filter=Q(teammembership__is_active=True))
+    ).filter(members_count=0)
     
-    equipos_sin_comisiones = EquipoVenta.objects.filter(
-        activo=True,
-        comision_venta__isnull=True
+    units_sin_comisiones = units_activas.filter(
+        commissionstructure__isnull=True
+    ) | units_activas.filter(
+        commissionstructure__is_active=False
     )
-
-    # Proyectos más activos
+    
+    # Análisis de jerarquías
+    hierarchy_analysis = analyze_hierarchy_health()
+    
+    # Proyectos más activos (mantener lógica original)
     proyectos_activos = Proyecto.objects.filter(
         activo=True
     ).annotate(
@@ -113,30 +118,129 @@ def sales_dashboard(request):
 
     # Alertas y recomendaciones
     alertas = []
-    if equipos_sin_gerente.exists():
+    if units_sin_miembros.exists():
         alertas.append({
             'tipo': 'warning',
-            'titulo': 'Equipos sin Gerente',
-            'mensaje': f'{equipos_sin_gerente.count()} equipos no tienen gerente asignado',
-            'url': 'sales:equipos_list'
+            'titulo': 'Unidades sin Miembros',
+            'mensaje': f'{units_sin_miembros.count()} unidades no tienen miembros asignados',
+            'url': 'sales_team_management:equipos_list'
         })
     
-    if equipos_sin_comisiones.exists():
+    if units_sin_comisiones.exists():
         alertas.append({
             'tipo': 'info',
-            'titulo': 'Equipos sin Comisiones',
-            'mensaje': f'{equipos_sin_comisiones.count()} equipos no tienen comisiones configuradas',
-            'url': 'sales:equipos_list'
+            'titulo': 'Unidades sin Comisiones',
+            'mensaje': f'{units_sin_comisiones.count()} unidades no tienen estructura de comisiones',
+            'url': 'sales_team_management:equipos_list'
+        })
+    
+    if hierarchy_analysis['inconsistencies_count'] > 0:
+        alertas.append({
+            'tipo': 'danger',
+            'titulo': 'Inconsistencias en Jerarquía',
+            'mensaje': f'{hierarchy_analysis["inconsistencies_count"]} inconsistencias detectadas en las relaciones jerárquicas',
+            'url': 'sales_team_management:analisis_jerarquia'
         })
 
     context = {
         'stats': stats,
-        'roles_distribution': roles_distribution,
-        'equipos_con_jerarquia': equipos_con_jerarquia[:8],  # Top 8 equipos
+        'position_stats': position_stats,
+        'unit_type_distribution': unit_type_distribution,
+        'equipos_con_info': equipos_con_info[:8],  # Top 8 equipos
         'proyectos_activos': proyectos_activos,
-        'equipos_sin_gerente': equipos_sin_gerente,
-        'equipos_sin_comisiones': equipos_sin_comisiones,
+        'units_sin_miembros': units_sin_miembros,
+        'units_sin_comisiones': units_sin_comisiones,
+        'hierarchy_analysis': hierarchy_analysis,
         'alertas': alertas,
         'title': 'Dashboard - Gestión de Equipos de Ventas',
     }
     return render(request, 'sales_team_management/dashboard.html', context)
+
+
+# ============================================================
+# FUNCIONES AUXILIARES PARA EL DASHBOARD
+# ============================================================
+
+def calculate_team_completion_score(unit, members_by_position, has_commission_structure, hierarchy_relations_count):
+    """Calcula un puntaje de completitud para el equipo"""
+    score = 0
+    
+    # Puntos por tener miembros
+    total_members = sum(members_by_position.values())
+    if total_members > 0:
+        score += 30
+    
+    # Puntos por diversidad de posiciones
+    position_diversity = len(members_by_position)
+    score += min(position_diversity * 10, 30)  # Max 30 puntos
+    
+    # Puntos por estructura de comisiones
+    if has_commission_structure:
+        score += 20
+    
+    # Puntos por relaciones jerárquicas
+    if hierarchy_relations_count > 0:
+        score += 20
+    
+    return score
+
+
+def analyze_hierarchy_health():
+    """Analiza la salud general de las estructuras jerárquicas"""
+    
+    total_relations = HierarchyRelation.objects.filter(is_active=True).count()
+    
+    # Detectar inconsistencias básicas
+    inconsistencies_count = 0
+    
+    # Relaciones circulares
+    circular_relations = detect_circular_relations()
+    inconsistencies_count += len(circular_relations)
+    
+    # Múltiples supervisores primarios
+    multiple_primary_supervisors = HierarchyRelation.objects.filter(
+        is_active=True,
+        is_primary=True
+    ).values('subordinate_membership').annotate(
+        count=Count('id')
+    ).filter(count__gt=1).count()
+    
+    inconsistencies_count += multiple_primary_supervisors
+    
+    # Estadísticas por tipo de relación
+    relation_type_stats = HierarchyRelation.objects.filter(
+        is_active=True
+    ).values('relation_type').annotate(
+        count=Count('id')
+    )
+    
+    return {
+        'total_relations': total_relations,
+        'inconsistencies_count': inconsistencies_count,
+        'circular_relations_count': len(circular_relations),
+        'multiple_primary_supervisors_count': multiple_primary_supervisors,
+        'relation_type_stats': list(relation_type_stats)
+    }
+
+
+def detect_circular_relations():
+    """Detecta relaciones circulares en la jerarquía"""
+    circular_relations = []
+    
+    relations = HierarchyRelation.objects.filter(is_active=True)
+    
+    for relation in relations:
+        # Buscar si existe una relación que cree un ciclo
+        reverse_relation = HierarchyRelation.objects.filter(
+            supervisor_membership=relation.subordinate_membership,
+            subordinate_membership=relation.supervisor_membership,
+            is_active=True
+        ).first()
+        
+        if reverse_relation:
+            circular_relations.append({
+                'relation_1': relation,
+                'relation_2': reverse_relation
+            })
+    
+    return circular_relations

@@ -11,10 +11,10 @@ from .models import Role
 ROLE_MAPPING = {
     'Vendedor': 'Ventas',
     'TeamLeader': 'Team Leader', 
-    'JefeVenta': 'Jefe de Equipo',
-    'GerenteEquipo': 'Jefe de Equipo',  # Por ahora igual que JefeVenta
+    'JefeVenta': 'Gerente de Equipo',  # Actualizado: Jefe de Venta -> Gerente de Equipo
+    'GerenteEquipo': 'Gerente de Equipo',  # Gerente de Equipo
     'GerenteProyecto': 'Gerente de Proyecto',
-    'JefeProyecto': 'Jefe de Equipo',  # Por ahora igual que JefeVenta
+    'JefeProyecto': 'Gerente de Equipo',  # Actualizado: Jefe de Proyecto -> Gerente de Equipo
 }
 
 
@@ -33,15 +33,15 @@ def get_user_highest_role(user):
     
     # Verificar GerenteEquipo
     if hasattr(user, 'gerente_equipos') and user.gerente_equipos.filter(activo=True).exists():
-        return 'Jefe de Equipo'
+        return 'Gerente de Equipo'
     
     # Verificar JefeProyecto 
     if hasattr(user, 'jefe_proyectos') and user.jefe_proyectos.filter(activo=True).exists():
-        return 'Jefe de Equipo'
+        return 'Gerente de Equipo'
     
     # Verificar JefeVenta
     if hasattr(user, 'jefe_ventas') and user.jefe_ventas.filter(activo=True).exists():
-        return 'Jefe de Equipo'
+        return 'Gerente de Equipo'
     
     # Verificar TeamLeader
     if hasattr(user, 'team_leaders') and user.team_leaders.filter(activo=True).exists():
@@ -55,10 +55,43 @@ def get_user_highest_role(user):
     return None
 
 
-def update_user_role(user):
+def get_user_highest_role_new_system(user):
     """
-    Actualiza el rol del usuario basado en su posición más alta
-    No actualiza usuarios con roles del sistema (Super Admin, etc.)
+    Determina el rol más alto basado en el nuevo sistema de TeamMembership
+    """
+    try:
+        # Importar aquí para evitar circular imports
+        from apps.sales_team_management.models import TeamMembership
+        
+        # Obtener la membresía activa con el nivel jerárquico más bajo (más alto en la jerarquía)
+        highest_membership = TeamMembership.objects.filter(
+            user=user,
+            is_active=True,
+            status='ACTIVE'
+        ).select_related('position_type').order_by('position_type__hierarchy_level').first()
+        
+        if highest_membership:
+            # Mapear nivel jerárquico a rol
+            level = highest_membership.position_type.hierarchy_level
+            if level == 1:  # Gerente
+                return 'Gerente de Equipo'
+            elif level == 2:  # Jefe
+                return 'Gerente de Equipo'
+            elif level == 3:  # Team Leader
+                return 'Team Leader'
+            elif level == 4:  # Vendedor
+                return 'Ventas'
+        
+        return None
+        
+    except Exception as e:
+        print(f"⚠️  Error determinando rol para {user.username}: {e}")
+        return None
+
+
+def update_user_role_new_system(user):
+    """
+    Actualiza el rol del usuario basado en el nuevo sistema de TeamMembership
     """
     # Preservar roles del sistema (Super Admin, etc.)
     if user.role and user.role.is_system:
@@ -70,7 +103,7 @@ def update_user_role(user):
         print(f"🔧 Usuario {user.username} mantiene rol Super Admin (superusuario)")
         return
     
-    highest_role_name = get_user_highest_role(user)
+    highest_role_name = get_user_highest_role_new_system(user)
     
     if highest_role_name:
         try:
@@ -91,29 +124,26 @@ def update_user_role(user):
             print(f"👤 Usuario {user.username}: {old_role} → Sin rol")
 
 
-# Signals para modelos de Sales Team Management
-@receiver(post_save, sender='sales_team_management.Vendedor')
-def vendedor_created_or_updated(sender, instance, created, **kwargs):
-    """Signal cuando se crea o actualiza un Vendedor"""
-    update_user_role(instance.usuario)
+def update_user_role(user):
+    """FUNCIÓN LEGACY - usar update_user_role_new_system"""
+    return update_user_role_new_system(user)
 
 
-@receiver(post_save, sender='sales_team_management.TeamLeader')
-def team_leader_created_or_updated(sender, instance, created, **kwargs):
-    """Signal cuando se crea o actualiza un TeamLeader"""
-    update_user_role(instance.usuario)
+# SIGNALS LEGACY DESHABILITADOS - MODELOS ELIMINADOS
+# Los modelos legacy fueron eliminados en migración 0008
+
+# Signals para nuevo modelo de Sales Team Management
+@receiver(post_save, sender='sales_team_management.TeamMembership')
+def team_membership_created_or_updated(sender, instance, created, **kwargs):
+    """Signal cuando se crea o actualiza una TeamMembership"""
+    if instance.is_active:
+        update_user_role_new_system(instance.user)
 
 
-@receiver(post_save, sender='sales_team_management.JefeVenta')
-def jefe_venta_created_or_updated(sender, instance, created, **kwargs):
-    """Signal cuando se crea o actualiza un JefeVenta"""
-    update_user_role(instance.usuario)
-
-
-@receiver(post_save, sender='sales_team_management.GerenteEquipo')
-def gerente_equipo_created_or_updated(sender, instance, created, **kwargs):
-    """Signal cuando se crea o actualiza un GerenteEquipo"""
-    update_user_role(instance.usuario)
+@receiver(post_delete, sender='sales_team_management.TeamMembership')
+def team_membership_deleted(sender, instance, **kwargs):
+    """Signal cuando se elimina una TeamMembership"""
+    update_user_role_new_system(instance.user)
 
 
 # Signals para modelos de Real Estate Projects
@@ -129,29 +159,7 @@ def jefe_proyecto_created_or_updated(sender, instance, created, **kwargs):
     update_user_role(instance.usuario)
 
 
-# Signals para cuando se eliminan posiciones
-@receiver(post_delete, sender='sales_team_management.Vendedor')
-def vendedor_deleted(sender, instance, **kwargs):
-    """Signal cuando se elimina un Vendedor"""
-    update_user_role(instance.usuario)
-
-
-@receiver(post_delete, sender='sales_team_management.TeamLeader')
-def team_leader_deleted(sender, instance, **kwargs):
-    """Signal cuando se elimina un TeamLeader"""
-    update_user_role(instance.usuario)
-
-
-@receiver(post_delete, sender='sales_team_management.JefeVenta')
-def jefe_venta_deleted(sender, instance, **kwargs):
-    """Signal cuando se elimina un JefeVenta"""
-    update_user_role(instance.usuario)
-
-
-@receiver(post_delete, sender='sales_team_management.GerenteEquipo')
-def gerente_equipo_deleted(sender, instance, **kwargs):
-    """Signal cuando se elimina un GerenteEquipo"""
-    update_user_role(instance.usuario)
+# SIGNALS LEGACY ELIMINADOS - Ver nuevos signals arriba
 
 
 @receiver(post_delete, sender='real_estate_projects.GerenteProyecto')

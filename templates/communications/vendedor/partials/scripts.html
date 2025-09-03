@@ -1,0 +1,1611 @@
+{% comment %}
+    JavaScript para la funcionalidad del chat de vendedor
+    Incluye: WebSocket, envío de mensajes, gestión de archivos, audio
+    NOTA: Usa endpoints específicos para vendedores (/marketing/api/chat/)
+{% endcomment %}
+<!-- Load jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+// Global variables
+let currentConversationId = null;
+let conversations = [];
+let socket = null;
+let pollingInterval = null;
+let modalSelectedFile = null;
+let selectedFile = null; // Variable para archivos seleccionados en preview
+let userIsReading = false;
+let lastScrollTime = 0;
+let countdownInterval = null;
+let conversationListUpdateInterval = null;
+
+$(document).ready(function() {
+    // Initialize chat
+    initializeChat();
+    
+    // Load initial conversations
+    loadConversations();
+    
+    // Set up event handlers
+    setupEventHandlers();
+    
+    // Initialize WebSocket
+    initializeWebSocket();
+    
+    // Mobile responsiveness
+    setupMobileHandlers();
+    
+    // Start countdown timer
+    startCountdownTimer();
+    
+    // Start conversation list auto-update
+    startConversationListUpdate();
+});
+
+function initializeChat() {
+    console.log('🔧 Configurando interfaz de chat...');
+    
+    // Hide chat input initially
+    $('#chatInputContainer').hide();
+    
+    // Auto-resize textarea
+    $('#messageInput').on('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+    
+    // Detector de lectura - cuando el usuario hace scroll
+    $('#chatMessages').on('scroll', function() {
+        const now = Date.now();
+        lastScrollTime = now;
+        userIsReading = true;
+        
+        // Resetear el estado de lectura después de 3 segundos sin scroll
+        setTimeout(() => {
+            if (Date.now() - lastScrollTime >= 3000) {
+                userIsReading = false;
+            }
+        }, 3000);
+    });
+}
+
+function setupEventHandlers() {
+    console.log('🔧 Configurando event handlers...');
+    
+    // Verificar que los elementos existen
+    const sendBtn = $('#sendBtn');
+    const messageInput = $('#messageInput');
+    
+    console.log('🔍 Botón enviar encontrado:', sendBtn.length > 0);
+    console.log('🔍 Input mensaje encontrado:', messageInput.length > 0);
+    
+    if (sendBtn.length === 0) {
+        console.error('❌ Botón #sendBtn no encontrado en el DOM');
+    }
+    
+    // Send message on Enter (Shift+Enter for new line)
+    messageInput.keydown(function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            console.log('⌨️ Enter presionado - enviando mensaje');
+            sendMessage();
+        }
+    });
+    
+    // Send message on button click - usar delegación de eventos para mayor compatibilidad
+    $(document).off('click', '#sendBtn').on('click', '#sendBtn', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('🔘 Click detectado en botón enviar');
+        sendMessage();
+    });
+    
+    // File attachment handlers - Dropdown menu
+    $('#attachBtn').click(function(e) {
+        e.stopPropagation();
+        const menu = $('#attachMenu');
+        menu.toggle();
+    });
+    
+    // Close dropdown when clicking outside
+    $(document).click(function(e) {
+        if (!$(e.target).closest('.attach-dropdown').length) {
+            $('#attachMenu').hide();
+        }
+    });
+    
+    // Handle different file input types - Show confirmation modal
+    $('#fileInputImage, #fileInputVideo, #fileInputAudio, #fileInputDocument, #fileInputAll').change(function(e) {
+        console.log('📎 File input change event triggered');
+        const file = e.target.files[0];
+        if (file) {
+            console.log('📎 File selected, showing confirmation modal');
+            showFileSendModal(file);
+            $('#attachMenu').hide(); // Hide menu after selection
+        }
+    });
+}
+
+// Function to handle file type selection
+function selectFileType(type) {
+    console.log('📎 File type selected:', type);
+    
+    let inputId;
+    switch(type) {
+        case 'image':
+            inputId = '#fileInputImage';
+            break;
+        case 'video':
+            inputId = '#fileInputVideo';
+            break;
+        case 'audio':
+            inputId = '#fileInputAudio';
+            break;
+        case 'document':
+            inputId = '#fileInputDocument';
+            break;
+        case 'all':
+        default:
+            inputId = '#fileInputAll';
+            break;
+    }
+    
+    // Trigger the appropriate file input
+    $(inputId).click();
+    $('#attachMenu').hide();
+}
+
+function setupMobileHandlers() {
+    // Mobile back button
+    $('#mobileBackBtn').click(function() {
+        $('#chatSidebar').removeClass('hidden');
+        $('#chatMain').removeClass('visible');
+        currentConversationId = null;
+        $('#chatHeader').hide();
+        $('#chatInputContainer').hide();
+        $('#chatMessages').html(`
+            <div class="empty-chat">
+                <i class="fas fa-comment-dots"></i>
+                <h3>Selecciona una conversación</h3>
+                <p>Elige un cliente de la lista para comenzar a chatear</p>
+            </div>
+        `);
+    });
+}
+
+function loadConversations() {
+    $.get('/marketing/api/chat/conversations/')
+        .done(function(response) {
+            if (response.success && Array.isArray(response.conversations)) {
+                conversations = response.conversations;
+                renderConversations(conversations);
+                $('#conversationCount').text(response.total || conversations.length);
+            } else if (response.success && response.conversations === null) {
+                conversations = [];
+                renderConversations([]);
+                $('#conversationCount').text(0);
+            } else {
+                showError('Error al cargar conversaciones: ' + (response.error || 'Respuesta inválida'));
+            }
+        })
+        .fail(function(xhr) {
+            let errorMsg = `Error ${xhr.status}: ${xhr.statusText}`;
+            try {
+                const response = JSON.parse(xhr.responseText);
+                errorMsg = response.error || errorMsg;
+            } catch (e) {}
+            showError(errorMsg);
+        });
+}
+
+function renderConversations(conversations) {
+    const $list = $('#conversationsList');
+    
+    if (!conversations || conversations.length === 0) {
+        $list.html(`
+            <div style="padding: 40px 20px; text-align: center; color: #999;">
+                <i class="fas fa-comments" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                <p style="margin: 0;">No tienes conversaciones activas</p>
+                <small>Las conversaciones aparecerán aquí cuando los clientes te escriban</small>
+            </div>
+        `);
+        return;
+    }
+    
+    let html = '';
+    conversations.forEach(conv => {
+        const initials = getInitials(conv.cliente_nombre);
+        const isOutgoing = conv.ultimo_mensaje_tipo === 'outgoing';
+        const unreadBadge = conv.mensajes_no_leidos > 0 ? 
+            `<span class="conversation-badge">${conv.mensajes_no_leidos}</span>` : '';
+        
+        const isExpired = conv.is_expired && !isOutgoing;
+        const expiredClass = isExpired ? ' expired' : '';
+        
+        let messagePreview = conv.ultimo_mensaje_contenido || conv.ultimo_mensaje_preview || '';
+        if (messagePreview.length > 50) {
+            messagePreview = messagePreview.substring(0, 50) + '...';
+        }
+        
+        if (isOutgoing) {
+            messagePreview = '✓ ' + messagePreview;
+        }
+        
+        // Calcular tiempos especiales para vendedores
+        let assignmentTime = '';
+        let expirationCountdown = '';
+        let expirationStyle = '';
+        
+        // Hora de asignación (A) - solo si hay asignación reciente sin respuesta
+        if (conv.assignment_date && !conv.has_vendedor_response) {
+            try {
+                const assignDate = new Date(conv.assignment_date);
+                assignmentTime = `A ${assignDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
+            } catch (e) {
+                console.warn('Error procesando assignment_date:', e);
+            }
+        }
+        
+        // Contador de vencimiento (V) - basado en último mensaje entrante + 24h
+        if (conv.last_incoming_at) {
+            try {
+                const lastIncoming = new Date(conv.last_incoming_at);
+                const expiration = new Date(lastIncoming.getTime() + (24 * 60 * 60 * 1000)); // +24 horas
+                const now = new Date();
+                const timeLeft = expiration - now;
+                
+                if (timeLeft > 0) {
+                    // Calcular horas y minutos restantes
+                    const hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60));
+                    const minutesLeft = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                    
+                    // Formato del contador
+                    expirationCountdown = `V ${hoursLeft}h ${minutesLeft}m`;
+                    
+                    // Determinar estilo según si ya respondimos o no
+                    const hasEverResponded = conv.has_ever_responded;
+                    if (hasEverResponded) {
+                        // Ya respondimos antes - naranja pastel
+                        expirationStyle = 'background: #FFE0B2; color: #E65100; border-radius: 4px; padding: 2px 4px;';
+                    } else {
+                        // Nunca hemos respondido - rojo
+                        expirationStyle = 'background: #FFCDD2; color: #C62828; border-radius: 4px; padding: 2px 4px;';
+                    }
+                } else if (timeLeft <= 0) {
+                    // Expirado
+                    expirationCountdown = `V EXPIRADO`;
+                    expirationStyle = 'background: #F44336; color: white; border-radius: 4px; padding: 2px 4px;';
+                    conv.is_expired = true;
+                }
+            } catch (e) {
+                console.warn('Error procesando last_incoming_at:', e);
+            }
+        }
+        
+        html += `
+            <div class="conversation-item${expiredClass}" data-conversation-id="${conv.id}" onclick="selectConversation(${conv.id})">
+                <div class="conversation-avatar">
+                    ${initials}
+                </div>
+                <div class="conversation-content">
+                    <div class="conversation-name">${escapeHtml(conv.cliente_nombre)}</div>
+                    <div class="conversation-preview">${escapeHtml(messagePreview)}</div>
+                </div>
+                <div class="conversation-meta" style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+                        ${assignmentTime ? `<div class="assignment-time" style="color: #FF9800; font-size: 10px; font-weight: bold;">${assignmentTime}</div>` : ''}
+                        ${expirationCountdown ? `<div class="expiration-countdown" style="font-size: 9px; font-weight: bold; ${expirationStyle}">${expirationCountdown}</div>` : ''}
+                    </div>
+                    ${unreadBadge}
+                </div>
+            </div>
+        `;
+    });
+    
+    $list.html(html);
+}
+
+function selectConversation(conversationId) {
+    console.log('👆 Conversación seleccionada:', conversationId);
+    
+    currentConversationId = conversationId;
+    
+    // Update UI
+    $('.conversation-item').removeClass('active');
+    $(`.conversation-item[data-conversation-id="${conversationId}"]`).addClass('active');
+    
+    // Find conversation data
+    const conversation = conversations.find(c => c.id === conversationId);
+    if (!conversation) {
+        console.error('❌ Conversación no encontrada:', conversationId);
+        return;
+    }
+    
+    // Update chat header
+    $('#chatTitle').text(conversation.cliente_nombre);
+    $('#chatSubtitle').text(`${conversation.numero_whatsapp} • Último mensaje: ${formatTimeAgo(conversation.ultimo_mensaje_at)}`);
+    $('#chatAvatar').text(getInitials(conversation.cliente_nombre));
+    
+    // Show chat interface
+    $('#chatHeader').show();
+    $('#chatInputContainer').show();
+    
+    // Mobile: hide sidebar and show chat
+    if (window.innerWidth <= 768) {
+        $('#chatSidebar').addClass('hidden');
+        $('#chatMain').addClass('visible');
+    }
+    
+    // Load messages
+    loadMessages(conversationId);
+    
+    // Mark as read
+    markConversationAsRead(conversationId);
+    
+    // Verificar si la conversación está expirada
+    if (conversation.is_expired) {
+        blockChatInput('Esta conversación ha expirado (24h sin respuesta)');
+    } else {
+        unblockChatInput();
+    }
+}
+
+function loadMessages(conversationId) {
+    console.log('💬 Cargando mensajes para conversación:', conversationId);
+    
+    $('#chatMessages').html('<div class="loading-messages"><div class="spinner"></div>Cargando mensajes...</div>');
+    
+    $.get(`/marketing/api/chat/conversation/${conversationId}/messages/`)
+        .done(function(response) {
+            console.log('✅ Mensajes cargados:', response);
+            console.log('🔍 VENDEDOR DEBUG: Estructura de response:', Object.keys(response));
+            console.log('🔍 VENDEDOR DEBUG: response.messages:', response.messages);
+            console.log('🔍 VENDEDOR DEBUG: response.data:', response.data);
+            if (response.success) {
+                // Verificar si los mensajes están en response.messages o response.data.messages
+                const messages = response.messages || (response.data && response.data.messages);
+                console.log('🔍 VENDEDOR DEBUG: Mensajes finales a renderizar:', messages);
+                renderMessages(messages);
+            } else {
+                showError('Error al cargar mensajes: ' + response.error);
+            }
+        })
+        .fail(function(xhr) {
+            console.error('❌ Error cargando mensajes:', xhr);
+            showError('Error al cargar mensajes');
+        });
+}
+
+function silentLoadMessages(conversationId, forceScrollToBottom = false) {
+    // Actualizar mensajes SIN mostrar loading ni parpadear
+    $.get(`/marketing/api/chat/conversation/${conversationId}/messages/`)
+        .done(function(response) {
+            if (response.success) {
+                const messages = response.messages || (response.data && response.data.messages);
+                
+                // Verificar si realmente hay cambios - excluir mensajes temporales
+                const currentMessages = $('#chatMessages .flex:not([id^="temp_"])');
+                const currentCount = currentMessages.length;
+                const newCount = messages ? messages.length : 0;
+                
+                if (!messages || newCount === 0) {
+                    return; // No hay mensajes, no hacer nada
+                }
+                
+                // Solo agregar mensajes nuevos si los hay
+                if (newCount > currentCount) {
+                    console.log('📨 Agregando solo mensajes nuevos:', newCount - currentCount);
+                    
+                    // Guardar posición del scroll ANTES de cualquier cambio
+                    const chatContainer = $('#chatMessages')[0];
+                    const scrollPosition = chatContainer.scrollTop;
+                    const scrollHeight = chatContainer.scrollHeight;
+                    const clientHeight = chatContainer.clientHeight;
+                    const isAtBottom = scrollPosition >= (scrollHeight - clientHeight - 50);
+                    
+                    // SOLO agregar mensajes nuevos sin tocar los existentes
+                    appendNewMessages(messages, currentCount);
+                    
+                    // Restaurar posición del scroll SIN PARPADEO
+                    if (forceScrollToBottom || (isAtBottom && !userIsReading)) {
+                        // Si es forzado (mensaje propio) O (estaba al final Y no está leyendo)
+                        chatContainer.scrollTop = chatContainer.scrollHeight;
+                        if (forceScrollToBottom) {
+                            console.log('📍 Scroll forzado al final (mensaje propio)');
+                        }
+                    } else {
+                        // MANTENER LA POSICIÓN EXACTA - NO MOVER NADA
+                        chatContainer.scrollTop = scrollPosition;
+                        console.log('📍 Posición exacta preservada (mensaje ajeno)');
+                    }
+                } else if (newCount === currentCount) {
+                    // Verificar si hay mensajes temporales que deben ser reemplazados
+                    const tempMessages = $('#chatMessages [id^="temp_"]');
+                    if (tempMessages.length > 0) {
+                        console.log('🔄 Reemplazando mensajes temporales con reales');
+                        // Remover mensajes temporales y volver a renderizar solo los últimos
+                        tempMessages.remove();
+                        renderMessages(messages);
+                        
+                        // Mantener scroll al final si era un mensaje propio
+                        if (forceScrollToBottom) {
+                            chatContainer.scrollTop = chatContainer.scrollHeight;
+                        }
+                    }
+                } else {
+                    // No hay cambios, no hacer nada
+                    console.log('✅ Sin cambios en mensajes');
+                }
+            }
+        })
+        .fail(function(xhr) {
+            console.error('❌ Error en silent load:', xhr);
+        });
+}
+
+function appendNewMessages(messages, startIndex) {
+    console.log('➕ Agregando mensajes nuevos desde índice:', startIndex);
+    const $messages = $('#chatMessages');
+    
+    // Solo agregar los mensajes nuevos
+    const newMessages = messages.slice(startIndex);
+    
+    newMessages.forEach(message => {
+        const messageHtml = createMessageHtml(message);
+        $messages.append(messageHtml);
+    });
+}
+
+function createMessageHtml(message) {
+    const isOutgoing = message.direccion === 'outgoing';
+    const time = formatMessageTime(message.timestamp_whatsapp || message.created_at);
+    
+    let messageContent = '';
+    
+    // Handle different message types - Priorizar archivo_tipo_mime sobre tipo
+    if ((message.archivo_tipo_mime && message.archivo_tipo_mime.startsWith('image/')) || message.tipo === 'image') {
+        const imageUrl = message.archivo_local || message.media_url;
+        console.log('🖼️ Procesando imagen:', {
+            tipo: message.tipo,
+            mime: message.archivo_tipo_mime,
+            archivo_local: message.archivo_local,
+            media_url: message.media_url,
+            imageUrl: imageUrl
+        });
+        
+        if (imageUrl && imageUrl !== 'null' && imageUrl.trim() !== '') {
+            messageContent += `
+                <div class="media-container">
+                    <img src="${imageUrl}" alt="Imagen" loading="lazy" 
+                         onclick="openImageModal('${imageUrl}', 'Imagen')"
+                         style="cursor: pointer;"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <div style="display: none; padding: 20px; text-align: center; color: #666;">
+                        <i class="fas fa-image" style="font-size: 24px; margin-bottom: 8px;"></i>
+                        <p>Imagen no disponible</p>
+                    </div>
+                </div>
+            `;
+        } else {
+            messageContent += `
+                <div class="media-container" style="padding: 20px; text-align: center; color: #666; border: 2px dashed #ddd; border-radius: 8px;">
+                    <i class="fas fa-image" style="font-size: 24px; margin-bottom: 8px;"></i>
+                    <p>Imagen en proceso...</p>
+                </div>
+            `;
+        }
+    } else if ((message.archivo_tipo_mime && message.archivo_tipo_mime.startsWith('video/')) || message.tipo === 'video') {
+        const videoUrl = message.archivo_local || message.media_url;
+        if (videoUrl && videoUrl !== 'null' && videoUrl.trim() !== '') {
+            messageContent += `
+                <div class="media-container video-preview" onclick="openVideoModal('${videoUrl}', '${message.archivo_tipo_mime || 'video/mp4'}', 'Video')" style="cursor: pointer; position: relative;">
+                    <video preload="metadata" style="pointer-events: none;">
+                        <source src="${videoUrl}" type="${message.archivo_tipo_mime || 'video/mp4'}">
+                    </video>
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.7); border-radius: 50%; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-play" style="color: white; font-size: 24px; margin-left: 4px;"></i>
+                    </div>
+                </div>
+            `;
+        } else {
+            messageContent += `
+                <div class="media-container" style="padding: 20px; text-align: center; color: #666; border: 2px dashed #ddd; border-radius: 8px;">
+                    <i class="fas fa-video" style="font-size: 24px; margin-bottom: 8px;"></i>
+                    <p>Video en proceso...</p>
+                </div>
+            `;
+        }
+    } else if ((message.archivo_tipo_mime && message.archivo_tipo_mime.startsWith('audio/')) || message.tipo === 'audio') {
+        const audioUrl = message.archivo_local || message.media_url;
+        const audioId = `audio_${message.id}`;
+        const iconId = `icon_${audioId}`;
+        
+        messageContent += `
+            <div class="audio-player">
+                <div class="audio-controls">
+                    <button class="play-btn" onclick="toggleAudioPlayback('${audioId}', '${iconId}')">
+                        <i class="fas fa-play" id="${iconId}"></i>
+                    </button>
+                    <span class="audio-duration">0:00</span>
+                </div>
+                <audio id="${audioId}" preload="metadata">
+                    <source src="${audioUrl}" type="${message.archivo_tipo_mime || 'audio/mpeg'}">
+                </audio>
+            </div>
+        `;
+    } else if (message.archivo_local || message.media_url) {
+        // Document or other file
+        const fileUrl = message.archivo_local || message.media_url;
+        const fileName = message.archivo_nombre || 'Documento';
+        
+        // Determinar icono según tipo de archivo
+        let fileIcon = 'fas fa-file';
+        const mimeType = message.archivo_tipo_mime || '';
+        if (mimeType.includes('pdf')) {
+            fileIcon = 'fas fa-file-pdf';
+        } else if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) {
+            fileIcon = 'fas fa-file-excel';
+        } else if (mimeType.includes('word') || mimeType.includes('document')) {
+            fileIcon = 'fas fa-file-word';
+        } else if (mimeType.includes('zip') || mimeType.includes('rar')) {
+            fileIcon = 'fas fa-file-archive';
+        }
+        
+        messageContent += `
+            <div class="document-file">
+                <i class="${fileIcon}"></i>
+                <div class="file-info">
+                    <a href="${fileUrl}" target="_blank" class="file-link">
+                        ${escapeHtml(fileName)}
+                    </a>
+                    <span class="file-size">${formatFileSize(message.archivo_tamaño || 0)}</span>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Add text content if exists (pero no para archivos multimedia que solo dicen "Archivo tipo")
+    const isGenericFileText = message.contenido && message.contenido.match(/^Archivo (image|video|audio|document)$/);
+    
+    if (message.contenido && !isGenericFileText && !message.contenido.match(/^(📸|🎵|🎥|📄)/)) {
+        messageContent += `<div class="text-content">${escapeHtml(message.contenido)}</div>`;
+    } else if (message.contenido && !isGenericFileText && message.contenido.match(/^(📸|🎵|🎥|📄)/)) {
+        messageContent += `<div class="text-content media-description">${escapeHtml(message.contenido)}</div>`;
+    }
+    
+    // USAR TAILWIND CLASSES ESPECÍFICAS
+    if (isOutgoing) {
+        return `
+            <div class="flex justify-end mb-3 w-full">
+                <div class="bg-green-500 text-white px-4 py-3 rounded-2xl rounded-br-sm max-w-xs ml-auto break-words">
+                    ${messageContent}
+                    <div class="text-xs text-green-100 mt-1 text-right">${time}</div>
+                </div>
+            </div>
+        `;
+    } else {
+        return `
+            <div class="flex justify-start mb-3 w-full">
+                <div class="bg-white text-gray-800 border border-gray-300 px-4 py-3 rounded-2xl rounded-bl-sm max-w-xs mr-auto break-words">
+                    ${messageContent}
+                    <div class="text-xs text-gray-500 mt-1 text-left">${time}</div>
+                </div>
+            </div>
+        `;
+    }
+}
+
+function renderMessages(messages) {
+    console.log('🎨 Renderizando mensajes completos:', messages);
+    const $messages = $('#chatMessages');
+    
+    if (!messages || messages.length === 0) {
+        $messages.html(`
+            <div class="empty-chat">
+                <i class="fas fa-comment-dots"></i>
+                <h3>No hay mensajes</h3>
+                <p>Inicia la conversación enviando un mensaje</p>
+            </div>
+        `);
+        return;
+    }
+    
+    let html = '';
+    messages.forEach(message => {
+        html += createMessageHtml(message);
+    });
+    
+    $messages.html(html);
+    
+    // Scroll to bottom
+    $messages.scrollTop($messages[0].scrollHeight);
+}
+
+function addErrorAlert(messageId, errorText) {
+    // Agregar alerta roja encima del mensaje con error
+    const alertId = `alert_${messageId}`;
+    const alertHtml = `
+        <div class="error-alert mb-2" id="${alertId}" style="text-align: right;">
+            <div style="display: inline-block; background: #dc3545; color: white; padding: 6px 10px; border-radius: 6px; font-size: 12px; margin-right: 12px; position: relative; box-shadow: 0 2px 4px rgba(220,53,69,0.3);">
+                <i class="fas fa-exclamation-triangle" style="margin-right: 6px;"></i>
+                ${errorText}
+                <button onclick="$('#${alertId}').fadeOut(300)" style="background: none; border: none; color: white; margin-left: 8px; cursor: pointer; font-size: 14px; opacity: 0.8;">×</button>
+            </div>
+        </div>
+    `;
+    
+    // Insertar la alerta justo antes del mensaje
+    $(`#${messageId}`).before(alertHtml);
+    
+    // Auto-ocultar después de 10 segundos
+    setTimeout(() => {
+        $(`#${alertId}`).fadeOut(300);
+    }, 10000);
+}
+
+function sendMessage() {
+    // Check if there's a file to send
+    if (selectedFile) {
+        const caption = $('#captionInput').val().trim();
+        sendMediaMessage(selectedFile, caption);
+        return;
+    }
+    
+    const message = $('#messageInput').val().trim();
+    if (!message || !currentConversationId) return;
+    
+    // Prevenir doble envío si el botón está deshabilitado
+    if ($('#sendBtn').prop('disabled')) {
+        console.log('⚠️ Envío en progreso, ignorando...');
+        return;
+    }
+    
+    console.log('📤 Enviando mensaje:', message);
+    
+    // Disable solo el botón para evitar doble envío, MANTENER input habilitado
+    $('#sendBtn').prop('disabled', true);
+    
+    // Add message to UI immediately como confirmado (optimistic update)
+    const tempMessageId = 'temp_' + Date.now();
+    const time = formatMessageTime(new Date().toISOString());
+    const tempMessageHtml = `
+        <div class="flex justify-end mb-3 w-full" id="${tempMessageId}">
+            <div class="bg-green-500 text-white px-4 py-3 rounded-2xl rounded-br-sm max-w-xs ml-auto break-words">
+                <div class="text-content">${escapeHtml(message)}</div>
+                <div class="text-xs text-green-100 mt-1 text-right">${time}</div>
+            </div>
+        </div>
+    `;
+    $('#chatMessages').append(tempMessageHtml);
+    
+    // Clear input y scroll AL FINAL (mensaje propio) - MANTENER foco para seguir escribiendo
+    $('#messageInput').val('').trigger('input'); // NO blur() para mantener teclado abierto
+    $('#chatMessages').scrollTop($('#chatMessages')[0].scrollHeight);
+    
+    // Resetear estado de lectura ya que el usuario acaba de enviar
+    userIsReading = false;
+    
+    // Send to server (vendedor endpoint)
+    $.ajax({
+        url: '/marketing/api/chat/send-message/',
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+        },
+        data: JSON.stringify({
+            conversation_id: currentConversationId,
+            contenido: message
+        }),
+        contentType: 'application/json',
+        success: function(response) {
+            console.log('✅ Mensaje enviado:', response);
+            if (response.success) {
+                // ✅ MENSAJE EXITOSO - NO hacer nada, el mensaje ya se ve confirmado
+                console.log('✅ Mensaje enviado exitosamente');
+                
+                // El mensaje real llegará por polling y reemplazará automáticamente
+                // Forzar scroll al final porque es nuestro mensaje
+                setTimeout(() => {
+                    silentLoadMessages(currentConversationId, true); // true = forceScrollToBottom
+                }, 500);
+            } else {
+                // ❌ ERROR - Agregar alerta roja encima del mensaje
+                addErrorAlert(tempMessageId, response.error || 'Error al enviar mensaje');
+                showError('Error al enviar mensaje: ' + response.error);
+            }
+        },
+        error: function(xhr) {
+            console.error('❌ Error enviando mensaje:', xhr);
+            // ❌ ERROR DE RED - Agregar alerta roja encima del mensaje
+            addErrorAlert(tempMessageId, 'Error de conexión');
+            showError('Error al enviar mensaje');
+        },
+        complete: function() {
+            // Re-enable solo el botón, input nunca se deshabilitó
+            $('#sendBtn').prop('disabled', false);
+            // Input mantiene foco automáticamente al no haberse deshabilitado
+        }
+    });
+}
+
+function sendMediaMessage(file, caption) {
+    if (!currentConversationId) {
+        console.error('❌ No hay conversación seleccionada');
+        return;
+    }
+    
+    console.log('📎 Enviando archivo:', file.name, 'Tamaño:', file.size, 'Tipo:', file.type);
+    console.log('📎 Conversación ID:', currentConversationId);
+    console.log('📎 Caption:', caption);
+    
+    const formData = new FormData();
+    formData.append('conversation_id', currentConversationId);
+    formData.append('media_file', file);
+    if (caption) {
+        formData.append('caption', caption);
+    }
+    
+    // Log del FormData
+    console.log('📎 FormData preparado:');
+    for (let [key, value] of formData.entries()) {
+        console.log(`  ${key}:`, value instanceof File ? `File(${value.name})` : value);
+    }
+    
+    // Disable interface
+    $('#sendBtn').prop('disabled', true);
+    $('.send-file-btn').prop('disabled', true);
+    
+    // Obtener token CSRF de manera más robusta
+    const csrfToken = $('[name=csrfmiddlewaretoken]').val() || 
+                     $('meta[name=csrf-token]').attr('content') || 
+                     document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+    
+    console.log('🔐 CSRF Token:', csrfToken ? 'Encontrado' : 'NO ENCONTRADO');
+    
+    $.ajax({
+        url: '/marketing/api/chat/send-media/',
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken
+        },
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(response) {
+            console.log('✅ Archivo enviado:', response);
+            if (response.success) {
+                removeFilePreview();
+                loadMessages(currentConversationId);
+                loadConversations();
+            } else {
+                showError('Error al enviar archivo: ' + response.error);
+            }
+        },
+        error: function(xhr) {
+            console.error('❌ Error enviando archivo:', xhr);
+            console.error('❌ Status:', xhr.status);
+            console.error('❌ Response Text:', xhr.responseText);
+            
+            let errorMsg = 'Error al enviar archivo';
+            try {
+                const errorResponse = JSON.parse(xhr.responseText);
+                errorMsg = errorResponse.error || errorResponse.message || errorMsg;
+                console.error('❌ Error parseado:', errorResponse);
+            } catch (e) {
+                console.error('❌ No se pudo parsear error response');
+            }
+            
+            showError(errorMsg);
+        },
+        complete: function() {
+            $('#sendBtn').prop('disabled', false);
+            $('.send-file-btn').prop('disabled', false);
+        }
+    });
+}
+
+function showFilePreview(file) {
+    console.log('👀 Mostrando preview de archivo:', file);
+    
+    selectedFile = file;
+    
+    // Update preview info
+    $('.file-name').text(file.name);
+    $('.file-size').text(formatFileSize(file.size));
+    
+    // Show preview container
+    $('#filePreview').show();
+    
+    // Clear file input
+    $('#fileInput').val('');
+    
+    console.log('✅ Preview mostrado para:', file.name);
+}
+
+function removeFilePreview() {
+    selectedFile = null;
+    $('#filePreview').hide();
+    $('#captionInput').val('');
+}
+
+function sendSelectedFile() {
+    if (selectedFile) {
+        const caption = $('#captionInput').val().trim();
+        sendMediaMessage(selectedFile, caption);
+    }
+}
+
+function markConversationAsRead(conversationId) {
+    $.post('/marketing/api/chat/mark-read/', {
+        conversation_id: conversationId,
+        csrfmiddlewaretoken: $('[name=csrfmiddlewaretoken]').val()
+    });
+}
+
+function initializeWebSocket() {
+    console.log('🔌 Iniciando WebSocket para experiencia tipo WhatsApp...');
+    
+    try {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws/chat-vendedor/`;
+        
+        socket = new WebSocket(wsUrl);
+        
+        socket.onopen = function() {
+            console.log('✅ WebSocket conectado');
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+        };
+        
+        socket.onmessage = function(event) {
+            console.log('📨 Mensaje WebSocket recibido:', event.data);
+            const data = JSON.parse(event.data);
+            
+            if (data.type === 'new_message') {
+                handleNewMessage(data.message);
+            } else if (data.type === 'conversation_update') {
+                loadConversations();
+            }
+        };
+        
+        socket.onclose = function() {
+            console.log('🔌 WebSocket desconectado, iniciando polling...');
+            startPolling();
+        };
+        
+        socket.onerror = function(error) {
+            console.error('❌ Error WebSocket:', error);
+            startPolling();
+        };
+        
+    } catch (error) {
+        console.error('❌ Error creando WebSocket, usando polling:', error);
+        startPolling();
+    }
+}
+
+function startPolling() {
+    if (pollingInterval) return;
+    
+    console.log('🔄 Iniciando polling inteligente cada 3 segundos...');
+    pollingInterval = setInterval(() => {
+        // Solo polling si la página está visible Y no hay modales abiertos
+        if (document.visibilityState === 'visible' && 
+            !document.getElementById('imageModal')?.style.display?.includes('flex') &&
+            !document.getElementById('videoModal')?.style.display?.includes('flex')) {
+            
+            if (currentConversationId) {
+                // Actualizar mensajes SIN parpadeo
+                silentLoadMessages(currentConversationId);
+            }
+            
+            // Actualizar conversaciones menos frecuentemente
+            if (Math.random() < 0.3) { // Solo 30% de las veces
+                loadConversations();
+            }
+        }
+    }, 3000); // 3 segundos para menos agresividad
+}
+
+function handleNewMessage(message) {
+    console.log('📨 Nuevo mensaje recibido:', message);
+    
+    // Update conversation list
+    loadConversations();
+    
+    // If message is for current conversation, reload messages
+    if (currentConversationId && message.conversation_id === currentConversationId) {
+        loadMessages(currentConversationId);
+        
+        // Si es un mensaje entrante, desbloquear el chat (reinicia el contador de 24h)
+        if (message.direccion === 'incoming') {
+            unblockChatInput();
+            console.log('📥 Mensaje entrante recibido - contador de 24h reiniciado');
+        }
+    }
+}
+
+// Audio playback functions
+function toggleAudioPlayback(audioId, iconId) {
+    const audio = document.getElementById(audioId);
+    const icon = document.getElementById(iconId);
+    
+    if (!audio || !icon) {
+        console.error('❌ Elementos de audio no encontrados:', audioId, iconId);
+        return;
+    }
+    
+    if (audio.paused) {
+        // Stop all other audio elements
+        document.querySelectorAll('audio').forEach(a => {
+            if (a !== audio && !a.paused) {
+                a.pause();
+                a.currentTime = 0;
+            }
+        });
+        
+        // Reset all play icons
+        document.querySelectorAll('i[id^="icon_audio_"]').forEach(i => {
+            i.className = 'fas fa-play';
+        });
+        
+        // Play this audio
+        audio.play();
+        icon.className = 'fas fa-pause';
+    } else {
+        audio.pause();
+        icon.className = 'fas fa-play';
+    }
+}
+
+// Utility functions
+function getInitials(name) {
+    if (!name) return '?';
+    return name.split(' ')
+        .map(word => word.charAt(0).toUpperCase())
+        .slice(0, 2)
+        .join('');
+}
+
+function formatTimeAgo(timestamp) {
+    if (!timestamp) return '';
+    
+    const now = new Date();
+    const time = new Date(timestamp);
+    const diffInMinutes = Math.floor((now - time) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return 'Ahora';
+    if (diffInMinutes < 60) return `${diffInMinutes}m`;
+    
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours}h`;
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 7) return `${diffInDays}d`;
+    
+    return time.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
+}
+
+function formatMessageTime(timestamp) {
+    if (!timestamp) return '';
+    
+    const time = new Date(timestamp);
+    return time.toLocaleTimeString('es-ES', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+    });
+}
+
+function formatFileSize(bytes) {
+    if (!bytes) return '0 B';
+    
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    
+    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function showError(message) {
+    console.error('🚨 Error:', message);
+    
+    // Create error toast
+    const toast = $(`
+        <div class="error-toast" style="
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #f44336;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 10000;
+            max-width: 400px;
+        ">
+            <i class="fas fa-exclamation-triangle"></i> ${message}
+        </div>
+    `);
+    
+    $('body').append(toast);
+    
+    setTimeout(() => {
+        toast.fadeOut(() => toast.remove());
+    }, 5000);
+}
+
+// Audio context fix
+function fixAudioPlayback() {
+    console.log('🔧 Iniciando fix de reproducción de audio...');
+    
+    document.addEventListener('click', enableAudioContext, { once: true });
+    document.addEventListener('touchstart', enableAudioContext, { once: true });
+    
+    function enableAudioContext() {
+        console.log('👆 Usuario interactuó - habilitando contexto de audio');
+        
+        const audio = document.createElement('audio');
+        audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwgBDN+zPLNeSsFJIDL8dtePAkXarpxMRuODQ=';
+        audio.volume = 0;
+        audio.play().then(() => {
+            console.log('✅ Contexto de audio desbloqueado');
+            audio.remove();
+        }).catch(error => {
+            console.log('⚠️ No se pudo desbloquear audio:', error);
+            audio.remove();
+        });
+    }
+}
+
+// Page visibility and cleanup
+$(window).on('beforeunload', function() {
+    if (socket) {
+        socket.close();
+    }
+    if (pollingInterval) {
+        clearInterval(pollingInterval);
+    }
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+    }
+    if (conversationListUpdateInterval) {
+        clearInterval(conversationListUpdateInterval);
+    }
+});
+
+// Fallback reconnection
+setInterval(function() {
+    if (document.visibilityState === 'visible' && 
+        (!socket || socket.readyState !== WebSocket.OPEN) && 
+        !pollingInterval) {
+        console.log('🔄 Fallback: recargando conversaciones');
+        loadConversations();
+    }
+}, 60000);
+
+// Reset notifications
+if (typeof window.resetNotificationCount === 'function') {
+    window.resetNotificationCount();
+    console.log('🔔 Notificaciones reseteadas al entrar al chat');
+}
+
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden && typeof window.resetNotificationCount === 'function') {
+        window.resetNotificationCount();
+        console.log('🔔 Notificaciones reseteadas - página visible');
+    }
+});
+
+// Initialize audio fix
+document.addEventListener('DOMContentLoaded', fixAudioPlayback);
+
+// ========== MOBILE RESPONSIVE CHAT BEHAVIOR ==========
+
+function startCountdownTimer() {
+    // Actualizar contadores cada minuto
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+    }
+    
+    countdownInterval = setInterval(() => {
+        updateConversationCountdowns();
+    }, 60000); // Cada minuto
+}
+
+function startConversationListUpdate() {
+    // Actualizar lista de conversaciones cada 5 minutos
+    if (conversationListUpdateInterval) {
+        clearInterval(conversationListUpdateInterval);
+    }
+    
+    conversationListUpdateInterval = setInterval(() => {
+        console.log('🔄 Actualizando lista de conversaciones automáticamente...');
+        loadConversations();
+    }, 300000); // Cada 5 minutos (300,000 ms)
+}
+
+function updateConversationCountdowns() {
+    console.log('⏰ Actualizando contadores de vencimiento...');
+    
+    // Actualizar cada conversación en la lista
+    conversations.forEach(conv => {
+        const conversationElement = $(`.conversation-item[data-conversation-id="${conv.id}"]`);
+        if (conversationElement.length === 0) return;
+        
+        if (conv.last_incoming_at) {
+            const lastIncoming = new Date(conv.last_incoming_at);
+            const expiration = new Date(lastIncoming.getTime() + (24 * 60 * 60 * 1000));
+            const now = new Date();
+            const timeLeft = expiration - now;
+            
+            let expirationCountdown = '';
+            let expirationStyle = '';
+            
+            if (timeLeft > 0) {
+                const hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60));
+                const minutesLeft = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                
+                expirationCountdown = `V ${hoursLeft}h ${minutesLeft}m`;
+                
+                if (conv.has_ever_responded) {
+                    expirationStyle = 'background: #FFE0B2; color: #E65100; border-radius: 4px; padding: 2px 4px;';
+                } else {
+                    expirationStyle = 'background: #FFCDD2; color: #C62828; border-radius: 4px; padding: 2px 4px;';
+                }
+            } else {
+                // Expirado
+                expirationCountdown = `V EXPIRADO`;
+                expirationStyle = 'background: #F44336; color: white; border-radius: 4px; padding: 2px 4px;';
+                
+                // Marcar conversación como expirada
+                conv.is_expired = true;
+                
+                // Si es la conversación actual, bloquear input
+                if (conv.id === currentConversationId) {
+                    blockChatInput('Esta conversación ha expirado (24h sin respuesta)');
+                }
+            }
+            
+            // Actualizar el elemento en el DOM
+            const countdownElement = conversationElement.find('.expiration-countdown');
+            if (countdownElement.length > 0) {
+                countdownElement.text(expirationCountdown).attr('style', `font-size: 9px; font-weight: bold; ${expirationStyle}`);
+            }
+        }
+    });
+}
+
+function blockChatInput(reason) {
+    console.log('🚫 Bloqueando input del chat:', reason);
+    
+    $('#messageInput').prop('disabled', true).attr('placeholder', reason);
+    $('#sendBtn').prop('disabled', true);
+    $('#attachBtn').prop('disabled', true);
+    $('#fileInput').prop('disabled', true);
+    $('.send-file-btn').prop('disabled', true);
+    
+    // Agregar estilo visual de bloqueo
+    $('#chatInputContainer').addClass('input-blocked').css({
+        'opacity': '0.6',
+        'pointer-events': 'none'
+    });
+}
+
+function unblockChatInput() {
+    console.log('✅ Desbloqueando input del chat');
+    
+    $('#messageInput').prop('disabled', false).attr('placeholder', 'Escribe un mensaje...');
+    $('#sendBtn').prop('disabled', false);
+    $('#attachBtn').prop('disabled', false);
+    $('#fileInput').prop('disabled', false);
+    $('.send-file-btn').prop('disabled', false);
+    
+    // Remover estilo visual de bloqueo
+    $('#chatInputContainer').removeClass('input-blocked').css({
+        'opacity': '1',
+        'pointer-events': 'auto'
+    });
+}
+
+function setupMobileResponsive() {
+    // En mobile, manejar la navegación entre sidebar y chat
+    if (window.innerWidth <= 768) {
+        console.log('📱 Mobile detected - setting up chat responsive behavior');
+        
+        const chatSidebar = $('#chatSidebar');
+        const chatMain = $('#chatMain');
+        
+        // Estado inicial: sidebar visible, chat oculto
+        chatSidebar.removeClass('hidden');
+        chatMain.removeClass('visible');
+        
+        // NO interferir con el botón hamburguesa principal - ese controla el sidebar general
+        // El botón mobileBackBtn ya maneja el regreso del chat al sidebar
+    }
+}
+
+// ========== IMAGE MODAL FUNCTIONS ==========
+let currentImageUrl = '';
+
+function openImageModal(imageUrl, imageName = 'Imagen') {
+    console.log('🖼️ Abriendo modal de imagen:', imageUrl);
+    
+    currentImageUrl = imageUrl;
+    const modal = document.getElementById('imageModal');
+    const modalImage = document.getElementById('modalImage');
+    const loading = modal.querySelector('.image-modal-loading');
+    
+    // Mostrar modal y loading
+    modal.style.display = 'flex';
+    loading.style.display = 'flex';
+    modalImage.style.display = 'none';
+    
+    // Precargar imagen
+    const img = new Image();
+    img.onload = function() {
+        modalImage.src = imageUrl;
+        modalImage.alt = imageName;
+        modalImage.style.display = 'block';
+        loading.style.display = 'none';
+        console.log('✅ Imagen cargada exitosamente');
+    };
+    
+    img.onerror = function() {
+        loading.innerHTML = `
+            <i class="fas fa-exclamation-triangle" style="font-size: 32px; color: #dc3545; margin-bottom: 16px;"></i>
+            <p>Error al cargar la imagen</p>
+        `;
+        console.error('❌ Error cargando imagen');
+    };
+    
+    img.src = imageUrl;
+    
+    // Prevenir scroll del body
+    document.body.style.overflow = 'hidden';
+}
+
+// ========== VIDEO MODAL FUNCTIONS ==========
+let currentVideoUrl = '';
+let currentVideoType = '';
+
+function openVideoModal(videoUrl, videoType = 'video/mp4', videoName = 'Video') {
+    console.log('🎥 Abriendo modal de video:', videoUrl);
+    
+    currentVideoUrl = videoUrl;
+    currentVideoType = videoType;
+    const modal = document.getElementById('videoModal');
+    const modalVideo = document.getElementById('modalVideo');
+    const loading = modal.querySelector('.video-modal-loading');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const playPauseIcon = document.getElementById('playPauseIcon');
+    const playPauseText = document.getElementById('playPauseText');
+    
+    // Mostrar modal y loading
+    modal.style.display = 'flex';
+    loading.style.display = 'flex';
+    modalVideo.style.display = 'none';
+    
+    // Configurar video
+    modalVideo.src = videoUrl;
+    const source = modalVideo.querySelector('source');
+    source.src = videoUrl;
+    source.type = videoType;
+    
+    // Eventos del video
+    modalVideo.onloadeddata = function() {
+        modalVideo.style.display = 'block';
+        loading.style.display = 'none';
+        
+        // Autoplay
+        modalVideo.play().then(() => {
+            playPauseIcon.className = 'fas fa-pause';
+            playPauseText.textContent = 'Pausar';
+            console.log('✅ Video cargado y reproduciendo automáticamente');
+        }).catch(error => {
+            console.log('⚠️ Autoplay bloqueado, usuario debe iniciar manualmente:', error);
+            playPauseIcon.className = 'fas fa-play';
+            playPauseText.textContent = 'Reproducir';
+        });
+    };
+    
+    modalVideo.onerror = function() {
+        loading.innerHTML = `
+            <i class="fas fa-exclamation-triangle" style="font-size: 32px; color: #dc3545; margin-bottom: 16px;"></i>
+            <p>Error al cargar el video</p>
+        `;
+        console.error('❌ Error cargando video');
+    };
+    
+    // Eventos de reproducción
+    modalVideo.onplay = function() {
+        playPauseIcon.className = 'fas fa-pause';
+        playPauseText.textContent = 'Pausar';
+    };
+    
+    modalVideo.onpause = function() {
+        playPauseIcon.className = 'fas fa-play';
+        playPauseText.textContent = 'Reproducir';
+    };
+    
+    // Prevenir scroll del body
+    document.body.style.overflow = 'hidden';
+}
+
+function closeVideoModal() {
+    console.log('❌ Cerrando modal de video');
+    
+    const modal = document.getElementById('videoModal');
+    const modalVideo = document.getElementById('modalVideo');
+    
+    // Pausar y limpiar video
+    modalVideo.pause();
+    modalVideo.src = '';
+    modalVideo.load(); // Reset video element
+    
+    modal.style.display = 'none';
+    
+    // Restaurar scroll del body
+    document.body.style.overflow = 'auto';
+    
+    // Limpiar variables
+    currentVideoUrl = '';
+    currentVideoType = '';
+}
+
+function toggleVideoPlayback() {
+    const modalVideo = document.getElementById('modalVideo');
+    const playPauseIcon = document.getElementById('playPauseIcon');
+    const playPauseText = document.getElementById('playPauseText');
+    
+    if (modalVideo.paused) {
+        modalVideo.play().then(() => {
+            playPauseIcon.className = 'fas fa-pause';
+            playPauseText.textContent = 'Pausar';
+        }).catch(error => {
+            console.error('❌ Error al reproducir video:', error);
+        });
+    } else {
+        modalVideo.pause();
+        playPauseIcon.className = 'fas fa-play';
+        playPauseText.textContent = 'Reproducir';
+    }
+}
+
+function downloadCurrentVideo() {
+    if (!currentVideoUrl) {
+        console.error('❌ No hay video para descargar');
+        return;
+    }
+    
+    console.log('💾 Descargando video:', currentVideoUrl);
+    
+    // Crear enlace temporal para descarga
+    const link = document.createElement('a');
+    link.href = currentVideoUrl;
+    link.download = `video_${new Date().getTime()}.mp4`;
+    link.target = '_blank';
+    
+    // Agregar al DOM temporalmente y hacer click
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    console.log('✅ Descarga de video iniciada');
+}
+
+function closeImageModal() {
+    console.log('❌ Cerrando modal de imagen');
+    
+    const modal = document.getElementById('imageModal');
+    modal.style.display = 'none';
+    
+    // Restaurar scroll del body
+    document.body.style.overflow = 'auto';
+    
+    // Limpiar imagen
+    const modalImage = document.getElementById('modalImage');
+    modalImage.src = '';
+    currentImageUrl = '';
+}
+
+function downloadCurrentImage() {
+    if (!currentImageUrl) {
+        console.error('❌ No hay imagen para descargar');
+        return;
+    }
+    
+    console.log('💾 Descargando imagen:', currentImageUrl);
+    
+    // Crear enlace temporal para descarga
+    const link = document.createElement('a');
+    link.href = currentImageUrl;
+    link.download = `imagen_${new Date().getTime()}.jpg`;
+    link.target = '_blank';
+    
+    // Agregar al DOM temporalmente y hacer click
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    console.log('✅ Descarga iniciada');
+}
+
+// ============ FILE SEND MODAL FUNCTIONS ============
+
+function showFileSendModal(file) {
+    console.log('📎 Mostrando modal de confirmación para archivo:', file.name);
+    
+    modalSelectedFile = file; // Guardar archivo globalmente
+    
+    // Actualizar el preview del archivo
+    updateFilePreview(file);
+    
+    // Limpiar caption
+    $('#fileCaption').val('');
+    $('#captionCounter').text('0');
+    
+    // Mostrar modal
+    $('#fileSendModal').show();
+    $('#fileSendModal').css('display', 'flex');
+    
+    // Enfocar el campo de caption
+    setTimeout(() => {
+        $('#fileCaption').focus();
+    }, 100);
+    
+    // Prevenir scroll del body
+    document.body.style.overflow = 'hidden';
+}
+
+function updateFilePreview(file) {
+    const preview = $('#filePreview');
+    const fileType = file.type;
+    
+    preview.empty(); // Limpiar preview anterior
+    
+    if (fileType.startsWith('image/')) {
+        // Preview de imagen
+        const img = $('<img>');
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            img.attr('src', e.target.result);
+        };
+        reader.readAsDataURL(file);
+        preview.append(img);
+        
+    } else if (fileType.startsWith('video/')) {
+        // Preview de video
+        const video = $('<video controls>');
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            video.attr('src', e.target.result);
+        };
+        reader.readAsDataURL(file);
+        preview.append(video);
+        
+    } else {
+        // Preview genérico para documentos/audio
+        let icon = 'fa-file';
+        if (fileType.startsWith('audio/')) {
+            icon = 'fa-music';
+        } else if (fileType === 'application/pdf') {
+            icon = 'fa-file-pdf';
+        } else if (fileType.includes('word')) {
+            icon = 'fa-file-word';
+        }
+        
+        const fileInfo = $(`
+            <div class="file-info">
+                <i class="fas ${icon}"></i>
+                <div class="file-details">
+                    <h4>${file.name}</h4>
+                    <p>${formatFileSize(file.size)} • ${getFileTypeLabel(file.type)}</p>
+                </div>
+            </div>
+        `);
+        preview.append(fileInfo);
+    }
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function getFileTypeLabel(mimeType) {
+    const typeMap = {
+        'image/jpeg': 'Imagen JPEG',
+        'image/png': 'Imagen PNG', 
+        'image/gif': 'Imagen GIF',
+        'video/mp4': 'Video MP4',
+        'audio/mpeg': 'Audio MP3',
+        'audio/mp4': 'Audio M4A',
+        'audio/x-m4a': 'Audio M4A',
+        'application/pdf': 'Documento PDF',
+        'application/msword': 'Documento Word',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'Documento Word'
+    };
+    
+    return typeMap[mimeType] || 'Archivo';
+}
+
+function cancelFileSend() {
+    console.log('❌ Cancelando envío de archivo');
+    
+    // Ocultar modal
+    $('#fileSendModal').hide();
+    
+    // Limpiar archivo seleccionado
+    modalSelectedFile = null;
+    
+    // Limpiar inputs de archivo
+    $('#fileInputImage, #fileInputVideo, #fileInputAudio, #fileInputDocument, #fileInputAll').val('');
+    
+    // Restaurar scroll del body
+    document.body.style.overflow = 'auto';
+}
+
+function confirmFileSend() {
+    if (!modalSelectedFile) {
+        console.error('❌ No hay archivo seleccionado');
+        return;
+    }
+    
+    console.log('✅ Confirmando envío de archivo');
+    
+    // Obtener caption
+    const caption = $('#fileCaption').val().trim();
+    
+    // Ocultar modal
+    $('#fileSendModal').hide();
+    document.body.style.overflow = 'auto';
+    
+    // Enviar archivo usando la función existente
+    sendMediaMessage(modalSelectedFile, caption);
+    
+    // Limpiar estado
+    modalSelectedFile = null;
+    $('#fileInputImage, #fileInputVideo, #fileInputAudio, #fileInputDocument, #fileInputAll').val('');
+}
+
+
+// Contador de caracteres para caption
+$(document).on('input', '#fileCaption', function() {
+    const length = $(this).val().length;
+    $('#captionCounter').text(length);
+    
+    if (length > 200) {
+        $(this).val($(this).val().substring(0, 200));
+        $('#captionCounter').text(200);
+    }
+});
+
+// Cerrar modales con ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const imageModal = document.getElementById('imageModal');
+        const videoModal = document.getElementById('videoModal');
+        const fileSendModal = document.getElementById('fileSendModal');
+        
+        if (imageModal && imageModal.style.display === 'flex') {
+            closeImageModal();
+        } else if (videoModal && videoModal.style.display === 'flex') {
+            closeVideoModal();
+        } else if (fileSendModal && fileSendModal.style.display === 'flex') {
+            cancelFileSend();
+        }
+    }
+});
+</script>

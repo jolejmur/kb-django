@@ -47,7 +47,7 @@
 
     <!-- Estadísticas principales -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <!-- Total Equipos Activos -->
+        <!-- Total Unidades Activas -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
             <div class="flex items-center">
                 <div class="flex-shrink-0">
@@ -56,10 +56,10 @@
                     </div>
                 </div>
                 <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-500">Equipos Activos</p>
+                    <p class="text-sm font-medium text-gray-500">Unidades Activas</p>
                     <p class="text-3xl font-bold text-gray-900">{{ stats.total_equipos_activos }}</p>
                     {% if stats.total_equipos_inactivos > 0 %}
-                        <p class="text-xs text-gray-400">{{ stats.total_equipos_inactivos }} inactivos</p>
+                        <p class="text-xs text-gray-400">{{ stats.total_equipos_inactivos }} inactivas</p>
                     {% endif %}
                 </div>
             </div>
@@ -83,12 +83,28 @@
             </div>
         </div>
 
-        <!-- Proyectos -->
+        <!-- Relaciones Jerárquicas -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
             <div class="flex items-center">
                 <div class="flex-shrink-0">
                     <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-building text-purple-600 text-xl"></i>
+                        <i class="fas fa-sitemap text-purple-600 text-xl"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Relaciones Jerárquicas</p>
+                    <p class="text-3xl font-bold text-gray-900">{{ stats.total_relaciones_jerarquicas }}</p>
+                    <p class="text-xs text-gray-400">{{ stats.total_estructuras_comision }} comisiones</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Proyectos -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-building text-orange-600 text-xl"></i>
                     </div>
                 </div>
                 <div class="ml-4">
@@ -98,107 +114,96 @@
                 </div>
             </div>
         </div>
-
-        <!-- Ratio Eficiencia -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div class="flex items-center">
-                <div class="flex-shrink-0">
-                    <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-chart-line text-orange-600 text-xl"></i>
-                    </div>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-500">Promedio Miembros/Equipo</p>
-                    {% if stats.total_equipos_activos > 0 %}
-                        {% widthratio stats.total_miembros_activos stats.total_equipos_activos 1 as promedio %}
-                        <p class="text-3xl font-bold text-gray-900">{{ promedio|floatformat:1 }}</p>
-                    {% else %}
-                        <p class="text-3xl font-bold text-gray-900">0</p>
-                    {% endif %}
-                    <p class="text-xs text-gray-400">miembros por equipo</p>
-                </div>
-            </div>
-        </div>
     </div>
 
-    <!-- Distribución por Roles -->
+    <!-- Distribución por Posiciones -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
         <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center">
             <i class="fas fa-sitemap mr-3 text-blue-600"></i>
-            Distribución por Roles en la Organización
+            Distribución por Posiciones en la Organización
         </h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <!-- Gerentes -->
-            <div class="text-center p-4 bg-blue-50 rounded-lg">
-                <div class="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <i class="fas fa-user-tie text-white text-xl"></i>
-                </div>
-                <h4 class="font-semibold text-blue-900">Gerentes</h4>
-                <p class="text-2xl font-bold text-blue-700">{{ roles_distribution.gerentes.activos }}</p>
-                <p class="text-sm text-blue-600">activos</p>
-                {% if roles_distribution.gerentes.inactivos > 0 %}
-                    <p class="text-xs text-gray-500">{{ roles_distribution.gerentes.inactivos }} inactivos</p>
-                {% endif %}
+        {% if position_stats %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {% for position_code, stats in position_stats.items %}
+                    <div class="text-center p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
+                        <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                            {% if position_code == 'MANAGER' %}
+                                <i class="fas fa-user-tie text-white text-xl"></i>
+                            {% elif position_code == 'SUPERVISOR' %}
+                                <i class="fas fa-user-cog text-white text-xl"></i>
+                            {% elif position_code == 'TEAM_LEAD' %}
+                                <i class="fas fa-users-cog text-white text-xl"></i>
+                            {% elif position_code == 'AGENT' %}
+                                <i class="fas fa-handshake text-white text-xl"></i>
+                            {% else %}
+                                <i class="fas fa-user text-white text-xl"></i>
+                            {% endif %}
+                        </div>
+                        <h4 class="font-semibold text-gray-900">{{ stats.name }}</h4>
+                        <p class="text-2xl font-bold text-blue-700">{{ stats.activos }}</p>
+                        <p class="text-sm text-blue-600">activos</p>
+                        {% if stats.inactivos > 0 %}
+                            <p class="text-xs text-gray-500">{{ stats.inactivos }} inactivos</p>
+                        {% endif %}
+                    </div>
+                {% endfor %}
             </div>
-
-            <!-- Jefes de Venta -->
-            <div class="text-center p-4 bg-green-50 rounded-lg">
-                <div class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <i class="fas fa-user-cog text-white text-xl"></i>
-                </div>
-                <h4 class="font-semibold text-green-900">Jefes de Venta</h4>
-                <p class="text-2xl font-bold text-green-700">{{ roles_distribution.jefes.activos }}</p>
-                <p class="text-sm text-green-600">activos</p>
-                {% if roles_distribution.jefes.inactivos > 0 %}
-                    <p class="text-xs text-gray-500">{{ roles_distribution.jefes.inactivos }} inactivos</p>
-                {% endif %}
+        {% else %}
+            <div class="text-center py-8">
+                <i class="fas fa-users-slash text-gray-300 text-4xl mb-4"></i>
+                <h4 class="text-lg font-medium text-gray-900 mb-2">No hay posiciones configuradas</h4>
+                <p class="text-gray-500">Configure tipos de posición para ver la distribución</p>
             </div>
-
-            <!-- Team Leaders -->
-            <div class="text-center p-4 bg-purple-50 rounded-lg">
-                <div class="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <i class="fas fa-users-cog text-white text-xl"></i>
-                </div>
-                <h4 class="font-semibold text-purple-900">Team Leaders</h4>
-                <p class="text-2xl font-bold text-purple-700">{{ roles_distribution.leaders.activos }}</p>
-                <p class="text-sm text-purple-600">activos</p>
-                {% if roles_distribution.leaders.inactivos > 0 %}
-                    <p class="text-xs text-gray-500">{{ roles_distribution.leaders.inactivos }} inactivos</p>
-                {% endif %}
-            </div>
-
-            <!-- Vendedores -->
-            <div class="text-center p-4 bg-orange-50 rounded-lg">
-                <div class="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <i class="fas fa-handshake text-white text-xl"></i>
-                </div>
-                <h4 class="font-semibold text-orange-900">Vendedores</h4>
-                <p class="text-2xl font-bold text-orange-700">{{ roles_distribution.vendedores.activos }}</p>
-                <p class="text-sm text-orange-600">activos</p>
-                {% if roles_distribution.vendedores.inactivos > 0 %}
-                    <p class="text-xs text-gray-500">{{ roles_distribution.vendedores.inactivos }} inactivos</p>
-                {% endif %}
-            </div>
-        </div>
+        {% endif %}
     </div>
 
+    <!-- Distribución por Tipos de Unidad -->
+    {% if unit_type_distribution %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+        <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+            <i class="fas fa-chart-pie mr-3 text-green-600"></i>
+            Distribución por Tipos de Unidad
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {% for unit_type in unit_type_distribution %}
+                <div class="text-center p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-100">
+                    <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                        {% if unit_type.unit_type == 'SALES' %}
+                            <i class="fas fa-chart-line text-white text-xl"></i>
+                        {% elif unit_type.unit_type == 'PORTFOLIO' %}
+                            <i class="fas fa-briefcase text-white text-xl"></i>
+                        {% elif unit_type.unit_type == 'MARKETING' %}
+                            <i class="fas fa-bullhorn text-white text-xl"></i>
+                        {% else %}
+                            <i class="fas fa-building text-white text-xl"></i>
+                        {% endif %}
+                    </div>
+                    <h4 class="font-semibold text-gray-900">{{ unit_type.unit_type|title }}</h4>
+                    <p class="text-2xl font-bold text-green-700">{{ unit_type.count }}</p>
+                    <p class="text-sm text-green-600">unidades</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Accesos rápidos -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        <!-- Gestión de Equipos -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Gestión de Unidades -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
             <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 <i class="fas fa-users mr-3 text-blue-600"></i>
-                Gestión de Equipos
+                Unidades Organizacionales
             </h3>
-            <p class="text-gray-600 mb-4">Administra equipos de venta y su estructura organizacional</p>
+            <p class="text-gray-600 mb-4">Administra unidades y su estructura organizacional</p>
             <div class="space-y-2">
-                <a href="{% url 'sales:equipos_list' %}"
+                <a href="{% url 'sales_team_management:equipos_list' %}"
                    class="block w-full bg-blue-50 hover:bg-blue-100 text-blue-700 text-center py-2 px-4 rounded-lg font-medium transition-colors">
-                    📋 Ver Todos los Equipos
+                    📋 Ver Unidades
                 </a>
-                <a href="{% url 'sales:equipos_create' %}"
+                <a href="{% url 'sales_team_management:crear_equipo' %}"
                    class="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center py-2 px-4 rounded-lg font-medium transition-colors">
-                    ➕ Crear Nuevo Equipo
+                    ➕ Crear Unidad
                 </a>
             </div>
         </div>
@@ -207,36 +212,55 @@
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
             <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 <i class="fas fa-sitemap mr-3 text-green-600"></i>
-                Gestión de Jerarquía
+                Jerarquía y Relaciones
             </h3>
-            <p class="text-gray-600 mb-4">Administra la estructura jerárquica y miembros de equipos</p>
+            <p class="text-gray-600 mb-4">Administra relaciones jerárquicas y supervisión</p>
             <div class="space-y-2">
-                <a href="{% url 'sales:jerarquia_list' %}"
+                <a href="{% url 'sales_team_management:jerarquia_list' %}"
                    class="block w-full bg-green-50 hover:bg-green-100 text-green-700 text-center py-2 px-4 rounded-lg font-medium transition-colors">
-                    🏗️ Ver Jerarquía Global
+                    🏗️ Ver Jerarquía
                 </a>
-                <a href="{% url 'sales:jerarquia_create_member' %}"
+                <a href="{% url 'sales_team_management:analisis_jerarquia' %}"
                    class="block w-full bg-green-600 hover:bg-green-700 text-white text-center py-2 px-4 rounded-lg font-medium transition-colors">
-                    👤 Agregar Miembro
+                    📊 Análisis Jerárquico
                 </a>
             </div>
         </div>
 
-        <!-- Gestión de Proyectos -->
+        <!-- Gestión de Comisiones -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
             <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <i class="fas fa-building mr-3 text-purple-600"></i>
-                Gestión de Proyectos
+                <i class="fas fa-percent mr-3 text-orange-600"></i>
+                Estructura de Comisiones
             </h3>
-            <p class="text-gray-600 mb-4">Administra proyectos inmobiliarios y asignaciones</p>
+            <p class="text-gray-600 mb-4">Configura comisiones por unidad y posición</p>
             <div class="space-y-2">
-                <a href="{% url 'sales:proyectos_list' %}"
-                   class="block w-full bg-purple-50 hover:bg-purple-100 text-purple-700 text-center py-2 px-4 rounded-lg font-medium transition-colors">
-                    🏙️ Ver Proyectos
+                <a href="{% url 'sales_team_management:comisiones_equipos_list' %}"
+                   class="block w-full bg-orange-50 hover:bg-orange-100 text-orange-700 text-center py-2 px-4 rounded-lg font-medium transition-colors">
+                    💰 Ver Comisiones
                 </a>
-                <a href="{% url 'sales:proyectos_create' %}"
+                <a href="{% url 'sales_team_management:comisiones_proyectos_list' %}"
+                   class="block w-full bg-orange-600 hover:bg-orange-700 text-white text-center py-2 px-4 rounded-lg font-medium transition-colors">
+                    🏢 Proyectos
+                </a>
+            </div>
+        </div>
+
+        <!-- Supervisión Directa -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-eye mr-3 text-purple-600"></i>
+                Supervisión Directa
+            </h3>
+            <p class="text-gray-600 mb-4">Gestiona supervisión especial y directa</p>
+            <div class="space-y-2">
+                <a href="{% url 'sales_team_management:supervision_directa_list' %}"
+                   class="block w-full bg-purple-50 hover:bg-purple-100 text-purple-700 text-center py-2 px-4 rounded-lg font-medium transition-colors">
+                    👁️ Ver Supervisiones
+                </a>
+                <a href="{% url 'sales_team_management:supervision_directa_create' %}"
                    class="block w-full bg-purple-600 hover:bg-purple-700 text-white text-center py-2 px-4 rounded-lg font-medium transition-colors">
-                    🏗️ Crear Proyecto
+                    ➕ Crear Supervisión
                 </a>
             </div>
         </div>
@@ -244,52 +268,56 @@
 
     <!-- Rankings y Detalles -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <!-- Equipos con Mayor Jerarquía -->
+        <!-- Unidades Mejor Estructuradas -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center">
                 <i class="fas fa-trophy mr-3 text-yellow-600"></i>
-                Equipos Mejor Estructurados
+                Unidades Mejor Estructuradas
             </h3>
-            {% if equipos_con_jerarquia %}
+            {% if equipos_con_info %}
                 <div class="space-y-4">
-                    {% for item in equipos_con_jerarquia %}
-                    <div class="flex items-center justify-between p-4 {% if item.tiene_configuracion_completa %}bg-green-50 border border-green-200{% else %}bg-gray-50 border border-gray-200{% endif %} rounded-lg">
+                    {% for item in equipos_con_info %}
+                    <div class="flex items-center justify-between p-4 {% if item.has_commission_structure %}bg-green-50 border border-green-200{% else %}bg-gray-50 border border-gray-200{% endif %} rounded-lg">
                         <div class="flex-1">
                             <div class="flex items-center mb-2">
-                                <h4 class="font-medium text-gray-900">{{ item.equipo.nombre }}</h4>
-                                {% if item.tiene_configuracion_completa %}
+                                <h4 class="font-medium text-gray-900">{{ item.unit.name }}</h4>
+                                <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    {{ item.unit.unit_type|title }}
+                                </span>
+                                {% if item.has_commission_structure %}
                                     <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                        ✓ Completo
-                                    </span>
-                                {% else %}
-                                    <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                        ⚠ Incompleto
+                                        ✓ Comisiones
                                     </span>
                                 {% endif %}
                             </div>
-                            <div class="grid grid-cols-4 gap-2 text-xs">
+                            <div class="grid grid-cols-3 gap-2 text-xs mb-2">
                                 <div class="text-center">
-                                    <div class="text-blue-600 font-semibold">{{ item.gerentes }}</div>
-                                    <div class="text-gray-500">Gerentes</div>
+                                    <div class="text-blue-600 font-semibold">{{ item.total_members }}</div>
+                                    <div class="text-gray-500">Miembros</div>
                                 </div>
                                 <div class="text-center">
-                                    <div class="text-green-600 font-semibold">{{ item.jefes }}</div>
-                                    <div class="text-gray-500">Jefes</div>
+                                    <div class="text-green-600 font-semibold">{{ item.hierarchy_relations_count }}</div>
+                                    <div class="text-gray-500">Relaciones</div>
                                 </div>
                                 <div class="text-center">
-                                    <div class="text-purple-600 font-semibold">{{ item.leaders }}</div>
-                                    <div class="text-gray-500">Leaders</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-orange-600 font-semibold">{{ item.vendedores }}</div>
-                                    <div class="text-gray-500">Vendedores</div>
+                                    <div class="text-purple-600 font-semibold">{{ item.completion_score }}</div>
+                                    <div class="text-gray-500">Puntuación</div>
                                 </div>
                             </div>
+                            {% if item.members_by_position %}
+                                <div class="flex flex-wrap gap-1">
+                                    {% for position_code, count in item.members_by_position.items %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
+                                            {{ count }} {{ position_code }}
+                                        </span>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
                         <div class="ml-4 text-right">
-                            <div class="text-2xl font-bold text-gray-900">{{ item.total_miembros }}</div>
-                            <div class="text-xs text-gray-500">total</div>
-                            <a href="{% url 'sales:equipos_detail' item.equipo.pk %}"
+                            <div class="text-2xl font-bold text-gray-900">{{ item.completion_score }}%</div>
+                            <div class="text-xs text-gray-500">completitud</div>
+                            <a href="{% url 'sales_team_management:equipo_detail' item.unit.pk %}"
                                class="text-xs text-blue-600 hover:text-blue-800 block mt-1">Ver detalles</a>
                         </div>
                     </div>
@@ -298,8 +326,81 @@
             {% else %}
                 <div class="text-center py-8">
                     <i class="fas fa-users-slash text-gray-300 text-4xl mb-4"></i>
-                    <h4 class="text-lg font-medium text-gray-900 mb-2">No hay equipos configurados</h4>
-                    <p class="text-gray-500">Crea tu primer equipo para comenzar</p>
+                    <h4 class="text-lg font-medium text-gray-900 mb-2">No hay unidades configuradas</h4>
+                    <p class="text-gray-500">Crea tu primera unidad organizacional para comenzar</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Análisis de Jerarquía -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+                <i class="fas fa-chart-network mr-3 text-indigo-600"></i>
+                Análisis de Jerarquía
+            </h3>
+            {% if hierarchy_analysis %}
+                <div class="space-y-4">
+                    <!-- Estadísticas generales -->
+                    <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+                        <h4 class="font-medium text-indigo-900 mb-2">Estadísticas Generales</h4>
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <div class="text-2xl font-bold text-indigo-700">{{ hierarchy_analysis.total_relations }}</div>
+                                <div class="text-indigo-600">Total Relaciones</div>
+                            </div>
+                            <div>
+                                <div class="text-2xl font-bold {% if hierarchy_analysis.inconsistencies_count > 0 %}text-red-700{% else %}text-green-700{% endif %}">
+                                    {{ hierarchy_analysis.inconsistencies_count }}
+                                </div>
+                                <div class="{% if hierarchy_analysis.inconsistencies_count > 0 %}text-red-600{% else %}text-green-600{% endif %}">
+                                    Inconsistencias
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tipos de relación -->
+                    {% if hierarchy_analysis.relation_type_stats %}
+                        <div class="space-y-2">
+                            <h4 class="font-medium text-gray-900">Tipos de Relación</h4>
+                            {% for relation_stat in hierarchy_analysis.relation_type_stats %}
+                                <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
+                                    <span class="text-sm font-medium">{{ relation_stat.relation_type }}</span>
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        {{ relation_stat.count }}
+                                    </span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <!-- Alertas de inconsistencias -->
+                    {% if hierarchy_analysis.inconsistencies_count > 0 %}
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <h4 class="font-medium text-red-900 mb-2 flex items-center">
+                                <i class="fas fa-exclamation-triangle mr-2"></i>
+                                Problemas Detectados
+                            </h4>
+                            <div class="text-sm text-red-700 space-y-1">
+                                {% if hierarchy_analysis.circular_relations_count > 0 %}
+                                    <div>• {{ hierarchy_analysis.circular_relations_count }} relación(es) circular(es)</div>
+                                {% endif %}
+                                {% if hierarchy_analysis.multiple_primary_supervisors_count > 0 %}
+                                    <div>• {{ hierarchy_analysis.multiple_primary_supervisors_count }} miembro(s) con múltiples supervisores primarios</div>
+                                {% endif %}
+                            </div>
+                            <a href="{% url 'sales_team_management:analisis_jerarquia' %}" 
+                               class="inline-block mt-2 text-xs text-red-600 hover:text-red-800 font-medium">
+                                Ver detalles completos →
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="text-center py-8">
+                    <i class="fas fa-chart-network text-gray-300 text-4xl mb-4"></i>
+                    <h4 class="text-lg font-medium text-gray-900 mb-2">Sin análisis disponible</h4>
+                    <p class="text-gray-500">Configure relaciones jerárquicas para ver el análisis</p>
                 </div>
             {% endif %}
         </div>
@@ -337,7 +438,7 @@
                                 <div class="text-lg font-bold text-gray-400">0%</div>
                                 <div class="text-xs text-gray-500">sin inmuebles</div>
                             {% endif %}
-                            <a href="{% url 'sales:proyectos_detail' proyecto.pk %}"
+                            <a href="{% url 'sales_team_management:proyectos_detail' proyecto.pk %}"
                                class="text-xs text-blue-600 hover:text-blue-800 block mt-1">Ver detalles</a>
                         </div>
                     </div>

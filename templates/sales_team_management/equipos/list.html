@@ -1,113 +1,195 @@
-<!-- templates/sales/equipos/list.html -->
+<!-- templates/sales_team_management/equipos/list.html -->
 {% extends 'base/base.html' %}
 
-{% block title %}Equipos de Venta - Django CRM{% endblock %}
+{% block title %}Unidades Organizacionales - Korban{% endblock %}
 
-{% block header %}Equipos de Venta{% endblock %}
+{% block header %}Unidades Organizacionales{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <!-- Header con botón de crear y filtros -->
     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 sm:mb-6 space-y-4 sm:space-y-0">
         <div>
-            <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Equipos de Venta</h1>
-            <p class="text-sm sm:text-base text-gray-600 mt-1">Gestiona los equipos y su estructura jerárquica</p>
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Unidades Organizacionales</h1>
+            <p class="text-sm sm:text-base text-gray-600 mt-1">Gestiona las unidades organizacionales y su estructura</p>
         </div>
-        <a href="{% url 'sales:equipos_create' %}"
-           class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center justify-center transition-colors">
-            <i class="fas fa-plus mr-2"></i>
-            <span class="hidden sm:inline">Crear Equipo</span>
-            <span class="sm:hidden">Crear</span>
-        </a>
+        <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+            {% if perms.sales_team_management.add_organizationalunit %}
+                <a href="{% url 'sales_team_management:crear_equipo' %}"
+                   class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center justify-center transition-colors">
+                    <i class="fas fa-plus mr-2"></i>
+                    <span class="hidden sm:inline">Crear Unidad</span>
+                    <span class="sm:hidden">Crear</span>
+                </a>
+            {% else %}
+                <button class="bg-gray-400 text-white px-4 py-2 rounded-lg font-medium flex items-center justify-center cursor-not-allowed"
+                        title="No tienes permisos para crear unidades organizacionales"
+                        onclick="alert('No tienes permisos para crear unidades organizacionales. Contacta al administrador.')">
+                    <i class="fas fa-plus mr-2"></i>
+                    <span class="hidden sm:inline">Crear Unidad</span>
+                    <span class="sm:hidden">Crear</span>
+                </button>
+            {% endif %}
+        </div>
     </div>
 
     <!-- Filtros -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-4 sm:mb-6">
-        <form method="get" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <form method="get" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
-                <input type="text" name="nombre" value="{{ request.GET.nombre }}" 
-                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                <input type="text" name="search" value="{{ search_query }}" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                       placeholder="Buscar por nombre...">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Unidad</label>
+                <select name="unit_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                    <option value="">Todos los tipos</option>
+                    {% for type_value, type_label in unit_types %}
+                        <option value="{{ type_value }}" {% if unit_type_filter == type_value %}selected{% endif %}>
+                            {{ type_label }}
+                        </option>
+                    {% endfor %}
+                </select>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                <select name="activo" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                <select name="is_active" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
                     <option value="">Todos</option>
-                    <option value="true" {% if request.GET.activo == 'true' %}selected{% endif %}>Activos</option>
-                    <option value="false" {% if request.GET.activo == 'false' %}selected{% endif %}>Inactivos</option>
+                    <option value="true" {% if request.GET.is_active == 'true' %}selected{% endif %}>Activos</option>
+                    <option value="false" {% if request.GET.is_active == 'false' %}selected{% endif %}>Inactivos</option>
                 </select>
             </div>
             <div class="flex flex-col sm:flex-row items-end space-y-2 sm:space-y-0 sm:space-x-2">
                 <button type="submit" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium">
                     <i class="fas fa-search mr-2"></i>Filtrar
                 </button>
-                <a href="{% url 'sales:equipos_list' %}" class="w-full sm:w-auto bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg font-medium text-center">
+                <a href="{% url 'sales_team_management:equipos_list' %}" class="w-full sm:w-auto bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg font-medium text-center">
                     Limpiar
                 </a>
             </div>
         </form>
     </div>
 
-    <!-- Lista de equipos -->
+    <!-- Lista de unidades -->
     {% if page_obj %}
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {% for equipo in page_obj %}
+            {% for unit in page_obj %}
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
                     <div class="p-4 sm:p-6">
                         <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-base sm:text-lg font-semibold text-gray-900 truncate pr-2">{{ equipo.nombre }}</h3>
-                            {% if equipo.activo %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                    <i class="fas fa-check-circle mr-1"></i>
-                                    Activo
+                            <h3 class="text-base sm:text-lg font-semibold text-gray-900 truncate pr-2">{{ unit.name }}</h3>
+                            <div class="flex flex-col items-end space-y-1">
+                                {% if unit.is_active %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        <i class="fas fa-check-circle mr-1"></i>
+                                        Activo
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                        <i class="fas fa-times-circle mr-1"></i>
+                                        Inactivo
+                                    </span>
+                                {% endif %}
+                                
+                                <!-- Tipo de unidad -->
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium 
+                                    {% if unit.unit_type == 'SALES' %}bg-blue-100 text-blue-800
+                                    {% elif unit.unit_type == 'PORTFOLIO' %}bg-purple-100 text-purple-800
+                                    {% elif unit.unit_type == 'MARKETING' %}bg-orange-100 text-orange-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ unit.get_unit_type_display }}
                                 </span>
-                            {% else %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                    <i class="fas fa-times-circle mr-1"></i>
-                                    Inactivo
-                                </span>
-                            {% endif %}
+                            </div>
                         </div>
 
-                        {% if equipo.descripcion %}
-                            <p class="text-sm text-gray-600 mb-4">{{ equipo.descripcion|truncatechars:100 }}</p>
+                        {% if unit.description %}
+                            <p class="text-sm text-gray-600 mb-4">{{ unit.description|truncatechars:100 }}</p>
                         {% endif %}
 
                         <div class="space-y-2 mb-6">
                             <div class="flex justify-between text-sm">
-                                <span class="text-gray-500">Gerentes:</span>
-                                <span class="font-medium">{{ equipo.gerentes_equipo.count }}</span>
+                                <span class="text-gray-500">Miembros Activos:</span>
+                                <span class="font-medium">{{ unit.total_members }}</span>
                             </div>
                             <div class="flex justify-between text-sm">
-                                <span class="text-gray-500">Total Vendedores:</span>
-                                <span class="font-medium">{{ equipo.total_vendedores }}</span>
+                                <span class="text-gray-500">Managers:</span>
+                                <span class="font-medium">{{ unit.managers_count }}</span>
                             </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-500">Agentes:</span>
+                                <span class="font-medium">{{ unit.agents_count }}</span>
+                            </div>
+                            {% if unit.parent_unit %}
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-500">Unidad Padre:</span>
+                                    <span class="font-medium text-blue-600 truncate" title="{{ unit.parent_unit.name }}">
+                                        {{ unit.parent_unit.name|truncatechars:15 }}
+                                    </span>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Toggle de Registro Público -->
+                        <div class="mb-4 p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <i class="fas fa-globe text-gray-500 mr-2"></i>
+                                    <span class="text-sm font-medium text-gray-700">Registro Público</span>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" 
+                                           class="sr-only peer public-registration-toggle" 
+                                           data-unit-id="{{ unit.pk }}"
+                                           {% if unit.public_registration_enabled %}checked{% endif %}>
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                </label>
+                            </div>
+                            {% if unit.public_registration_enabled %}
+                                <div class="mt-2">
+                                    <div class="flex items-center text-xs text-gray-600">
+                                        <i class="fas fa-link mr-1"></i>
+                                        <span class="break-all">https://tmkorban.duckdns.org{% url 'sales_team_management:public_register' unit_code=unit.code %}</span>
+                                    </div>
+                                    <button class="copy-url-btn mt-1 text-xs text-blue-600 hover:text-blue-800" 
+                                            data-url="https://tmkorban.duckdns.org{% url 'sales_team_management:public_register' unit_code=unit.code %}">
+                                        <i class="fas fa-copy mr-1"></i>Copiar enlace
+                                    </button>
+                                </div>
+                            {% endif %}
                         </div>
 
                         <div class="flex justify-center space-x-1 sm:space-x-2">
-                            <a href="{% url 'sales:equipos_detail' equipo.pk %}"
+                            <a href="{% url 'sales_team_management:equipo_detail' unit.pk %}"
                                class="bg-blue-50 hover:bg-blue-100 text-blue-700 p-2 rounded-lg transition-colors text-sm"
-                               title="Ver Equipo">
+                               title="Ver Unidad">
                                 <i class="fas fa-eye"></i>
                             </a>
-                            <a href="{% url 'sales:equipos_edit' equipo.pk %}"
-                               class="bg-yellow-50 hover:bg-yellow-100 text-yellow-700 p-2 rounded-lg transition-colors text-sm"
-                               title="Editar Equipo">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            {% if equipo.can_be_deleted %}
-                                <a href="{% url 'sales:equipos_delete' equipo.pk %}"
-                                   class="bg-red-50 hover:bg-red-100 text-red-700 p-2 rounded-lg transition-colors text-sm"
-                                   title="Eliminar Equipo"
-                                   onclick="return confirm('¿Estás seguro de que quieres eliminar este equipo?')">
-                                    <i class="fas fa-trash"></i>
+                            {% if perms.sales_team_management.add_hierarchyrelation %}
+                                <a href="{% url 'sales_team_management:jerarquia_list' %}"
+                                   class="bg-green-50 hover:bg-green-100 text-green-700 p-2 rounded-lg transition-colors text-sm"
+                                   title="Agregar Miembro">
+                                    <i class="fas fa-user-plus"></i>
+                                </a>
+                            {% elif perms.sales_team_management.add_teammembership %}
+                                <a href="{% url 'sales_team_management:jerarquia_create' %}"
+                                   class="bg-green-50 hover:bg-green-100 text-green-700 p-2 rounded-lg transition-colors text-sm"
+                                   title="Agregar Miembro">
+                                    <i class="fas fa-user-plus"></i>
                                 </a>
                             {% else %}
-                                <span class="bg-gray-50 text-gray-400 p-2 rounded-lg cursor-not-allowed text-sm"
-                                      title="No se puede eliminar - tiene usuarios asignados">
-                                    <i class="fas fa-trash"></i>
-                                </span>
+                                <button class="bg-gray-100 text-gray-400 p-2 rounded-lg text-sm cursor-not-allowed"
+                                        title="No tienes permisos para agregar miembros"
+                                        onclick="alert('No tienes permisos para realizar esta acción. Contacta al administrador.')">
+                                    <i class="fas fa-user-plus"></i>
+                                </button>
                             {% endif %}
+                            <a href="{% url 'sales_team_management:comisiones_equipos_list' %}"
+                               class="bg-purple-50 hover:bg-purple-100 text-purple-700 p-2 rounded-lg transition-colors text-sm"
+                               title="Configurar Comisiones">
+                                <i class="fas fa-percentage"></i>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -119,18 +201,18 @@
             <div class="mt-8 flex justify-center">
                 <nav class="flex space-x-2">
                     {% if page_obj.has_previous %}
-                        <a href="?page={{ page_obj.previous_page_number }}"
+                        <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if unit_type_filter %}unit_type={{ unit_type_filter }}&{% endif %}{% if request.GET.is_active %}is_active={{ request.GET.is_active }}&{% endif %}page={{ page_obj.previous_page_number }}"
                            class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
                             Anterior
                         </a>
                     {% endif %}
 
                     <span class="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm">
-                        {{ page_obj.number }}
+                        {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
                     </span>
 
                     {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}"
+                        <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if unit_type_filter %}unit_type={{ unit_type_filter }}&{% endif %}{% if request.GET.is_active %}is_active={{ request.GET.is_active }}&{% endif %}page={{ page_obj.next_page_number }}"
                            class="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
                             Siguiente
                         </a>
@@ -140,15 +222,132 @@
         {% endif %}
     {% else %}
         <div class="text-center py-12">
-            <i class="fas fa-users text-gray-300 text-6xl mb-4"></i>
-            <h3 class="text-lg font-medium text-gray-900 mb-2">No hay equipos de venta</h3>
-            <p class="text-gray-500 mb-6">Comienza creando tu primer equipo de ventas.</p>
-            <a href="{% url 'sales:equipos_create' %}"
-               class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium inline-flex items-center">
-                <i class="fas fa-plus mr-2"></i>
-                Crear Primer Equipo
-            </a>
+            <i class="fas fa-building text-gray-300 text-6xl mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No hay unidades organizacionales</h3>
+            <p class="text-gray-500 mb-6">Comienza creando tu primera unidad organizacional.</p>
+            {% if perms.sales_team_management.add_organizationalunit %}
+                <a href="{% url 'sales_team_management:crear_equipo' %}"
+                   class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium inline-flex items-center">
+                    <i class="fas fa-plus mr-2"></i>
+                    Crear Primera Unidad
+                </a>
+            {% else %}
+                <button class="bg-gray-400 text-white px-4 py-2 rounded-lg font-medium inline-flex items-center cursor-not-allowed"
+                        title="No tienes permisos para crear unidades organizacionales"
+                        onclick="alert('No tienes permisos para crear unidades organizacionales. Contacta al administrador.')">
+                    <i class="fas fa-plus mr-2"></i>
+                    Crear Primera Unidad
+                </button>
+            {% endif %}
         </div>
     {% endif %}
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Manejar toggle switches de registro público
+    const toggles = document.querySelectorAll('.public-registration-toggle');
+    
+    toggles.forEach(toggle => {
+        toggle.addEventListener('change', async function() {
+            const unitId = this.dataset.unitId;
+            const enabled = this.checked;
+            
+            try {
+                const formData = new FormData();
+                formData.append('unit_id', unitId);
+                formData.append('enabled', enabled.toString());
+                formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+                
+                const response = await fetch("{% url 'sales_team_management:ajax_toggle_public_registration' %}", {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    
+                    // Recargar la página para mostrar/ocultar el enlace público
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    // Revertir el toggle si hay error
+                    this.checked = !enabled;
+                    showNotification(data.message, 'error');
+                }
+            } catch (error) {
+                // Revertir el toggle si hay error
+                this.checked = !enabled;
+                showNotification('Error al actualizar configuración', 'error');
+                console.error('Error:', error);
+            }
+        });
+    });
+    
+    // Manejar botones de copiar URL
+    const copyButtons = document.querySelectorAll('.copy-url-btn');
+    
+    copyButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const url = this.dataset.url;
+            
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(url).then(() => {
+                    showNotification('Enlace copiado al portapapeles', 'success');
+                }).catch(() => {
+                    fallbackCopyText(url);
+                });
+            } else {
+                fallbackCopyText(url);
+            }
+        });
+    });
+});
+
+// Función fallback para copiar texto en navegadores antiguos
+function fallbackCopyText(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+        document.execCommand('copy');
+        showNotification('Enlace copiado al portapapeles', 'success');
+    } catch (err) {
+        showNotification('No se pudo copiar el enlace', 'error');
+    }
+    
+    document.body.removeChild(textArea);
+}
+
+// Función para mostrar notificaciones
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg transition-all duration-300 ${
+        type === 'success' ? 'bg-green-500 text-white' :
+        type === 'error' ? 'bg-red-500 text-white' :
+        'bg-blue-500 text-white'
+    }`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        setTimeout(() => {
+            if (document.body.contains(notification)) {
+                document.body.removeChild(notification);
+            }
+        }, 300);
+    }, 3000);
+}
+</script>
 {% endblock %}

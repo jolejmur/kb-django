@@ -1,0 +1,33 @@
+{% comment %}
+    Modal para visualizar y reproducir videos en pantalla completa
+    Incluye: Vista superpuesta, botones cerrar, descargar y controles de reproducción
+{% endcomment %}
+<div id="videoModal" class="video-modal" style="display: none;">
+    <div class="video-modal-overlay" onclick="closeVideoModal()"></div>
+    <div class="video-modal-container">
+        <div class="video-modal-header">
+            <button class="modal-btn modal-close" onclick="closeVideoModal()">
+                <i class="fas fa-times"></i>
+                <span>Cerrar</span>
+            </button>
+            <button class="modal-btn modal-play-pause" onclick="toggleVideoPlayback()" id="playPauseBtn">
+                <i class="fas fa-pause" id="playPauseIcon"></i>
+                <span id="playPauseText">Pausar</span>
+            </button>
+            <button class="modal-btn modal-download" onclick="downloadCurrentVideo()">
+                <i class="fas fa-download"></i>
+                <span>Descargar</span>
+            </button>
+        </div>
+        <div class="video-modal-content">
+            <video id="modalVideo" controls preload="metadata" autoplay>
+                <source src="" type="">
+                Tu navegador no soporta video.
+            </video>
+            <div class="video-modal-loading">
+                <div class="spinner"></div>
+                <p>Cargando video...</p>
+            </div>
+        </div>
+    </div>
+</div>

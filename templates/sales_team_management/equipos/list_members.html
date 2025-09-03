@@ -1,26 +1,26 @@
-<!-- templates/sales/equipos/list_members.html -->
+<!-- templates/sales_team_management/equipos/list_members.html -->
 {% extends 'base/base.html' %}
 
-{% block title %}Miembros - {{ equipo.nombre }}{% endblock %}
+{% block title %}Miembros - {{ unit.name }}{% endblock %}
 
 {% block header %}Gestión de Miembros{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <!-- Breadcrumb -->
     <nav class="flex mb-6" aria-label="Breadcrumb">
         <ol class="inline-flex items-center space-x-1 md:space-x-3">
             <li class="inline-flex items-center">
-                <a href="{% url 'sales:equipos_list' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
-                    <i class="fas fa-users mr-2"></i>
-                    Equipos de Venta
+                <a href="{% url 'sales_team_management:equipos_list' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    <i class="fas fa-building mr-2"></i>
+                    Unidades Organizacionales
                 </a>
             </li>
             <li>
                 <div class="flex items-center">
                     <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
-                    <a href="{% url 'sales:equipos_detail' equipo.pk %}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
-                        {{ equipo.nombre }}
+                    <a href="{% url 'sales_team_management:equipo_detail' unit.pk %}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
+                        {{ unit.name }}
                     </a>
                 </div>
             </li>
@@ -36,19 +36,19 @@
     <!-- Header -->
     <div class="flex justify-between items-center mb-6">
         <div>
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">Miembros: {{ equipo.nombre }}</h1>
-            <p class="text-gray-600">Gestiona todos los miembros del equipo de forma simple</p>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Miembros: {{ unit.name }}</h1>
+            <p class="text-gray-600">Gestiona todos los miembros de la unidad organizacional</p>
         </div>
         <div class="flex space-x-3">
-            <a href="{% url 'sales:equipos_detail' equipo.pk %}" 
+            <a href="{% url 'sales_team_management:equipo_detail' unit.pk %}" 
                class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors">
                 <i class="fas fa-arrow-left mr-2"></i>Volver
             </a>
-            <a href="{% url 'sales:equipos_hierarchy' equipo.pk %}" 
+            <a href="{% url 'sales_team_management:jerarquia_equipo' unit.pk %}" 
                class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
                 <i class="fas fa-sitemap mr-2"></i>Vista Jerarquía
             </a>
-            <a href="{% url 'sales:equipos_add_member' equipo.pk %}" 
+            <a href="{% url 'sales_team_management:jerarquia_create' %}" 
                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
                 <i class="fas fa-plus mr-2"></i>Agregar Miembro
             </a>
@@ -73,16 +73,16 @@
                 </div>
             </div>
 
-            <!-- Filtro por rol -->
+            <!-- Filtro por posición -->
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Rol</label>
-                <select id="role_filter" onchange="filterMembers()" 
+                <label class="block text-sm font-medium text-gray-700 mb-2">Posición</label>
+                <select id="position_filter" onchange="filterMembers()" 
                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                    <option value="">Todos los roles</option>
-                    <option value="gerente">Gerentes</option>
-                    <option value="jefe_venta">Jefes de Venta</option>
-                    <option value="team_leader">Team Leaders</option>
-                    <option value="vendedor">Vendedores</option>
+                    <option value="">Todas las posiciones</option>
+                    <option value="MANAGER">Gerentes</option>
+                    <option value="SUPERVISOR">Supervisores</option>
+                    <option value="TEAM_LEAD">Team Leaders</option>
+                    <option value="AGENT">Agentes</option>
                 </select>
             </div>
 
@@ -115,20 +115,20 @@
     <!-- Estadísticas rápidas -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-center">
-            <div class="text-2xl font-bold text-blue-600">{{ stats.total_gerentes }}</div>
+            <div class="text-2xl font-bold text-blue-600">{{ stats.managers_count }}</div>
             <div class="text-sm text-gray-500">Gerentes</div>
         </div>
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-center">
-            <div class="text-2xl font-bold text-green-600">{{ stats.total_jefes }}</div>
-            <div class="text-sm text-gray-500">Jefes de Venta</div>
+            <div class="text-2xl font-bold text-green-600">{{ stats.supervisors_count }}</div>
+            <div class="text-sm text-gray-500">Supervisores</div>
         </div>
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-center">
-            <div class="text-2xl font-bold text-purple-600">{{ stats.total_leaders }}</div>
+            <div class="text-2xl font-bold text-purple-600">{{ stats.team_leads_count }}</div>
             <div class="text-sm text-gray-500">Team Leaders</div>
         </div>
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-center">
-            <div class="text-2xl font-bold text-orange-600">{{ stats.total_vendedores }}</div>
-            <div class="text-sm text-gray-500">Vendedores</div>
+            <div class="text-2xl font-bold text-orange-600">{{ stats.agents_count }}</div>
+            <div class="text-sm text-gray-500">Agentes</div>
         </div>
     </div>
 
@@ -146,13 +146,16 @@
                             Miembro
                         </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Rol
+                            Posición
                         </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Supervisor
+                            Tipo de Asignación
                         </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Estado
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Fecha de Ingreso
                         </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Acciones
@@ -160,53 +163,59 @@
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200" id="members_table_body">
-                    {% for member in members %}
+                    {% for membership in memberships %}
                     <tr class="member-row hover:bg-gray-50" 
-                        data-name="{{ member.usuario.get_full_name|default:member.usuario.username|lower }}"
-                        data-email="{{ member.usuario.email|lower }}"
-                        data-username="{{ member.usuario.username|lower }}"
-                        data-role="{{ member.role_type }}"
-                        data-status="{% if member.activo %}active{% else %}inactive{% endif %}">
+                        data-name="{{ membership.user.get_full_name|default:membership.user.username|lower }}"
+                        data-email="{{ membership.user.email|lower }}"
+                        data-username="{{ membership.user.username|lower }}"
+                        data-position="{{ membership.position_type.code }}"
+                        data-status="{% if membership.is_active %}active{% else %}inactive{% endif %}">
                         
                         <!-- Miembro -->
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
-                                <div class="h-10 w-10 rounded-full flex items-center justify-center text-white {{ member.role_color }}">
-                                    <i class="{{ member.role_icon }}"></i>
+                                <div class="h-10 w-10 rounded-full flex items-center justify-center text-white
+                                    {% if membership.position_type.code == 'MANAGER' %}bg-blue-500{% elif membership.position_type.code == 'SUPERVISOR' %}bg-green-500{% elif membership.position_type.code == 'TEAM_LEAD' %}bg-purple-500{% else %}bg-orange-500{% endif %}">
+                                    {% if membership.position_type.code == 'MANAGER' %}
+                                        <i class="fas fa-user-tie"></i>
+                                    {% elif membership.position_type.code == 'SUPERVISOR' %}
+                                        <i class="fas fa-user-cog"></i>
+                                    {% elif membership.position_type.code == 'TEAM_LEAD' %}
+                                        <i class="fas fa-users"></i>
+                                    {% else %}
+                                        <i class="fas fa-handshake"></i>
+                                    {% endif %}
                                 </div>
                                 <div class="ml-4">
                                     <div class="text-sm font-medium text-gray-900">
-                                        {{ member.usuario.get_full_name|default:member.usuario.username }}
+                                        {{ membership.user.get_full_name|default:membership.user.username }}
                                     </div>
-                                    <div class="text-sm text-gray-500">{{ member.usuario.email }}</div>
+                                    <div class="text-sm text-gray-500">{{ membership.user.email }}</div>
                                 </div>
                             </div>
                         </td>
 
-                        <!-- Rol -->
+                        <!-- Posición -->
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ member.role_badge_color }}">
-                                {{ member.role_display }}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                {% if membership.position_type.code == 'MANAGER' %}bg-blue-100 text-blue-800{% elif membership.position_type.code == 'SUPERVISOR' %}bg-green-100 text-green-800{% elif membership.position_type.code == 'TEAM_LEAD' %}bg-purple-100 text-purple-800{% else %}bg-orange-100 text-orange-800{% endif %}">
+                                {{ membership.position_type.name }}
                             </span>
                         </td>
 
-                        <!-- Supervisor -->
+                        <!-- Tipo de Asignación -->
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {% if member.supervisor %}
-                                <div class="flex items-center">
-                                    <div class="h-6 w-6 rounded-full flex items-center justify-center text-white text-xs {{ member.supervisor_color }} mr-2">
-                                        <i class="{{ member.supervisor_icon }}"></i>
-                                    </div>
-                                    {{ member.supervisor.usuario.get_full_name|default:member.supervisor.usuario.username }}
-                                </div>
-                            {% else %}
-                                <span class="text-gray-400">Sin supervisor</span>
-                            {% endif %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                                {% if membership.assignment_type == 'PERMANENT' %}bg-green-100 text-green-800
+                                {% elif membership.assignment_type == 'TEMPORARY' %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-blue-100 text-blue-800{% endif %}">
+                                {{ membership.get_assignment_type_display }}
+                            </span>
                         </td>
 
                         <!-- Estado -->
                         <td class="px-6 py-4 whitespace-nowrap">
-                            {% if member.activo %}
+                            {% if membership.is_active %}
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                     <span class="w-1.5 h-1.5 bg-green-400 rounded-full mr-1.5"></span>
                                     Activo
@@ -219,54 +228,55 @@
                             {% endif %}
                         </td>
 
+                        <!-- Fecha de Ingreso -->
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ membership.assignment_date|date:"d/m/Y" }}
+                        </td>
+
                         <!-- Acciones -->
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div class="flex items-center space-x-2">
-                                <!-- Cambiar estado -->
-                                {% if member.activo %}
-                                    <button onclick="cambiarEstadoMiembro('{{ member.role_type }}', {{ member.id }}, false)" 
-                                            class="text-orange-600 hover:text-orange-900" 
-                                            title="Desactivar">
-                                        <i class="fas fa-pause"></i>
-                                    </button>
-                                {% else %}
-                                    <button onclick="cambiarEstadoMiembro('{{ member.role_type }}', {{ member.id }}, true)" 
-                                            class="text-green-600 hover:text-green-900" 
-                                            title="Activar">
-                                        <i class="fas fa-play"></i>
-                                    </button>
-                                {% endif %}
+                                <!-- Ver detalle -->
+                                <a href="{% url 'sales_team_management:member_detail' membership.pk %}" 
+                                   class="text-blue-600 hover:text-blue-900" 
+                                   title="Ver detalle">
+                                    <i class="fas fa-eye"></i>
+                                </a>
 
-                                <!-- Migrar -->
-                                <div class="relative">
-                                    <button onclick="toggleMigrationMenu('{{ member.role_type }}-{{ member.id }}')" 
-                                            class="text-blue-600 hover:text-blue-900" 
-                                            title="Migrar a otro equipo">
-                                        <i class="fas fa-exchange-alt"></i>
-                                    </button>
-                                    <div id="migration-{{ member.role_type }}-{{ member.id }}" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
-                                        <div class="py-1">
-                                            <p class="px-3 py-2 text-xs font-medium text-gray-500 border-b">Migrar a:</p>
-                                            {% for equipo_dest in equipos_disponibles %}
-                                                <button onclick="migrarMiembro('{{ member.role_type }}', {{ member.id }}, {{ equipo_dest.id }}, '{{ equipo_dest.nombre|escapejs }}')" 
-                                                        class="block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100">
-                                                    {{ equipo_dest.nombre }}
-                                                </button>
-                                            {% endfor %}
-                                        </div>
-                                    </div>
-                                </div>
+                                <!-- Editar -->
+                                <a href="{% url 'sales_team_management:edit_member' membership.pk %}" 
+                                   class="text-yellow-600 hover:text-yellow-900" 
+                                   title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+
+                                <!-- Cambiar estado -->
+                                {% if membership.is_active %}
+                                    <form method="post" action="{% url 'sales_team_management:toggle_member_status' membership.pk %}" class="inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="text-orange-600 hover:text-orange-900" title="Desactivar">
+                                            <i class="fas fa-pause"></i>
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <form method="post" action="{% url 'sales_team_management:toggle_member_status' membership.pk %}" class="inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="text-green-600 hover:text-green-900" title="Activar">
+                                            <i class="fas fa-play"></i>
+                                        </button>
+                                    </form>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5" class="px-6 py-12 text-center">
+                        <td colspan="6" class="px-6 py-12 text-center">
                             <div class="text-gray-500">
                                 <i class="fas fa-users text-4xl text-gray-300 mb-4"></i>
-                                <p class="text-lg font-medium">No hay miembros en este equipo</p>
+                                <p class="text-lg font-medium">No hay miembros en esta unidad</p>
                                 <p class="text-sm">Comienza agregando el primer miembro</p>
-                                <a href="{% url 'sales:equipos_add_member' equipo.pk %}" 
+                                <a href="{% url 'sales_team_management:jerarquia_create' %}" 
                                    class="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                                     <i class="fas fa-plus mr-2"></i>Agregar Primer Miembro
                                 </a>
@@ -284,7 +294,7 @@
 // Filtrado en tiempo real
 function filterMembers() {
     const searchTerm = document.getElementById('search_input').value.toLowerCase();
-    const roleFilter = document.getElementById('role_filter').value;
+    const positionFilter = document.getElementById('position_filter').value;
     const statusFilter = document.getElementById('status_filter').value;
     const rows = document.querySelectorAll('.member-row');
     
@@ -294,7 +304,7 @@ function filterMembers() {
         const name = row.dataset.name || '';
         const email = row.dataset.email || '';
         const username = row.dataset.username || '';
-        const role = row.dataset.role || '';
+        const position = row.dataset.position || '';
         const status = row.dataset.status || '';
         
         // Filtro de búsqueda
@@ -303,13 +313,13 @@ function filterMembers() {
             email.includes(searchTerm) || 
             username.includes(searchTerm);
         
-        // Filtro de rol
-        const matchesRole = !roleFilter || role === roleFilter;
+        // Filtro de posición
+        const matchesPosition = !positionFilter || position === positionFilter;
         
         // Filtro de estado
         const matchesStatus = !statusFilter || status === statusFilter;
         
-        if (matchesSearch && matchesRole && matchesStatus) {
+        if (matchesSearch && matchesPosition && matchesStatus) {
             row.style.display = '';
             visibleCount++;
         } else {
@@ -324,125 +334,9 @@ function filterMembers() {
 // Limpiar filtros
 function clearFilters() {
     document.getElementById('search_input').value = '';
-    document.getElementById('role_filter').value = '';
+    document.getElementById('position_filter').value = '';
     document.getElementById('status_filter').value = '';
     filterMembers();
-}
-
-// Funciones AJAX (reutilizando las existentes)
-function cambiarEstadoMiembro(tipo, miembroId, nuevoEstado) {
-    const accion = nuevoEstado ? 'activar' : 'desactivar';
-    if (confirm(`¿Estás seguro de que quieres ${accion} este miembro?`)) {
-        const formData = new FormData();
-        formData.append('tipo', tipo);
-        formData.append('miembro_id', miembroId);
-        formData.append('activo', nuevoEstado);
-        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-        
-        fetch('{% url "sales:ajax_cambiar_estado_miembro" %}', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showMessage(data.message, 'success');
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1500);
-            } else {
-                showMessage(data.error, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showMessage('Error al cambiar el estado del miembro', 'error');
-        });
-    }
-}
-
-function migrarMiembro(tipo, miembroId, nuevoEquipoId, nombreEquipo) {
-    if (confirm(`¿Estás seguro de que quieres migrar este miembro al equipo "${nombreEquipo}"?`)) {
-        const formData = new FormData();
-        formData.append('tipo', tipo);
-        formData.append('miembro_id', miembroId);
-        formData.append('nuevo_equipo_id', nuevoEquipoId);
-        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-        
-        fetch('{% url "sales:ajax_migrar_miembro" %}', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showMessage(data.message, 'success');
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1500);
-            } else {
-                showMessage(data.error, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showMessage('Error al migrar el miembro', 'error');
-        });
-    }
-    
-    // Cerrar menús
-    document.querySelectorAll('[id^="migration-"]').forEach(menu => {
-        menu.classList.add('hidden');
-    });
-}
-
-function toggleMigrationMenu(menuId) {
-    // Cerrar otros menús
-    document.querySelectorAll('[id^="migration-"]').forEach(menu => {
-        if (menu.id !== 'migration-' + menuId) {
-            menu.classList.add('hidden');
-        }
-    });
-    
-    // Toggle del menú seleccionado
-    const menu = document.getElementById('migration-' + menuId);
-    if (menu) {
-        menu.classList.toggle('hidden');
-    }
-}
-
-function showMessage(message, type) {
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 ${
-        type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
-    }`;
-    messageDiv.textContent = message;
-    
-    document.body.appendChild(messageDiv);
-    
-    setTimeout(() => {
-        if (messageDiv.parentNode) {
-            messageDiv.parentNode.removeChild(messageDiv);
-        }
-    }, 3000);
-}
-
-// Cerrar menús al hacer clic fuera
-document.addEventListener('click', function(event) {
-    if (!event.target.closest('[onclick^="toggleMigrationMenu"]') && !event.target.closest('[id^="migration-"]')) {
-        document.querySelectorAll('[id^="migration-"]').forEach(menu => {
-            menu.classList.add('hidden');
-        });
-    }
-});
-
-// Token CSRF
-if (!document.querySelector('[name=csrfmiddlewaretoken]')) {
-    const csrfToken = document.createElement('input');
-    csrfToken.type = 'hidden';
-    csrfToken.name = 'csrfmiddlewaretoken';
-    csrfToken.value = '{{ csrf_token }}';
-    document.body.appendChild(csrfToken);
 }
 
 // Aplicar filtro por defecto (solo activos)

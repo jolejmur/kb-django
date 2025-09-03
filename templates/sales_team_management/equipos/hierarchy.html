@@ -1,7 +1,7 @@
 <!-- templates/sales/equipos/hierarchy.html -->
 {% extends 'base/base.html' %}
 
-{% block title %}Jerarquía - {{ equipo.nombre }}{% endblock %}
+{% block title %}Jerarquía - {{ unit.name }}{% endblock %}
 
 {% block header %}Jerarquía del Equipo{% endblock %}
 
@@ -11,7 +11,7 @@
     <nav class="flex mb-6" aria-label="Breadcrumb">
         <ol class="inline-flex items-center space-x-1 md:space-x-3">
             <li class="inline-flex items-center">
-                <a href="{% url 'sales:equipos_list' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                <a href="{% url 'sales_team_management:equipos_list' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
                     <i class="fas fa-users mr-2"></i>
                     Equipos de Venta
                 </a>
@@ -19,8 +19,8 @@
             <li>
                 <div class="flex items-center">
                     <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
-                    <a href="{% url 'sales:equipos_detail' equipo.pk %}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
-                        {{ equipo.nombre }}
+                    <a href="{% url 'sales_team_management:equipo_detail' unit.pk %}" class="text-sm font-medium text-gray-700 hover:text-blue-600">
+                        {{ unit.name }}
                     </a>
                 </div>
             </li>
@@ -36,21 +36,21 @@
     <!-- Header -->
     <div class="flex justify-between items-center mb-6">
         <div>
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">Jerarquía: {{ equipo.nombre }}</h1>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Jerarquía: {{ unit.name }}</h1>
             <p class="text-gray-600">Gestiona la estructura jerárquica del equipo de ventas</p>
         </div>
         <div class="flex space-x-3">
-            <a href="{% url 'sales:equipos_detail' equipo.pk %}" 
+            <a href="{% url 'sales_team_management:equipo_detail' unit.pk %}" 
                class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors">
                 <i class="fas fa-arrow-left mr-2"></i>Volver
             </a>
             {% if not tiene_gerente_activo %}
-                <a href="{% url 'sales:equipos_add_gerente' equipo.pk %}" 
+                <a href="{% url 'sales_team_management:jerarquia_create' %}" 
                    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
                     <i class="fas fa-user-tie mr-2"></i>Agregar Gerente
                 </a>
             {% endif %}
-            <a href="{% url 'sales:equipos_add_member' equipo.pk %}" 
+            <a href="{% url 'sales_team_management:jerarquia_create' %}" 
                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
                 <i class="fas fa-plus mr-2"></i>Agregar Miembro
             </a>
@@ -468,7 +468,7 @@
                                                                     {% endfor %}
                                                                     <!-- Botón para agregar más vendedores -->
                                                                     <div class="ml-8 text-center py-2 border-t border-orange-200 mt-2">
-                                                                        <a href="{% url 'sales:equipos_add_member' equipo.pk %}" class="text-orange-600 hover:text-orange-800 text-sm">
+                                                                        <a href="{% url 'sales_team_management:jerarquia_create' %}" class="text-orange-600 hover:text-orange-800 text-sm">
                                                                             <i class="fas fa-plus mr-1"></i>Agregar Vendedor
                                                                         </a>
                                                                     </div>
@@ -476,7 +476,7 @@
                                                             {% else %}
                                                                 <div class="ml-8 text-center py-4">
                                                                     <p class="text-sm text-gray-500">No hay vendedores asignados</p>
-                                                                    <a href="{% url 'sales:equipos_add_member' equipo.pk %}" class="text-orange-600 hover:text-orange-800 text-sm mt-1">
+                                                                    <a href="{% url 'sales_team_management:jerarquia_create' %}" class="text-orange-600 hover:text-orange-800 text-sm mt-1">
                                                                         <i class="fas fa-plus mr-1"></i>Agregar Primer Vendedor
                                                                     </a>
                                                                 </div>
@@ -486,7 +486,7 @@
                                                     {% endfor %}
                                                     <!-- Botón para agregar más team leaders -->
                                                     <div class="ml-8 text-center py-2 border-t border-purple-200 mt-2">
-                                                        <a href="{% url 'sales:equipos_add_member' equipo.pk %}" class="text-purple-600 hover:text-purple-800 text-sm">
+                                                        <a href="{% url 'sales_team_management:jerarquia_create' %}" class="text-purple-600 hover:text-purple-800 text-sm">
                                                             <i class="fas fa-plus mr-1"></i>Agregar Team Leader
                                                         </a>
                                                     </div>
@@ -494,7 +494,7 @@
                                             {% else %}
                                                 <div class="ml-8 text-center py-4">
                                                     <p class="text-sm text-gray-500">No hay team leaders asignados</p>
-                                                    <a href="{% url 'sales:equipos_add_member' equipo.pk %}" class="text-purple-600 hover:text-purple-800 text-sm mt-1">
+                                                    <a href="{% url 'sales_team_management:jerarquia_create' %}" class="text-purple-600 hover:text-purple-800 text-sm mt-1">
                                                         <i class="fas fa-plus mr-1"></i>Agregar Primer Team Leader
                                                     </a>
                                                 </div>
@@ -504,7 +504,7 @@
                                     {% endfor %}
                                     <!-- Botón para agregar más jefes de venta -->
                                     <div class="ml-8 text-center py-2 border-t border-green-200 mt-2">
-                                        <a href="{% url 'sales:equipos_add_member' equipo.pk %}" class="text-green-600 hover:text-green-800 text-sm">
+                                        <a href="{% url 'sales_team_management:jerarquia_create' %}" class="text-green-600 hover:text-green-800 text-sm">
                                             <i class="fas fa-plus mr-1"></i>Agregar Jefe de Venta
                                         </a>
                                     </div>
@@ -512,7 +512,7 @@
                             {% else %}
                                 <div class="ml-8 text-center py-6">
                                     <p class="text-sm text-gray-500">No hay jefes de venta asignados a este gerente</p>
-                                    <a href="{% url 'sales:equipos_add_member' equipo.pk %}" class="text-green-600 hover:text-green-800 text-sm mt-2">
+                                    <a href="{% url 'sales_team_management:jerarquia_create' %}" class="text-green-600 hover:text-green-800 text-sm mt-2">
                                         <i class="fas fa-plus mr-1"></i>Agregar Primer Jefe de Venta
                                     </a>
                                 </div>
@@ -527,7 +527,7 @@
                     <i class="fas fa-sitemap text-gray-300 text-6xl mb-4"></i>
                     <h3 class="text-lg font-medium text-gray-900 mb-2">Jerarquía sin configurar</h3>
                     <p class="text-gray-500 mb-6">Comienza agregando el primer gerente para este equipo.</p>
-                    <a href="{% url 'sales:equipos_add_gerente' equipo.pk %}" 
+                    <a href="{% url 'sales_team_management:jerarquia_create' %}" 
                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium inline-flex items-center">
                         <i class="fas fa-plus mr-2"></i>
                         Agregar Primer Gerente
@@ -607,7 +607,7 @@ function cambiarEstadoMiembro(tipo, miembroId, nuevoEstado) {
         formData.append('activo', nuevoEstado);
         formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
         
-        fetch('{% url "sales:ajax_cambiar_estado_miembro" %}', {
+        fetch('{% url "sales_team_management:ajax_cambiar_estado_miembro" %}', {
             method: 'POST',
             body: formData
         })
@@ -640,7 +640,7 @@ function migrarMiembro(tipo, miembroId, nuevoEquipoId, nombreEquipo) {
         formData.append('nuevo_equipo_id', nuevoEquipoId);
         formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
         
-        fetch('{% url "sales:ajax_migrar_miembro" %}', {
+        fetch('{% url "sales_team_management:ajax_migrar_miembro" %}', {
             method: 'POST',
             body: formData
         })
@@ -752,7 +752,7 @@ function toggleCollapse(elementId) {
 
 // Guardar estado de colapso en localStorage
 function saveCollapseState(elementId, isCollapsed) {
-    const key = 'hierarchy_collapse_state_{{ equipo.id }}';
+    const key = 'hierarchy_collapse_state_{{ unit.id }}';
     let states = JSON.parse(localStorage.getItem(key) || '{}');
     states[elementId] = isCollapsed;
     localStorage.setItem(key, JSON.stringify(states));
@@ -760,7 +760,7 @@ function saveCollapseState(elementId, isCollapsed) {
 
 // Restaurar estado de colapso desde localStorage
 function restoreCollapseStates() {
-    const key = 'hierarchy_collapse_state_{{ equipo.id }}';
+    const key = 'hierarchy_collapse_state_{{ unit.id }}';
     const states = JSON.parse(localStorage.getItem(key) || '{}');
     
     Object.keys(states).forEach(elementId => {

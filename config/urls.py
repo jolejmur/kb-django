@@ -24,6 +24,7 @@ from django.http import HttpResponse
 from apps.events.models import InvitacionQR
 from django.db import models
 
+
 def qr_public_secure_view(request, codigo_qr):
     """Vista pública segura para qrkorban.duckdns.org - Sin middleware de autenticación"""
     import logging
@@ -252,9 +253,9 @@ urlpatterns = [
     path('dashboard/', include('apps.dashboard.urls')),
     path('sales/', include('apps.sales_team_management.urls')),
     path('projects/', include('apps.real_estate_projects.urls')),
-    path('marketing/', include('apps.whatsapp_business.urls')),
+    path('marketing/', include(('apps.communications.urls', 'communications'))),
     path('events/', include('apps.events.urls')),
-    path('leads/', include(('apps.whatsapp_business.urls', 'leads'))),
+    path('reportes/', include('apps.groups.urls')),
     
     # Vista pública para QR de eventos (sin middleware de autenticación)
     path('qr/<uuid:codigo_qr>/', public_qr_info, name='public_qr'),

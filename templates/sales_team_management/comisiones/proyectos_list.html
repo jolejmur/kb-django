@@ -11,7 +11,7 @@
     <nav class="flex mb-6" aria-label="Breadcrumb">
         <ol class="inline-flex items-center space-x-1 md:space-x-3">
             <li class="inline-flex items-center">
-                <a href="{% url 'sales:dashboard' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                <a href="{% url 'sales_team_management:dashboard' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
                     <i class="fas fa-chart-line mr-2"></i>
                     Dashboard Ventas
                 </a>
@@ -197,7 +197,7 @@
 
                         <!-- Acciones -->
                         <div class="ml-6 flex flex-col space-y-2">
-                            <a href="{% url 'sales:comisiones_desarrollo' proyecto.pk %}"
+                            <a href="{% url 'sales_team_management:comisiones_desarrollo_config' proyecto.pk %}"
                                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors text-center">
                                 {% if proyecto.comision_desarrollo %}
                                     <i class="fas fa-edit mr-1"></i>Editar
@@ -206,7 +206,7 @@
                                 {% endif %}
                             </a>
                             
-                            <a href="{% url 'sales:proyectos_detail' proyecto.pk %}"
+                            <a href="{% url 'sales_team_management:proyectos_detail' proyecto.pk %}"
                                class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors text-center">
                                 <i class="fas fa-eye mr-1"></i>Ver Proyecto
                             </a>
@@ -247,7 +247,7 @@
             <i class="fas fa-building text-gray-300 text-6xl mb-4"></i>
             <h3 class="text-lg font-medium text-gray-900 mb-2">No se encontraron proyectos</h3>
             <p class="text-gray-500 mb-6">No hay proyectos que coincidan con los filtros aplicados</p>
-            <a href="{% url 'sales:proyectos_create' %}" 
+            <a href="{% url 'sales_team_management:proyectos_create' %}" 
                class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
                 <i class="fas fa-plus mr-2"></i>Crear Primer Proyecto
             </a>

@@ -41,8 +41,9 @@ INSTALLED_APPS = [
     'apps.dashboard',
     'apps.sales_team_management',
     'apps.real_estate_projects',
-    'apps.whatsapp_business',
+    'apps.communications',
     'apps.events',
+    'apps.groups',
     'apps.security',
 ]
 
@@ -52,6 +53,7 @@ MIDDLEWARE = [
     'apps.security.fixed_middleware.EffectiveBruteForceMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'apps.middleware.csrf_exempt.CSRFExemptMiddleware',  # ANTES de CsrfViewMiddleware
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -83,8 +85,12 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME', 'django_db'),
+        'USER': os.getenv('DB_USER', 'djangouser'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'django123'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
 
@@ -111,7 +117,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/La_Paz'
 
 USE_I18N = True
 

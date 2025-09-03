@@ -78,4 +78,16 @@ site/
 
 # Archivos de migración (opcional, descomentar si no quieres versionar las migraciones)
 # */migrations/*.py
-# !*/migrations/__init__.py 
+# !*/migrations/__init__.py
+
+# Archivos temporales, scripts de testing y debug
+temp_files/
+
+# Logs
+logs/
+
+# Documentación y archivos sensibles
+docs/
+
+# Archivos de configuración con credenciales
+config/settings/local.py 

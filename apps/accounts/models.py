@@ -189,6 +189,15 @@ class User(AbstractUser):
         help_text='Longitud de la ubicación del domicilio (-180 a +180)'
     )
     
+    # Foto de perfil
+    foto_perfil = models.ImageField(
+        upload_to='usuarios/fotos_perfil/',
+        verbose_name='Foto de Perfil',
+        null=True,
+        blank=True,
+        help_text='Foto de perfil del usuario (opcional)'
+    )
+    
     # Campos existentes
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -450,61 +459,44 @@ class User(AbstractUser):
     
     def get_equipo_venta(self):
         """Obtiene el equipo de venta al que pertenece este usuario"""
-        from apps.sales_team_management.models import EquipoVenta
-        
-        # Buscar en gerentes
-        gerencia = self.gerente_equipos.filter(activo=True).first()
-        if gerencia:
-            return gerencia.equipo_venta
-        
-        # Buscar en jefes de venta
-        jefatura = self.jefe_ventas.filter(activo=True).first()
-        if jefatura:
-            return jefatura.gerente_equipo.equipo_venta
-        
-        # Buscar en team leaders
-        team_leadership = self.team_leaders.filter(activo=True).first()
-        if team_leadership:
-            return team_leadership.jefe_venta.gerente_equipo.equipo_venta
-        
-        # Buscar en vendedores
-        venta = self.vendedores.filter(activo=True).first()
-        if venta:
-            return venta.team_leader.jefe_venta.gerente_equipo.equipo_venta
-        
-        return None
+        try:
+            from apps.sales_team_management.models import OrganizationalUnit
+            
+            # Buscar en membresías activas de equipos de venta
+            memberships = self.team_memberships.filter(
+                status='ACTIVE',
+                organizational_unit__unit_type='SALES',
+                organizational_unit__is_active=True
+            ).first()
+            
+            if memberships:
+                return memberships.organizational_unit
+            
+            return None
+        except Exception:
+            return None
     
     def get_rol_en_equipo_venta(self, equipo_venta=None):
         """Obtiene el rol del usuario en el equipo de ventas"""
-        if not equipo_venta:
-            equipo_venta = self.get_equipo_venta()
-        
-        if not equipo_venta:
+        try:
+            if not equipo_venta:
+                equipo_venta = self.get_equipo_venta()
+            
+            if not equipo_venta:
+                return None
+            
+            # Buscar la membresía activa en este equipo de venta específico
+            membership = self.team_memberships.filter(
+                status='ACTIVE',
+                organizational_unit=equipo_venta
+            ).first()
+            
+            if membership and membership.position_type:
+                return membership.position_type.name.upper()
+            
             return None
-        
-        # Verificar cada nivel de jerarquía
-        if self.gerente_equipos.filter(equipo_venta=equipo_venta, activo=True).exists():
-            return 'GERENTE_EQUIPO'
-        
-        if self.jefe_ventas.filter(
-            gerente_equipo__equipo_venta=equipo_venta, 
-            activo=True
-        ).exists():
-            return 'JEFE_VENTA'
-        
-        if self.team_leaders.filter(
-            jefe_venta__gerente_equipo__equipo_venta=equipo_venta, 
-            activo=True
-        ).exists():
-            return 'TEAM_LEADER'
-        
-        if self.vendedores.filter(
-            team_leader__jefe_venta__gerente_equipo__equipo_venta=equipo_venta, 
-            activo=True
-        ).exists():
-            return 'VENDEDOR'
-        
-        return None
+        except Exception:
+            return None
     
     def tiene_supervision_directa_activa(self, como_supervisor=True, equipo_venta=None):
         """Verifica si el usuario tiene supervisión directa activa"""

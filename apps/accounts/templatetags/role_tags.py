@@ -142,7 +142,7 @@ def role_badge(user):
         'Super Admin': 'danger',
         'Registro': 'primary',
         'Gerente de Proyecto': 'warning',
-        'Jefe de Equipo': 'info', 
+        'Gerente de Equipo': 'info', 
         'Team Leader': 'secondary',
         'Ventas': 'success',
     }

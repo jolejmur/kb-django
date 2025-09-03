@@ -36,8 +36,19 @@ class AuthenticationMiddleware:
         # If user is not authenticated and tries to access any page other than login,
         # redirect to login page
         if not request.user.is_authenticated and request.path != reverse('accounts:login'):
-            # Skip redirection for the admin login page and webhook endpoints
-            if not request.path.startswith('/admin/') and not request.path.startswith('/marketing/webhook/'):
+            # Define public paths that don't require authentication
+            public_paths = [
+                '/admin/',
+                '/marketing/webhook/',
+                '/sales/public/',
+                '/sales/ajax/generate-username',
+                '/sales/ajax/toggle-public-registration'
+            ]
+            
+            # Check if current path starts with any public path
+            is_public_path = any(request.path.startswith(path) for path in public_paths)
+            
+            if not is_public_path:
                 return redirect('accounts:login')
 
         response = self.get_response(request)

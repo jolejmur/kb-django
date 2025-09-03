@@ -268,13 +268,6 @@ def create_system_modules(categories):
         },
         {
             'category': 'CRM Y COMUNICACIONES',
-            'name': 'WhatsApp Business',
-            'url': '/marketing/',
-            'icon': 'fab fa-whatsapp',
-            'order': 2
-        },
-        {
-            'category': 'CRM Y COMUNICACIONES',
             'name': 'Configuraciones de Meta Business',
             'url': '/marketing/configuracion/',
             'icon': 'fab fa-meta',

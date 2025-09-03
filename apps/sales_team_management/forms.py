@@ -1,11 +1,15 @@
-# apps/sales/forms.py
+# apps/sales_team_management/forms.py
 from django import forms
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from decimal import Decimal
+import json
+
+# NUEVO MODELO - Sin Legacy
 from .models import (
-    EquipoVenta, GerenteEquipo, JefeVenta, TeamLeader, Vendedor,
-    ComisionVenta, SupervisionDirecta
+    OrganizationalUnit, PositionType, TeamMembership, 
+    HierarchyRelation, CommissionStructure
 )
 from apps.real_estate_projects.models import (
     GerenteProyecto, JefeProyecto, Proyecto, Inmueble,
@@ -16,540 +20,443 @@ User = get_user_model()
 
 
 # ============================================================
-# FORMULARIOS PARA EQUIPOS DE VENTA
+# FORMULARIOS PARA UNIDADES ORGANIZACIONALES
 # ============================================================
 
-class EquipoVentaForm(forms.ModelForm):
-    """Formulario para crear/editar equipos de venta"""
+class OrganizationalUnitForm(forms.ModelForm):
+    """Formulario para crear/editar unidades organizacionales"""
+    
+    # Campo toggle para habilitar jerarquía
+    enable_hierarchy = forms.BooleanField(
+        required=False,
+        initial=False,
+        label='Habilitar Estructura Jerárquica',
+        help_text='Activar para asignar esta unidad como subordinada de otra unidad',
+        widget=forms.CheckboxInput(attrs={
+            'class': 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded',
+            'onclick': 'toggleParentUnit(this.checked)',
+            'id': 'id_enable_hierarchy'
+        })
+    )
 
     class Meta:
-        model = EquipoVenta
-        fields = ['nombre', 'descripcion', 'activo']
+        model = OrganizationalUnit
+        fields = ['name', 'description', 'unit_type', 'parent_unit', 'is_active']
         widgets = {
-            'nombre': forms.TextInput(attrs={
+            'name': forms.TextInput(attrs={
                 'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500',
                 'placeholder': 'Ej: Equipo Centro Norte'
             }),
-            'descripcion': forms.Textarea(attrs={
+            'description': forms.Textarea(attrs={
                 'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500',
                 'rows': 3,
-                'placeholder': 'Descripción del equipo de ventas...'
+                'placeholder': 'Descripción de la unidad organizacional...'
             }),
-            'activo': forms.CheckboxInput(attrs={
+            'unit_type': forms.Select(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+            }),
+            'parent_unit': forms.Select(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+            }),
+            'is_active': forms.CheckboxInput(attrs={
                 'class': 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
             })
         }
         labels = {
-            'nombre': 'Nombre del Equipo',
-            'descripcion': 'Descripción',
-            'activo': 'Equipo Activo'
+            'name': 'Nombre de la Unidad',
+            'description': 'Descripción',
+            'unit_type': 'Tipo de Unidad',
+            'parent_unit': 'Unidad Padre',
+            'is_active': 'Unidad Activa'
         }
         help_texts = {
-            'nombre': 'Nombre único identificatorio del equipo de ventas (se limpiarán automáticamente los espacios)',
-            'descripcion': 'Descripción opcional del equipo y su área de trabajo',
-            'activo': 'Si el equipo está activo y puede recibir asignaciones'
+            'name': 'Nombre único identificatorio de la unidad organizacional',
+            'description': 'Descripción opcional de la unidad y su área de trabajo',
+            'unit_type': 'Tipo de unidad organizacional (ventas, cartera, etc.)',
+            'parent_unit': 'Unidad organizacional padre (opcional)',
+            'is_active': 'Si la unidad está activa y puede recibir asignaciones'
         }
 
-    def clean_nombre(self):
-        """Limpiar y validar el nombre del equipo"""
-        nombre = self.cleaned_data.get('nombre')
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         
-        if not nombre:
+        # Filtrar unidades padre activas, excluyendo la instancia actual
+        parent_queryset = OrganizationalUnit.objects.filter(is_active=True)
+        if self.instance.pk:
+            parent_queryset = parent_queryset.exclude(pk=self.instance.pk)
+            # Si estamos editando y ya tiene parent_unit, activar el toggle
+            if self.instance.parent_unit:
+                self.fields['enable_hierarchy'].initial = True
+        
+        self.fields['parent_unit'].queryset = parent_queryset
+        
+        # Configurar el campo parent_unit como no requerido y oculto por defecto
+        self.fields['parent_unit'].required = False
+        
+        # Si no hay parent_unit establecido, ocultar el campo inicialmente
+        if not (self.instance.pk and self.instance.parent_unit):
+            self.fields['parent_unit'].widget.attrs.update({
+                'style': 'display: none;',
+                'id': 'id_parent_unit'
+            })
+
+    def clean_name(self):
+        """Limpiar y validar el nombre de la unidad"""
+        name = self.cleaned_data.get('name')
+        
+        if not name:
             raise forms.ValidationError('Este campo es obligatorio.')
         
         # Limpiar espacios del principio y final
-        nombre = nombre.strip()
+        name = name.strip()
         
         # Validar que no esté vacío después de limpiar
-        if not nombre:
+        if not name:
             raise forms.ValidationError('El nombre no puede estar vacío o contener solo espacios.')
         
         # Validar unicidad considerando espacios y mayúsculas/minúsculas
-        queryset = EquipoVenta.objects.filter(nombre__iexact=nombre)
+        queryset = OrganizationalUnit.objects.filter(name__iexact=name)
         
         # Excluir la instancia actual si estamos editando
         if hasattr(self, 'instance') and self.instance and self.instance.pk:
             queryset = queryset.exclude(pk=self.instance.pk)
         
         if queryset.exists():
-            existing_equipo = queryset.first()
+            existing_unit = queryset.first()
             raise forms.ValidationError(
-                f'Ya existe un equipo con el nombre "{existing_equipo.nombre}" (ID: {existing_equipo.id}). '
+                f'Ya existe una unidad con el nombre "{existing_unit.name}" (ID: {existing_unit.id}). '
                 f'Los nombres deben ser únicos e irrepetibles.'
             )
         
-        return nombre
+        return name
     
     def clean(self):
         """Validaciones adicionales del formulario"""
         cleaned_data = super().clean()
-        return cleaned_data
-
-
-class MiembroEquipoForm(forms.Form):
-    """Formulario unificado para agregar miembros del equipo con roles"""
-    
-    ROLES_CHOICES = [
-        ('gerente', 'Gerente de Equipo'),
-        ('jefe_venta', 'Jefe de Venta'),
-        ('team_leader', 'Team Leader'),
-        ('vendedor', 'Vendedor'),
-    ]
-    
-    usuario = forms.ModelChoiceField(
-        queryset=User.objects.filter(is_active=True),
-        widget=forms.Select(attrs={
-            'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
-        }),
-        label="Usuario",
-        help_text="Selecciona el usuario para agregar al equipo"
-    )
-    
-    rol = forms.ChoiceField(
-        choices=ROLES_CHOICES,
-        widget=forms.Select(attrs={
-            'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
-        }),
-        label="Rol en el Equipo",
-        help_text="Selecciona el rol que tendrá en la jerarquía del equipo"
-    )
-    
-    # Campo opcional para jefes de venta, team leaders y vendedores
-    supervisor = forms.ModelChoiceField(
-        queryset=User.objects.none(),  # Se llenará dinámicamente
-        required=False,
-        widget=forms.Select(attrs={
-            'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
-        }),
-        label="Supervisor",
-        help_text="Selecciona el supervisor directo (si aplica)"
-    )
-    
-    def __init__(self, *args, **kwargs):
-        self.equipo = kwargs.pop('equipo', None)
-        self.usuario_actual = kwargs.pop('usuario_actual', None)  # Usuario que se está editando
-        super().__init__(*args, **kwargs)
+        parent_unit = cleaned_data.get('parent_unit')
+        enable_hierarchy = cleaned_data.get('enable_hierarchy', False)
         
-        if self.equipo:
-            # Filtrar usuarios que ya están en CUALQUIER equipo (un usuario solo puede pertenecer a un equipo)
-            usuarios_ocupados = set()
-            
-            # Usuarios que ya son gerentes en cualquier equipo
-            usuarios_ocupados.update(
-                GerenteEquipo.objects.filter(activo=True).values_list('usuario_id', flat=True)
-            )
-            
-            # Usuarios que ya son jefes de venta en cualquier equipo
-            usuarios_ocupados.update(
-                JefeVenta.objects.filter(activo=True).values_list('usuario_id', flat=True)
-            )
-            
-            # Usuarios que ya son team leaders en cualquier equipo
-            usuarios_ocupados.update(
-                TeamLeader.objects.filter(activo=True).values_list('usuario_id', flat=True)
-            )
-            
-            # Usuarios que ya son vendedores en cualquier equipo
-            usuarios_ocupados.update(
-                Vendedor.objects.filter(activo=True).values_list('usuario_id', flat=True)
-            )
-            
-            # Filtrar usuarios disponibles (solo usuarios que no están en ningún equipo)
-            self.fields['usuario'].queryset = User.objects.filter(
-                is_active=True
-            ).exclude(id__in=usuarios_ocupados)
-            
-            # Poblar el campo supervisor con todos los usuarios potenciales supervisores
-            # Se refinará por JavaScript en el frontend, pero Django necesita todas las opciones posibles
-            supervisores_disponibles = set()
-            
-            # Gerentes del equipo (pueden ser supervisores de jefes de venta)
-            for gerente in self.equipo.gerenteequipo_set.filter(activo=True):
-                supervisores_disponibles.add(gerente.usuario.id)
-            
-            # Jefes de venta del equipo (pueden ser supervisores de team leaders)
-            for gerente in self.equipo.gerenteequipo_set.filter(activo=True):
-                for jefe in gerente.jefeventas.filter(activo=True):
-                    supervisores_disponibles.add(jefe.usuario.id)
-            
-            # Team leaders del equipo (pueden ser supervisores de vendedores)
-            for gerente in self.equipo.gerenteequipo_set.filter(activo=True):
-                for jefe in gerente.jefeventas.filter(activo=True):
-                    for leader in jefe.teamleaders.filter(activo=True):
-                        supervisores_disponibles.add(leader.usuario.id)
-            
-            # Excluir el usuario actual de los supervisores disponibles
-            if self.usuario_actual:
-                supervisores_disponibles.discard(self.usuario_actual.id)
-            
-            # Establecer el queryset del supervisor con todos los posibles supervisores
-            self.fields['supervisor'].queryset = User.objects.filter(
-                id__in=supervisores_disponibles
-            ).order_by('first_name', 'last_name', 'username')
-    
-    def clean(self):
-        cleaned_data = super().clean()
-        rol = cleaned_data.get('rol')
-        supervisor = cleaned_data.get('supervisor')
-        usuario = cleaned_data.get('usuario')
+        # Si el toggle está desactivado, remover parent_unit
+        if not enable_hierarchy:
+            cleaned_data['parent_unit'] = None
         
-        if not rol or not usuario:
-            return cleaned_data
-            
-        # Validar si ya hay un gerente activo y se intenta agregar otro
-        if rol == 'gerente' and self.equipo:
-            gerentes_activos = self.equipo.gerenteequipo_set.filter(activo=True)
-            if gerentes_activos.exists():
-                gerente_actual = gerentes_activos.first()
+        # Validar que no se cree una referencia circular
+        if parent_unit and self.instance.pk:
+            if parent_unit == self.instance:
                 raise forms.ValidationError({
-                    'rol': f'Este equipo ya tiene un gerente activo: {gerente_actual.usuario.get_full_name() or gerente_actual.usuario.username}. '
-                           f'Solo puede haber un gerente por equipo. Para cambiar el gerente, primero desactiva el actual.'
+                    'parent_unit': 'Una unidad no puede ser su propia unidad padre.'
                 })
-        
-        # Validar que el usuario no esté ya asignado en CUALQUIER equipo (un usuario solo puede pertenecer a un equipo)
-        if usuario:
-            from .models import EquipoVenta
-            
-            # Buscar en todos los equipos si el usuario ya está asignado
-            equipos_del_usuario = []
-            
-            # Verificar en gerentes de todos los equipos
-            gerente_equipos = GerenteEquipo.objects.filter(usuario=usuario, activo=True)
-            for ge in gerente_equipos:
-                if ge.equipo_venta != self.equipo:  # Solo reportar si es de otro equipo
-                    equipos_del_usuario.append(f'Gerente en "{ge.equipo_venta.nombre}"')
-            
-            # Verificar en jefes de venta de todos los equipos
-            jefe_ventas = JefeVenta.objects.filter(usuario=usuario, activo=True)
-            for jv in jefe_ventas:
-                if jv.gerente_equipo.equipo_venta != self.equipo:  # Solo reportar si es de otro equipo
-                    equipos_del_usuario.append(f'Jefe de Venta en "{jv.gerente_equipo.equipo_venta.nombre}"')
-            
-            # Verificar en team leaders de todos los equipos
-            team_leaders = TeamLeader.objects.filter(usuario=usuario, activo=True)
-            for tl in team_leaders:
-                equipo_tl = tl.jefe_venta.gerente_equipo.equipo_venta
-                if equipo_tl != self.equipo:  # Solo reportar si es de otro equipo
-                    equipos_del_usuario.append(f'Team Leader en "{equipo_tl.nombre}"')
-            
-            # Verificar en vendedores de todos los equipos
-            vendedores = Vendedor.objects.filter(usuario=usuario, activo=True)
-            for v in vendedores:
-                equipo_v = v.team_leader.jefe_venta.gerente_equipo.equipo_venta
-                if equipo_v != self.equipo:  # Solo reportar si es de otro equipo
-                    equipos_del_usuario.append(f'Vendedor en "{equipo_v.nombre}"')
-            
-            # Si el usuario ya está en otros equipos, mostrar error
-            if equipos_del_usuario:
-                raise forms.ValidationError({
-                    'usuario': f'{usuario.get_full_name() or usuario.username} ya pertenece a otro equipo: {", ".join(equipos_del_usuario)}. '
-                               f'Un usuario solo puede pertenecer a un equipo a la vez.'
-                })
-            
-            # Verificar que no esté ya asignado en el equipo actual con otro rol
-            if self.equipo:
-                # Verificar en gerentes del equipo actual
-                if self.equipo.gerenteequipo_set.filter(usuario=usuario, activo=True).exists():
-                    raise forms.ValidationError({
-                        'usuario': f'{usuario.get_full_name() or usuario.username} ya es gerente de este equipo.'
-                    })
-                
-                # Verificar en jefes de venta del equipo actual
-                for gerente in self.equipo.gerenteequipo_set.all():
-                    if gerente.jefeventas.filter(usuario=usuario, activo=True).exists():
-                        raise forms.ValidationError({
-                            'usuario': f'{usuario.get_full_name() or usuario.username} ya es jefe de venta en este equipo.'
-                        })
-                    
-                    # Verificar en team leaders del equipo actual
-                    for jefe in gerente.jefeventas.all():
-                        if jefe.teamleaders.filter(usuario=usuario, activo=True).exists():
-                            raise forms.ValidationError({
-                                'usuario': f'{usuario.get_full_name() or usuario.username} ya es team leader en este equipo.'
-                            })
-                        
-                        # Verificar en vendedores del equipo actual
-                        for leader in jefe.teamleaders.all():
-                            if leader.vendedores.filter(usuario=usuario, activo=True).exists():
-                                raise forms.ValidationError({
-                                    'usuario': f'{usuario.get_full_name() or usuario.username} ya es vendedor en este equipo.'
-                                })
-        
-        # Validar que roles que requieren supervisor lo tengan
-        if rol in ['jefe_venta', 'team_leader', 'vendedor'] and not supervisor:
-            if rol == 'jefe_venta':
-                raise forms.ValidationError({
-                    'supervisor': 'Los jefes de venta deben tener un gerente como supervisor.'
-                })
-            elif rol == 'team_leader':
-                raise forms.ValidationError({
-                    'supervisor': 'Los team leaders deben tener un jefe de venta como supervisor.'
-                })
-            elif rol == 'vendedor':
-                raise forms.ValidationError({
-                    'supervisor': 'Los vendedores deben tener un team leader como supervisor.'
-                })
-        
-        # Validar que el supervisor sea del rol correcto
-        if supervisor and rol:
-            if rol == 'jefe_venta':
-                # El supervisor debe ser un gerente del equipo
-                if not self.equipo.gerenteequipo_set.filter(usuario=supervisor, activo=True).exists():
-                    raise forms.ValidationError({
-                        'supervisor': 'El supervisor seleccionado no es un gerente activo de este equipo.'
-                    })
-            elif rol == 'team_leader':
-                # El supervisor debe ser un jefe de venta del equipo
-                es_jefe_venta = False
-                for gerente in self.equipo.gerenteequipo_set.filter(activo=True):
-                    if gerente.jefeventas.filter(usuario=supervisor, activo=True).exists():
-                        es_jefe_venta = True
-                        break
-                if not es_jefe_venta:
-                    raise forms.ValidationError({
-                        'supervisor': 'El supervisor seleccionado no es un jefe de venta activo de este equipo.'
-                    })
-            elif rol == 'vendedor':
-                # El supervisor debe ser un team leader del equipo
-                es_team_leader = False
-                for gerente in self.equipo.gerenteequipo_set.filter(activo=True):
-                    for jefe in gerente.jefeventas.filter(activo=True):
-                        if jefe.teamleaders.filter(usuario=supervisor, activo=True).exists():
-                            es_team_leader = True
-                            break
-                    if es_team_leader:
-                        break
-                if not es_team_leader:
-                    raise forms.ValidationError({
-                        'supervisor': 'El supervisor seleccionado no es un team leader activo de este equipo.'
-                    })
         
         return cleaned_data
 
 
-# ============================================================
-# FORMULARIOS PARA SUPERVISIÓN DIRECTA
-# ============================================================
+class TeamMembershipForm(forms.ModelForm):
+    """Formulario para crear/editar membresías de equipo"""
 
-class SupervisionDirectaForm(forms.ModelForm):
-    """Formulario para crear supervisión directa (saltando niveles jerárquicos)"""
-    
-    supervisor = forms.ModelChoiceField(
-        queryset=User.objects.none(),  # Se llenará dinámicamente
-        widget=forms.Select(attrs={
-            'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
-        }),
-        label="Supervisor",
-        help_text="Usuario que supervisará directamente (Gerente, Jefe de Venta)"
-    )
-    
-    subordinado = forms.ModelChoiceField(
-        queryset=User.objects.none(),  # Se llenará dinámicamente
-        widget=forms.Select(attrs={
-            'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
-        }),
-        label="Subordinado",
-        help_text="Usuario que reportará directamente (Vendedor, Team Leader)"
-    )
-    
     class Meta:
-        model = SupervisionDirecta
-        fields = ['supervisor', 'subordinado', 'equipo_venta', 'tipo_supervision', 'notas']
+        model = TeamMembership
+        fields = ['user', 'position_type', 'assignment_type', 'notes', 'is_active']
         widgets = {
-            'equipo_venta': forms.Select(attrs={
+            'user': forms.Select(attrs={
                 'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
             }),
-            'tipo_supervision': forms.Select(attrs={
+            'position_type': forms.Select(attrs={
                 'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
             }),
-            'notas': forms.Textarea(attrs={
+            'assignment_type': forms.Select(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+            }),
+            'notes': forms.Textarea(attrs={
                 'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500',
                 'rows': 3,
-                'placeholder': 'Notas adicionales sobre esta supervisión directa...'
-            })
-        }
-        labels = {
-            'equipo_venta': 'Equipo de Venta',
-            'tipo_supervision': 'Tipo de Supervisión',
-            'notas': 'Notas Adicionales'
-        }
-        help_texts = {
-            'equipo_venta': 'Equipo donde se dará esta supervisión directa',
-            'tipo_supervision': 'Tipo de relación de supervisión directa',
-            'notas': 'Información adicional sobre esta asignación especial'
-        }
-    
-    def __init__(self, *args, **kwargs):
-        self.equipo = kwargs.pop('equipo', None)
-        super().__init__(*args, **kwargs)
-        
-        # Solo equipos activos
-        self.fields['equipo_venta'].queryset = EquipoVenta.objects.filter(activo=True)
-        
-        if self.equipo:
-            # Pre-seleccionar el equipo si se pasa como parámetro
-            self.fields['equipo_venta'].initial = self.equipo
-            self.setup_queryset_for_equipo(self.equipo)
-    
-    def setup_queryset_for_equipo(self, equipo):
-        """Configura los querysets de supervisor y subordinado para un equipo específico"""
-        # Posibles supervisores: Gerentes y Jefes de Venta del equipo
-        supervisores_ids = set()
-        
-        # Gerentes del equipo
-        for gerente in equipo.gerenteequipo_set.filter(activo=True):
-            supervisores_ids.add(gerente.usuario.id)
-        
-        # Jefes de venta del equipo
-        for gerente in equipo.gerenteequipo_set.filter(activo=True):
-            for jefe in gerente.jefeventas.filter(activo=True):
-                supervisores_ids.add(jefe.usuario.id)
-        
-        # Posibles subordinados: Team Leaders y Vendedores del equipo
-        subordinados_ids = set()
-        
-        # Team Leaders del equipo
-        for gerente in equipo.gerenteequipo_set.filter(activo=True):
-            for jefe in gerente.jefeventas.filter(activo=True):
-                for team_leader in jefe.teamleaders.filter(activo=True):
-                    subordinados_ids.add(team_leader.usuario.id)
-                    
-                    # Vendedores del equipo
-                    for vendedor in team_leader.vendedores.filter(activo=True):
-                        subordinados_ids.add(vendedor.usuario.id)
-        
-        # Establecer querysets
-        self.fields['supervisor'].queryset = User.objects.filter(
-            id__in=supervisores_ids
-        ).order_by('first_name', 'last_name')
-        
-        self.fields['subordinado'].queryset = User.objects.filter(
-            id__in=subordinados_ids
-        ).order_by('first_name', 'last_name')
-    
-    def clean(self):
-        cleaned_data = super().clean()
-        supervisor = cleaned_data.get('supervisor')
-        subordinado = cleaned_data.get('subordinado')
-        equipo_venta = cleaned_data.get('equipo_venta')
-        tipo_supervision = cleaned_data.get('tipo_supervision')
-        
-        if not all([supervisor, subordinado, equipo_venta, tipo_supervision]):
-            return cleaned_data
-        
-        # Validar que supervisor y subordinado sean diferentes
-        if supervisor == subordinado:
-            raise ValidationError('El supervisor y subordinado no pueden ser la misma persona.')
-        
-        # Validar que no exista ya una supervisión directa activa para este subordinado en este equipo
-        if SupervisionDirecta.objects.filter(
-            subordinado=subordinado,
-            equipo_venta=equipo_venta,
-            activo=True
-        ).exclude(pk=self.instance.pk if self.instance else None).exists():
-            raise ValidationError({
-                'subordinado': f'{subordinado.get_full_name() or subordinado.username} ya tiene una supervisión directa activa en este equipo.'
-            })
-        
-        # Validar coherencia del tipo de supervisión
-        supervisor_rol = self._get_rol_en_equipo(supervisor, equipo_venta)
-        subordinado_rol = self._get_rol_en_equipo(subordinado, equipo_venta)
-        
-        # Validar combinaciones válidas
-        combinaciones_validas = {
-            'GERENTE_TO_VENDEDOR': ('GERENTE', 'VENDEDOR'),
-            'GERENTE_TO_TEAMLEADER': ('GERENTE', 'TEAM_LEADER'),
-            'JEFE_TO_VENDEDOR': ('JEFE_VENTA', 'VENDEDOR'),
-        }
-        
-        if tipo_supervision in combinaciones_validas:
-            supervisor_esperado, subordinado_esperado = combinaciones_validas[tipo_supervision]
-            
-            if supervisor_rol != supervisor_esperado:
-                raise ValidationError({
-                    'supervisor': f'Para {tipo_supervision}, el supervisor debe ser {supervisor_esperado}, pero es {supervisor_rol}.'
-                })
-            
-            if subordinado_rol != subordinado_esperado:
-                raise ValidationError({
-                    'subordinado': f'Para {tipo_supervision}, el subordinado debe ser {subordinado_esperado}, pero es {subordinado_rol}.'
-                })
-        
-        return cleaned_data
-    
-    def _get_rol_en_equipo(self, usuario, equipo):
-        """Obtiene el rol de un usuario en un equipo específico"""
-        # Buscar en gerentes
-        if equipo.gerenteequipo_set.filter(usuario=usuario, activo=True).exists():
-            return 'GERENTE'
-        
-        # Buscar en jefes de venta
-        for gerente in equipo.gerenteequipo_set.filter(activo=True):
-            if gerente.jefeventas.filter(usuario=usuario, activo=True).exists():
-                return 'JEFE_VENTA'
-        
-        # Buscar en team leaders
-        for gerente in equipo.gerenteequipo_set.filter(activo=True):
-            for jefe in gerente.jefeventas.filter(activo=True):
-                if jefe.teamleaders.filter(usuario=usuario, activo=True).exists():
-                    return 'TEAM_LEADER'
-        
-        # Buscar en vendedores
-        for gerente in equipo.gerenteequipo_set.filter(activo=True):
-            for jefe in gerente.jefeventas.filter(activo=True):
-                for team_leader in jefe.teamleaders.filter(activo=True):
-                    if team_leader.vendedores.filter(usuario=usuario, activo=True).exists():
-                        return 'VENDEDOR'
-        
-        return 'DESCONOCIDO'
-
-
-class GerenteEquipoForm(forms.ModelForm):
-    """Formulario para asignar gerentes a equipos"""
-
-    usuario = forms.ModelChoiceField(
-        queryset=User.objects.filter(is_active=True),
-        widget=forms.Select(attrs={
-            'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
-        }),
-        label="Usuario",
-        help_text="Selecciona el usuario que será gerente de este equipo"
-    )
-
-    class Meta:
-        model = GerenteEquipo
-        fields = ['usuario', 'equipo_venta', 'activo']
-        widgets = {
-            'equipo_venta': forms.Select(attrs={
-                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+                'placeholder': 'Notas adicionales sobre la membresía...'
             }),
-            'activo': forms.CheckboxInput(attrs={
+            'is_active': forms.CheckboxInput(attrs={
                 'class': 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
             })
         }
         labels = {
-            'equipo_venta': 'Equipo de Venta',
-            'activo': 'Asignación Activa'
+            'user': 'Usuario',
+            'position_type': 'Tipo de Posición',
+            'assignment_type': 'Tipo de Asignación',
+            'notes': 'Notas',
+            'is_active': 'Membresía Activa'
+        }
+        help_texts = {
+            'user': 'Usuario que será miembro de la unidad organizacional',
+            'position_type': 'Tipo de posición/rol dentro de la unidad',
+            'assignment_type': 'Tipo de asignación (permanente, temporal, etc.)',
+            'notes': 'Información adicional sobre esta membresía'
         }
 
     def __init__(self, *args, **kwargs):
+        self.organizational_unit = kwargs.pop('organizational_unit', None)
         super().__init__(*args, **kwargs)
-        # Solo mostrar equipos activos
-        self.fields['equipo_venta'].queryset = EquipoVenta.objects.filter(activo=True)
-
-        # Si estamos editando, excluir el usuario actual para evitar duplicados
-        if self.instance.pk:
-            self.fields['usuario'].queryset = User.objects.filter(
+        
+        if self.organizational_unit:
+            # Filtrar posiciones aplicables al tipo de unidad
+            applicable_positions = PositionType.objects.filter(
+                Q(applicable_unit_types__contains=self.organizational_unit.unit_type) |
+                Q(applicable_unit_types='ALL'),
                 is_active=True
-            ).exclude(
-                gerente_equipos__equipo_venta=self.instance.equipo_venta
-            ).union(
-                User.objects.filter(id=self.instance.usuario.id)
+            ).order_by('hierarchy_level')
+            self.fields['position_type'].queryset = applicable_positions
+            
+            # Excluir usuarios que ya tienen membresía activa en esta unidad
+            existing_users = TeamMembership.objects.filter(
+                organizational_unit=self.organizational_unit,
+                is_active=True
+            ).values_list('user_id', flat=True)
+            
+            # Si estamos editando, incluir el usuario actual
+            if self.instance.pk:
+                existing_users = existing_users.exclude(id=self.instance.id)
+            
+            self.fields['user'].queryset = User.objects.filter(
+                is_active=True
+            ).exclude(id__in=existing_users)
+
+    def clean(self):
+        """Validaciones adicionales del formulario"""
+        cleaned_data = super().clean()
+        user = cleaned_data.get('user')
+        position_type = cleaned_data.get('position_type')
+        
+        if user and position_type and self.organizational_unit:
+            # Validar que el usuario no tenga ya una membresía activa en esta unidad
+            existing_membership = TeamMembership.objects.filter(
+                organizational_unit=self.organizational_unit,
+                user=user,
+                is_active=True
             )
+            
+            # Excluir la instancia actual si estamos editando
+            if self.instance.pk:
+                existing_membership = existing_membership.exclude(pk=self.instance.pk)
+            
+            if existing_membership.exists():
+                raise forms.ValidationError({
+                    'user': f'{user.get_full_name() or user.username} ya tiene una membresía activa en esta unidad.'
+                })
+        
+        return cleaned_data
 
 
 # ============================================================
-# FORMULARIOS PARA PROYECTOS
+# FORMULARIOS PARA JERARQUÍA Y RELACIONES
+# ============================================================
+
+class HierarchyRelationForm(forms.ModelForm):
+    """Formulario para crear/editar relaciones jerárquicas"""
+
+    class Meta:
+        model = HierarchyRelation
+        fields = ['relation_type', 'authority_level', 'justification', 'is_primary', 'is_active']
+        widgets = {
+            'relation_type': forms.Select(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+            }),
+            'authority_level': forms.Select(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+            }),
+            'justification': forms.Textarea(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500',
+                'rows': 3,
+                'placeholder': 'Justificación para esta relación jerárquica...'
+            }),
+            'is_primary': forms.CheckboxInput(attrs={
+                'class': 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+            }),
+            'is_active': forms.CheckboxInput(attrs={
+                'class': 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+            })
+        }
+        labels = {
+            'relation_type': 'Tipo de Relación',
+            'authority_level': 'Nivel de Autoridad',
+            'justification': 'Justificación',
+            'is_primary': 'Relación Primaria',
+            'is_active': 'Relación Activa'
+        }
+        help_texts = {
+            'relation_type': 'Tipo de relación jerárquica (normal, directa, funcional)',
+            'authority_level': 'Nivel de autoridad en la relación',
+            'justification': 'Razón o justificación para esta relación especial',
+            'is_primary': 'Si esta es la relación de supervisión principal',
+            'is_active': 'Si la relación está actualmente activa'
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.organizational_unit = kwargs.pop('organizational_unit', None)
+        super().__init__(*args, **kwargs)
+        
+        if self.organizational_unit:
+            # Obtener membresías disponibles para supervisor y subordinado
+            memberships = TeamMembership.objects.filter(
+                organizational_unit=self.organizational_unit,
+                is_active=True
+            ).select_related('user', 'position_type')
+            
+            # Crear campos dinámicos para supervisor y subordinado
+            self.fields['supervisor_membership'] = forms.ModelChoiceField(
+                queryset=memberships.filter(position_type__can_supervise=True),
+                empty_label="Seleccionar supervisor",
+                widget=forms.Select(attrs={
+                    'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+                }),
+                label="Supervisor",
+                help_text="Miembro que ejercerá la supervisión"
+            )
+            
+            self.fields['subordinate_membership'] = forms.ModelChoiceField(
+                queryset=memberships,
+                empty_label="Seleccionar subordinado",
+                widget=forms.Select(attrs={
+                    'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+                }),
+                label="Subordinado",
+                help_text="Miembro que será supervisado"
+            )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        supervisor = cleaned_data.get('supervisor_membership')
+        subordinate = cleaned_data.get('subordinate_membership')
+        
+        if supervisor and subordinate:
+            # Validar que no sea auto-supervisión
+            if supervisor.user == subordinate.user:
+                raise forms.ValidationError("Un usuario no puede supervisarse a sí mismo.")
+            
+            # Validar jerarquía (supervisor debe tener nivel jerárquico menor)
+            if supervisor.position_type.hierarchy_level >= subordinate.position_type.hierarchy_level:
+                raise forms.ValidationError(
+                    f"El supervisor ({supervisor.position_type.name}) debe tener un nivel jerárquico superior al subordinado ({subordinate.position_type.name})."
+                )
+            
+            # Validar que no exista ya una relación activa del mismo tipo
+            existing_relation = HierarchyRelation.objects.filter(
+                supervisor_membership=supervisor,
+                subordinate_membership=subordinate,
+                relation_type=cleaned_data.get('relation_type'),
+                is_active=True
+            ).first()
+            
+            if existing_relation and (not self.instance.pk or existing_relation.pk != self.instance.pk):
+                raise forms.ValidationError(
+                    f"Ya existe una relación activa de este tipo entre {supervisor.user.get_full_name()} y {subordinate.user.get_full_name()}."
+                )
+        
+        return cleaned_data
+
+
+# ============================================================
+# FORMULARIOS PARA ESTRUCTURA DE COMISIONES
+# ============================================================
+
+class CommissionStructureForm(forms.ModelForm):
+    """Formulario para crear/editar estructuras de comisiones"""
+
+    class Meta:
+        model = CommissionStructure
+        fields = ['structure_name', 'commission_type', 'is_active']
+        widgets = {
+            'structure_name': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500',
+                'placeholder': 'Ej: Comisiones Equipo Ventas Norte'
+            }),
+            'commission_type': forms.Select(attrs={
+                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+            }),
+            'is_active': forms.CheckboxInput(attrs={
+                'class': 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+            })
+        }
+        labels = {
+            'structure_name': 'Nombre de la Estructura',
+            'commission_type': 'Tipo de Comisión',
+            'is_active': 'Estructura Activa'
+        }
+        help_texts = {
+            'structure_name': 'Nombre descriptivo de la estructura de comisiones',
+            'commission_type': 'Tipo de comisión (ventas, desarrollo, cartera, etc.)',
+            'is_active': 'Si la estructura está activa y en uso'
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.organizational_unit = kwargs.pop('organizational_unit', None)
+        super().__init__(*args, **kwargs)
+        
+        if self.organizational_unit:
+            # Obtener posiciones aplicables a esta unidad
+            applicable_positions = PositionType.objects.filter(
+                Q(applicable_unit_types__contains=self.organizational_unit.unit_type) |
+                Q(applicable_unit_types='ALL'),
+                is_active=True
+            ).order_by('hierarchy_level')
+            
+            # Configurar campos dinámicos para porcentajes por posición
+            initial_percentages = {}
+            if self.instance.pk and self.instance.position_percentages:
+                initial_percentages = self.instance.position_percentages
+            else:
+                # Valores por defecto distribuidos equitativamente
+                total_positions = applicable_positions.count()
+                default_percentage = 100.0 / total_positions if total_positions > 0 else 0.0
+                for position in applicable_positions:
+                    initial_percentages[position.code] = default_percentage
+            
+            # Campo oculto para almacenar los porcentajes JSON
+            self.fields['position_percentages'] = forms.CharField(
+                widget=forms.HiddenInput(),
+                initial=json.dumps(initial_percentages),
+                required=False
+            )
+            
+            # Agregar campos dinámicos para cada posición
+            for position in applicable_positions:
+                field_name = f'percentage_{position.code}'
+                self.fields[field_name] = forms.DecimalField(
+                    label=f'% {position.name}',
+                    max_digits=5,
+                    decimal_places=2,
+                    min_value=0,
+                    max_value=100,
+                    initial=initial_percentages.get(position.code, 0.0),
+                    widget=forms.NumberInput(attrs={
+                        'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500',
+                        'step': '0.01'
+                    }),
+                    help_text=f'Porcentaje de comisión para la posición {position.name}'
+                )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        
+        # Recopilar porcentajes y validar que sumen 100%
+        total_percentage = 0
+        position_percentages = {}
+        
+        for field_name, value in cleaned_data.items():
+            if field_name.startswith('percentage_') and value is not None:
+                position_code = field_name.replace('percentage_', '')
+                position_percentages[position_code] = float(value)
+                total_percentage += float(value)
+        
+        # Permitir pequeñas diferencias de redondeo
+        if abs(total_percentage - 100.0) > 0.01:
+            raise forms.ValidationError(
+                f'La suma de porcentajes debe ser 100%. Actual: {total_percentage:.2f}%'
+            )
+        
+        # Guardar los porcentajes en el campo JSON
+        cleaned_data['position_percentages'] = position_percentages
+        
+        return cleaned_data
+
+
+# ============================================================
+# FORMULARIOS PARA PROYECTOS (MANTENER FUNCIONALIDAD ORIGINAL)
 # ============================================================
 
 class ProyectoForm(forms.ModelForm):
@@ -574,14 +481,15 @@ class ProyectoForm(forms.ModelForm):
         help_text="Jefe responsable de la ejecución del proyecto"
     )
 
+    # ACTUALIZADO: Usar OrganizationalUnit en lugar de EquipoVenta
     equipos_venta = forms.ModelMultipleChoiceField(
-        queryset=EquipoVenta.objects.filter(activo=True),
+        queryset=OrganizationalUnit.objects.filter(is_active=True, unit_type='SALES'),
         widget=forms.CheckboxSelectMultiple(attrs={
             'class': 'text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
         }),
         required=False,
-        label="Equipos de Venta Asignados",
-        help_text="Equipos que podrán vender inmuebles de este proyecto"
+        label="Unidades de Venta Asignadas",
+        help_text="Unidades organizacionales que podrán vender inmuebles de este proyecto"
     )
 
     class Meta:
@@ -621,10 +529,13 @@ class ProyectoForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Si estamos editando, cargar los equipos actuales
+        # Si estamos editando, cargar las unidades actuales
         if self.instance.pk:
-            self.fields['equipos_venta'].initial = self.instance.equipos_venta.filter(
-                asignacionequipoproyecto__activo=True
+            # Adaptar para el nuevo modelo - esto necesitará ajustes según el modelo real
+            self.fields['equipos_venta'].initial = OrganizationalUnit.objects.filter(
+                unit_type='SALES',
+                is_active=True
+                # Aquí necesitarás ajustar según cómo se relacionen los proyectos con las unidades
             )
 
     def clean(self):
@@ -635,21 +546,12 @@ class ProyectoForm(forms.ModelForm):
         proyecto = super().save(commit=commit)
 
         if commit:
-            # Gestionar asignaciones de equipos de venta
+            # Gestionar asignaciones de unidades organizacionales
+            # Esta lógica necesitará ser adaptada según el modelo real
             equipos_seleccionados = self.cleaned_data.get('equipos_venta', [])
-
-            # Desactivar asignaciones actuales
-            AsignacionEquipoProyecto.objects.filter(
-                proyecto=proyecto
-            ).update(activo=False)
-
-            # Crear nuevas asignaciones
-            for equipo in equipos_seleccionados:
-                AsignacionEquipoProyecto.objects.update_or_create(
-                    proyecto=proyecto,
-                    equipo_venta=equipo,
-                    defaults={'activo': True}
-                )
+            
+            # Aquí necesitarás implementar la lógica de asignación
+            # según cómo se relacionen los proyectos con las unidades organizacionales
 
         return proyecto
 
@@ -694,47 +596,12 @@ class InmuebleForm(forms.ModelForm):
                 'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500',
                 'rows': 3,
                 'placeholder': 'Características especiales del inmueble...'
-            }),
-            'disponible': forms.CheckboxInput(attrs={
-                'class': 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
             })
         }
-        labels = {
-            'codigo': 'Código del Inmueble',
-            'tipo': 'Tipo de Inmueble',
-            'm2': 'Metros Cuadrados (m²)',
-            'precio_base': 'Precio Base (COP)',
-            'precio_venta': 'Precio de Venta (COP)',
-            'estado': 'Estado',
-            'piso': 'Piso',
-            'orientacion': 'Orientación',
-            'caracteristicas': 'Características',
-            'disponible': 'Disponible para Venta'
-        }
-        help_texts = {
-            'codigo': 'Código único del inmueble (ej: A-101, Torre1-502)',
-            'area_terreno': 'Solo aplica para casas y algunos tipos de inmuebles',
-            'precio_base': 'Precio base sin descuentos ni promociones',
-            'precio_venta': 'Precio final de venta al público',
-            'piso': 'Número de piso (0 para planta baja)',
-            'caracteristicas': 'Características especiales, acabados, vista, etc.'
-        }
-
-    def clean(self):
-        cleaned_data = super().clean()
-        precio_base = cleaned_data.get('precio_base')
-        precio_venta = cleaned_data.get('precio_venta')
-
-        if precio_base and precio_venta and precio_venta < precio_base:
-            raise ValidationError({
-                'precio_venta': 'El precio de venta no puede ser menor al precio base.'
-            })
-
-        return cleaned_data
 
 
 # ============================================================
-# FORMULARIOS PARA COMISIONES
+# FORMULARIOS PARA COMISIONES (MANTENER LEGACY PARA PROYECTOS)
 # ============================================================
 
 class ComisionDesarrolloForm(forms.ModelForm):
@@ -765,10 +632,6 @@ class ComisionDesarrolloForm(forms.ModelForm):
             'porcentaje_jefe_proyecto': 'Comisión Jefe de Proyecto (%)',
             'activo': 'Configuración Activa'
         }
-        help_texts = {
-            'porcentaje_gerente_proyecto': 'Porcentaje de comisión para el gerente del proyecto',
-            'porcentaje_jefe_proyecto': 'Porcentaje de comisión para el jefe del proyecto'
-        }
 
     def clean(self):
         cleaned_data = super().clean()
@@ -784,84 +647,14 @@ class ComisionDesarrolloForm(forms.ModelForm):
         return cleaned_data
 
 
-class ComisionVentaForm(forms.ModelForm):
-    """Formulario para configurar comisiones de venta"""
-
-    class Meta:
-        model = ComisionVenta
-        fields = [
-            'porcentaje_gerente_equipo', 'porcentaje_jefe_venta',
-            'porcentaje_team_leader', 'porcentaje_vendedor', 'activo'
-        ]
-        widgets = {
-            'porcentaje_gerente_equipo': forms.NumberInput(attrs={
-                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500',
-                'step': '0.01',
-                'min': '0',
-                'max': '100'
-            }),
-            'porcentaje_jefe_venta': forms.NumberInput(attrs={
-                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500',
-                'step': '0.01',
-                'min': '0',
-                'max': '100'
-            }),
-            'porcentaje_team_leader': forms.NumberInput(attrs={
-                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500',
-                'step': '0.01',
-                'min': '0',
-                'max': '100'
-            }),
-            'porcentaje_vendedor': forms.NumberInput(attrs={
-                'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500',
-                'step': '0.01',
-                'min': '0',
-                'max': '100'
-            }),
-            'activo': forms.CheckboxInput(attrs={
-                'class': 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
-            })
-        }
-        labels = {
-            'porcentaje_gerente_equipo': 'Comisión Gerente de Equipo (%)',
-            'porcentaje_jefe_venta': 'Comisión Jefe de Venta (%)',
-            'porcentaje_team_leader': 'Comisión Team Leader (%)',
-            'porcentaje_vendedor': 'Comisión Vendedor (%)',
-            'activo': 'Configuración Activa'
-        }
-        help_texts = {
-            'porcentaje_gerente_equipo': 'Porcentaje de comisión para el gerente del equipo',
-            'porcentaje_jefe_venta': 'Porcentaje de comisión para el jefe de venta',
-            'porcentaje_team_leader': 'Porcentaje de comisión para el team leader',
-            'porcentaje_vendedor': 'Porcentaje de comisión para el vendedor'
-        }
-
-    def clean(self):
-        cleaned_data = super().clean()
-        porcentajes = [
-            cleaned_data.get('porcentaje_gerente_equipo', 0),
-            cleaned_data.get('porcentaje_jefe_venta', 0),
-            cleaned_data.get('porcentaje_team_leader', 0),
-            cleaned_data.get('porcentaje_vendedor', 0),
-        ]
-
-        total = sum(porcentajes)
-        if total > 100:
-            raise ValidationError(
-                f'La suma de todos los porcentajes ({total}%) no puede exceder 100%.'
-            )
-
-        return cleaned_data
-
-
 # ============================================================
 # FORMULARIOS PARA BÚSQUEDA Y FILTROS
 # ============================================================
 
-class EquipoVentaFilterForm(forms.Form):
-    """Formulario para filtrar equipos de venta"""
+class OrganizationalUnitFilterForm(forms.Form):
+    """Formulario para filtrar unidades organizacionales"""
 
-    nombre = forms.CharField(
+    name = forms.CharField(
         required=False,
         widget=forms.TextInput(attrs={
             'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500',
@@ -870,7 +663,16 @@ class EquipoVentaFilterForm(forms.Form):
         label='Nombre'
     )
 
-    activo = forms.ChoiceField(
+    unit_type = forms.ChoiceField(
+        choices=[('', 'Todos')] + OrganizationalUnit.UNIT_TYPES,
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500'
+        }),
+        label='Tipo de Unidad'
+    )
+
+    is_active = forms.ChoiceField(
         choices=[('', 'Todos'), ('true', 'Activos'), ('false', 'Inactivos')],
         required=False,
         widget=forms.Select(attrs={

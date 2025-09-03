@@ -1,0 +1,259 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-slate-800 mb-2">
+                        <i class="fas fa-user-tie mr-3 text-green-600"></i>
+                        {{ title }}
+                    </h1>
+                    <p class="text-slate-600">
+                        Este reporte muestra todos los usuarios que tienen permisos para asignar leads a vendedores
+                    </p>
+                </div>
+                <div class="text-right">
+                    <a href="{% url 'groups:reports_dashboard' %}" 
+                       class="bg-slate-600 hover:bg-slate-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Volver al Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                        <i class="fas fa-users text-blue-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-slate-600">Total Usuarios</p>
+                        <p class="text-2xl font-bold text-slate-900">{{ stats.total_users }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
+                        <i class="fas fa-user-shield text-green-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-slate-600">Roles Activos</p>
+                        <p class="text-2xl font-bold text-slate-900">{{ stats.active_roles }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
+                        <i class="fas fa-layer-group text-purple-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-slate-600">Grupos Relevantes</p>
+                        <p class="text-2xl font-bold text-slate-900">{{ stats.relevant_groups }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mr-4">
+                        <i class="fas fa-crown text-yellow-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-slate-600">Superusuarios</p>
+                        <p class="text-2xl font-bold text-slate-900">{{ stats.by_category.superusuarios }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Categories -->
+        <div class="space-y-6">
+            {% for category_key, users in user_categories.items %}
+                {% if users %}
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <div class="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4">
+                        <h2 class="text-xl font-bold text-white flex items-center">
+                            {% if category_key == 'superusuarios' %}
+                                <i class="fas fa-crown mr-3 text-yellow-400"></i>
+                                Superusuarios
+                            {% elif category_key == 'gerentes' %}
+                                <i class="fas fa-user-cog mr-3 text-purple-400"></i>
+                                Gerentes
+                            {% elif category_key == 'jefes_venta' %}
+                                <i class="fas fa-user-tie mr-3 text-blue-400"></i>
+                                Jefes de Venta
+                            {% elif category_key == 'team_leaders' %}
+                                <i class="fas fa-users-cog mr-3 text-green-400"></i>
+                                Team Leaders
+                            {% elif category_key == 'supervisores_chat' %}
+                                <i class="fas fa-comments mr-3 text-cyan-400"></i>
+                                Supervisores de Chat
+                            {% elif category_key == 'administradores' %}
+                                <i class="fas fa-user-shield mr-3 text-orange-400"></i>
+                                Administradores
+                            {% else %}
+                                <i class="fas fa-user mr-3 text-slate-400"></i>
+                                Otros Usuarios
+                            {% endif %}
+                            <span class="ml-auto bg-white bg-opacity-20 rounded-full px-3 py-1 text-sm">
+                                {{ users|length }} usuario{{ users|length|pluralize }}
+                            </span>
+                        </h2>
+                    </div>
+
+                    <div class="p-6">
+                        <div class="space-y-4">
+                            {% for user_info in users %}
+                            <div class="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center mb-2">
+                                            <div class="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center mr-3">
+                                                {% if user_info.user.foto_perfil %}
+                                                    <img src="{{ user_info.user.foto_perfil.url }}" 
+                                                         alt="{{ user_info.user.get_full_name }}"
+                                                         class="w-10 h-10 rounded-full object-cover">
+                                                {% else %}
+                                                    <i class="fas fa-user text-slate-500"></i>
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                <h3 class="font-semibold text-slate-900">
+                                                    {{ user_info.user.get_full_name|default:user_info.user.username }}
+                                                </h3>
+                                                <p class="text-sm text-slate-600">
+                                                    {{ user_info.user.email }}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                            <div>
+                                                <h4 class="font-medium text-slate-700 mb-2">Rol Asignado</h4>
+                                                <span class="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                                                    {{ user_info.role_name }}
+                                                </span>
+                                            </div>
+
+                                            <div>
+                                                <h4 class="font-medium text-slate-700 mb-2">Razón de Acceso</h4>
+                                                <ul class="text-sm text-slate-600">
+                                                    {% for reason in user_info.can_assign_reason %}
+                                                        <li class="flex items-center mb-1">
+                                                            <i class="fas fa-check-circle text-green-500 mr-2 text-xs"></i>
+                                                            {{ reason }}
+                                                        </li>
+                                                    {% endfor %}
+                                                </ul>
+                                            </div>
+                                        </div>
+
+                                        <!-- Grupos/Módulos -->
+                                        {% if user_info.groups %}
+                                        <div class="mt-4">
+                                            <h4 class="font-medium text-slate-700 mb-2">Módulos/Grupos de Acceso</h4>
+                                            <div class="flex flex-wrap gap-2">
+                                                {% for group in user_info.groups %}
+                                                    <span class="inline-block px-2 py-1 bg-slate-100 text-slate-700 rounded text-xs">
+                                                        {{ group.name }}
+                                                    </span>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        {% endif %}
+
+                                        <!-- Permisos (collapsible) -->
+                                        <div class="mt-4">
+                                            <button type="button" 
+                                                    class="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+                                                    onclick="togglePermissions('perms-{{ user_info.user.id }}')">
+                                                <i class="fas fa-chevron-right mr-1 transform transition-transform" 
+                                                   id="chevron-{{ user_info.user.id }}"></i>
+                                                Ver permisos detallados
+                                            </button>
+                                            <div id="perms-{{ user_info.user.id }}" class="hidden mt-2">
+                                                <div class="bg-slate-50 rounded p-3">
+                                                    <ul class="text-xs text-slate-600 space-y-1">
+                                                        {% for permission in user_info.permissions_summary %}
+                                                            <li class="flex items-start">
+                                                                <i class="fas fa-key mr-2 text-slate-400 mt-0.5"></i>
+                                                                {{ permission }}
+                                                            </li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center space-x-2">
+                                        {% if user_info.user.is_active %}
+                                            <span class="w-3 h-3 bg-green-500 rounded-full" title="Usuario activo"></span>
+                                        {% else %}
+                                            <span class="w-3 h-3 bg-red-500 rounded-full" title="Usuario inactivo"></span>
+                                        {% endif %}
+                                        
+                                        {% if user_info.user.is_superuser %}
+                                            <i class="fas fa-crown text-yellow-500" title="Superusuario"></i>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        <!-- Groups Reference -->
+        <div class="mt-8">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center">
+                    <i class="fas fa-info-circle mr-3 text-blue-600"></i>
+                    Grupos/Módulos Relacionados con Asignación de Leads
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {% for group in lead_assignment_groups %}
+                        <div class="border border-slate-200 rounded-lg p-3">
+                            <h3 class="font-medium text-slate-900">{{ group.name }}</h3>
+                            <p class="text-sm text-slate-600 mt-1">
+                                {{ group.permissions.count }} permiso{{ group.permissions.count|pluralize }}
+                            </p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function togglePermissions(elementId) {
+    const element = document.getElementById(elementId);
+    const chevron = document.getElementById('chevron-' + elementId.split('-')[1]);
+    
+    if (element.classList.contains('hidden')) {
+        element.classList.remove('hidden');
+        chevron.classList.add('rotate-90');
+    } else {
+        element.classList.add('hidden');
+        chevron.classList.remove('rotate-90');
+    }
+}
+</script>
+{% endblock %}
